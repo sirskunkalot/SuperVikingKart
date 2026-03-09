@@ -14,12 +14,14 @@ namespace SuperVikingKart
         public string Name;
         public string StatusEffect;
         public BuffTarget Target;
+        public GameObject EffectPrefab;
 
-        public BuffDefinition(string name, string statusEffect, BuffTarget target)
+        public BuffDefinition(string name, string statusEffect, BuffTarget target, GameObject effectPrefab = null)
         {
             Name = name;
             StatusEffect = statusEffect;
             Target = target;
+            EffectPrefab = effectPrefab;
         }
     }
 
@@ -236,6 +238,11 @@ namespace SuperVikingKart
                         localPlayer.Message(MessageHud.MessageType.Center, $"{buff.Name} for Both!");
                     }
                     break;
+            }
+            
+            if (buff.EffectPrefab)
+            {
+                ZNetScene.instance.SpawnObject(transform.position, Quaternion.identity, buff.EffectPrefab);
             }
         }
 
