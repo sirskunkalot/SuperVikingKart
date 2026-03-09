@@ -1,10 +1,10 @@
 ﻿{
   "name": "SuperVikingKart",
-  "description": "Mount your cart and let your friends pull you around. Bring a bow.",
-  "version_number": "0.0.2",
+  "description": "",
+  "version_number": "0.0.1",
   "website_url": "https://github.com/sirskunkalot/SuperVikingKart",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2333",
-    "ValheimModding-Jotunn-2.27.1"
+    "ValheimModding-Jotunn-2.28.0"
   ]
 }
