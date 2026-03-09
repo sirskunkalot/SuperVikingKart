@@ -34,10 +34,11 @@ namespace SuperVikingKart
 
         private static readonly BuffDefinition[] Buffs =
         {
-            new BuffDefinition("Speed Boost", "SE_Wind", BuffTarget.Puller),
-            new BuffDefinition("Stamina Regen", "SE_Rested", BuffTarget.Puller),
-            new BuffDefinition("Shield", "SE_Shield", BuffTarget.Rider),
-            new BuffDefinition("Health Regen", "SE_Potion_healthmedium", BuffTarget.Rider),
+            new BuffDefinition("Speed Boost", "Potion_hasty", BuffTarget.Puller),
+            new BuffDefinition("Stamina Regen", "Potion_stamina_minor", BuffTarget.Puller),
+            new BuffDefinition("Shield", "GP_Bonemass", BuffTarget.Rider),
+            new BuffDefinition("Health Regen", "Potion_healthminor", BuffTarget.Rider),
+            new BuffDefinition("Living Dead", "CorpseRun", BuffTarget.Both),
         };
 
         // --- Lifecycle ---
