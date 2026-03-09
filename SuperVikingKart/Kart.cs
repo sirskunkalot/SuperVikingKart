@@ -268,7 +268,7 @@ namespace SuperVikingKart
 
             SuperVikingKart.DebugLog($"KartRespawn - Spawning Kart at {position}");
 
-            Object.Instantiate(prefab, position, Quaternion.identity);
+            ZNetScene.instance?.SpawnObject(position, Quaternion.identity, prefab);
         }
     }
 }

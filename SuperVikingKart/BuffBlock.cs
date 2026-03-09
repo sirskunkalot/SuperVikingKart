@@ -242,7 +242,7 @@ namespace SuperVikingKart
             
             if (buff.EffectPrefab)
             {
-                ZNetScene.instance.SpawnObject(transform.position, Quaternion.identity, buff.EffectPrefab);
+                ZNetScene.instance?.SpawnObject(transform.position, Quaternion.identity, buff.EffectPrefab);
             }
         }
 
