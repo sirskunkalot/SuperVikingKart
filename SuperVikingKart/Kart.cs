@@ -234,8 +234,13 @@ namespace SuperVikingKart
     [HarmonyPatch(typeof(WearNTear), nameof(WearNTear.Destroy))]
     internal class KartRespawnPatch
     {
+        internal static bool IsBeingRemoved;
+
         private static void Prefix(WearNTear __instance)
         {
+            if (IsBeingRemoved)
+                return;
+            
             var Kart = __instance.GetComponentInChildren<SuperVikingKartComponent>();
 
             if (!Kart)
@@ -269,6 +274,20 @@ namespace SuperVikingKart
             SuperVikingKart.DebugLog($"KartRespawn - Spawning Kart at {position}");
 
             ZNetScene.instance?.SpawnObject(position, Quaternion.identity, prefab);
+        }
+    }
+    
+    [HarmonyPatch(typeof(WearNTear), nameof(WearNTear.Remove))]
+    internal class KartRemovePatch
+    {
+        private static void Prefix()
+        {
+            KartRespawnPatch.IsBeingRemoved = true;
+        }
+
+        private static void Postfix()
+        {
+            KartRespawnPatch.IsBeingRemoved = false;
         }
     }
 }
