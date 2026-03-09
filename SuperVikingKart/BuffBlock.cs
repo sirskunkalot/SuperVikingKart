@@ -219,20 +219,21 @@ namespace SuperVikingKart
                 case BuffTarget.Puller:
                     if (isPuller)
                         ApplyToPlayer(localPlayer, buff);
-                    else
-                        SuperVikingKart.DebugLog("BuffBlock RPC_ApplyBuff - Puller buff but not puller, skipping");
+                    if (isPuller || isRider)
+                        localPlayer.Message(MessageHud.MessageType.Center, $"{buff.Name} for Puller!");
                     break;
                 case BuffTarget.Rider:
                     if (isRider)
                         ApplyToPlayer(localPlayer, buff);
-                    else
-                        SuperVikingKart.DebugLog("BuffBlock RPC_ApplyBuff - Rider buff but not rider, skipping");
+                    if (isPuller || isRider)
+                        localPlayer.Message(MessageHud.MessageType.Center, $"{buff.Name} for Rider!");
                     break;
                 case BuffTarget.Both:
                     if (isPuller || isRider)
+                    {
                         ApplyToPlayer(localPlayer, buff);
-                    else
-                        SuperVikingKart.DebugLog("BuffBlock RPC_ApplyBuff - Both buff but neither puller nor rider, skipping");
+                        localPlayer.Message(MessageHud.MessageType.Center, $"{buff.Name} for Both!");
+                    }
                     break;
             }
         }
@@ -251,7 +252,6 @@ namespace SuperVikingKart
 
             SuperVikingKart.DebugLog($"BuffBlock ApplyToPlayer - Applying {buff.Name} ({buff.StatusEffect}) to {player.GetPlayerName()}");
             player.GetSEMan().AddStatusEffect(effect, true);
-            player.Message(MessageHud.MessageType.Center, $"You got: {buff.Name}!");
         }
 
         // --- Visual State ---
