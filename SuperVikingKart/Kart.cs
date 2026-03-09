@@ -290,4 +290,24 @@ namespace SuperVikingKart
             KartRespawnPatch.IsBeingRemoved = false;
         }
     }
+    
+    [HarmonyPatch(typeof(WearNTear), nameof(WearNTear.Damage))]
+    internal class KartSelfDamagePatch
+    {
+        private static bool Prefix(WearNTear __instance, HitData hit)
+        {
+            var cart = __instance.GetComponentInChildren<SuperVikingKartComponent>();
+            if (!cart)
+                return true;
+
+            var attacker = hit.GetAttacker();
+            if (!attacker)
+                return true;
+
+            if (attacker == cart.GetAttachedPlayer())
+                return false;
+
+            return true;
+        }
+    }
 }
