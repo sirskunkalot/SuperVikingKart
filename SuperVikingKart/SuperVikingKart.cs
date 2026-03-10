@@ -233,145 +233,53 @@ namespace SuperVikingKart
             prefab.SetActive(true);
         }
 
-        private Material CreateBuffBlockMaterial()
+        private Material CreateBuffBlockMaterial() =>
+            CreateBlockMaterial(
+                new Color(1f, 0.85f, 0f),
+                new Color(0.6f, 0.5f, 0f),
+                new Color(0.2f, 0.15f, 0f));
+
+        private Material CreateDebuffBlockMaterial() =>
+            CreateBlockMaterial(
+                new Color(1f, 0.2f, 0.2f),
+                new Color(0.7f, 0.1f, 0.1f),
+                new Color(0.3f, 0.05f, 0.05f));
+
+        private Material CreateMysteryBlockMaterial() =>
+            CreateBlockMaterial(
+                new Color(0.5f, 0.2f, 0.8f),
+                new Color(0.3f, 0.1f, 0.5f),
+                new Color(0.15f, 0.05f, 0.3f));
+        
+        private Material CreateBlockMaterial(Color bgColor, Color borderColor, Color markColor)
         {
             var texture = new Texture2D(64, 64);
             var colors = new Color[64 * 64];
 
-            var bgColor = new Color(1f, 0.85f, 0f);
             for (var i = 0; i < colors.Length; i++)
                 colors[i] = bgColor;
 
-            var borderColor = new Color(0.6f, 0.5f, 0f);
             for (var x = 0; x < 64; x++)
-            {
-                for (var y = 0; y < 64; y++)
-                {
-                    if (x < 4 || x >= 60 || y < 4 || y >= 60)
-                        colors[y * 64 + x] = borderColor;
-                }
-            }
-
-            var markColor = new Color(0.2f, 0.15f, 0f);
-            for (var x = 22; x < 42; x++)
-                for (var y = 44; y < 52; y++)
-                    colors[y * 64 + x] = markColor;
-            for (var x = 36; x < 42; x++)
-                for (var y = 36; y < 44; y++)
-                    colors[y * 64 + x] = markColor;
-            for (var x = 28; x < 42; x++)
-                for (var y = 28; y < 36; y++)
-                    colors[y * 64 + x] = markColor;
-            for (var x = 28; x < 36; x++)
-                for (var y = 20; y < 28; y++)
-                    colors[y * 64 + x] = markColor;
-            for (var x = 28; x < 36; x++)
-                for (var y = 10; y < 18; y++)
-                    colors[y * 64 + x] = markColor;
-
-            texture.SetPixels(colors);
-            texture.Apply();
-            texture.filterMode = FilterMode.Point;
-
-            var torchPrefab = PrefabManager.Instance.GetPrefab("Torch");
-            var torchMat = torchPrefab.GetComponentInChildren<MeshRenderer>().material;
-
-            var material = new Material(torchMat)
-            {
-                mainTexture = texture,
-                color = Color.white
-            };
-
-            return material;
-        }
-
-        private Material CreateDebuffBlockMaterial()
-        {
-            var texture = new Texture2D(64, 64);
-            var colors = new Color[64 * 64];
-
-            var bgColor = new Color(0.8f, 0.1f, 0.1f);
-            for (var i = 0; i < colors.Length; i++)
-                colors[i] = bgColor;
-
-            var borderColor = new Color(0.5f, 0.05f, 0.05f);
-            for (var x = 0; x < 64; x++)
-            {
-                for (var y = 0; y < 64; y++)
-                {
-                    if (x < 4 || x >= 60 || y < 4 || y >= 60)
-                        colors[y * 64 + x] = borderColor;
-                }
-            }
-
-            var markColor = new Color(0.2f, 0.02f, 0.02f);
-            for (var i = 12; i < 52; i++)
-            {
-                for (var t = -2; t <= 2; t++)
-                {
-                    var j = i + t;
-                    if (j >= 12 && j < 52)
-                    {
-                        colors[j * 64 + i] = markColor;
-                        colors[j * 64 + (63 - i)] = markColor;
-                    }
-                }
-            }
-
-            texture.SetPixels(colors);
-            texture.Apply();
-            texture.filterMode = FilterMode.Point;
-
-            var torchPrefab = PrefabManager.Instance.GetPrefab("Torch");
-            var torchMat = torchPrefab.GetComponentInChildren<MeshRenderer>().material;
-
-            var material = new Material(torchMat)
-            {
-                mainTexture = texture,
-                color = Color.white
-            };
-
-            return material;
-        }
-
-        private Material CreateMysteryBlockMaterial()
-        {
-            var texture = new Texture2D(64, 64);
-            var colors = new Color[64 * 64];
-
-            var bgColor = new Color(0.5f, 0.2f, 0.8f);
-            for (var i = 0; i < colors.Length; i++)
-                colors[i] = bgColor;
-
-            var borderColor = new Color(0.3f, 0.1f, 0.5f);
-            for (var x = 0; x < 64; x++)
-            {
-                for (var y = 0; y < 64; y++)
-                {
-                    if (x < 4 || x >= 60 || y < 4 || y >= 60)
-                        colors[y * 64 + x] = borderColor;
-                }
-            }
+            for (var y = 0; y < 64; y++)
+                if (x < 4 || x >= 60 || y < 4 || y >= 60)
+                    colors[y * 64 + x] = borderColor;
 
             // Question mark
-            var markColor = new Color(0.15f, 0.05f, 0.3f);
-            // Top curve
             for (var x = 22; x < 42; x++)
-                for (var y = 44; y < 52; y++)
-                    colors[y * 64 + x] = markColor;
+            for (var y = 44; y < 52; y++)
+                colors[y * 64 + x] = markColor;
             for (var x = 36; x < 42; x++)
-                for (var y = 36; y < 44; y++)
-                    colors[y * 64 + x] = markColor;
-            for (var x = 26; x < 42; x++)
-                for (var y = 28; y < 36; y++)
-                    colors[y * 64 + x] = markColor;
-            for (var x = 26; x < 34; x++)
-                for (var y = 20; y < 28; y++)
-                    colors[y * 64 + x] = markColor;
-            // Dot
-            for (var x = 26; x < 34; x++)
-                for (var y = 10; y < 18; y++)
-                    colors[y * 64 + x] = markColor;
+            for (var y = 36; y < 44; y++)
+                colors[y * 64 + x] = markColor;
+            for (var x = 28; x < 42; x++)
+            for (var y = 28; y < 36; y++)
+                colors[y * 64 + x] = markColor;
+            for (var x = 28; x < 36; x++)
+            for (var y = 20; y < 28; y++)
+                colors[y * 64 + x] = markColor;
+            for (var x = 28; x < 36; x++)
+            for (var y = 10; y < 18; y++)
+                colors[y * 64 + x] = markColor;
 
             texture.SetPixels(colors);
             texture.Apply();
@@ -380,13 +288,11 @@ namespace SuperVikingKart
             var torchPrefab = PrefabManager.Instance.GetPrefab("Torch");
             var torchMat = torchPrefab.GetComponentInChildren<MeshRenderer>().material;
 
-            var material = new Material(torchMat)
+            return new Material(torchMat)
             {
                 mainTexture = texture,
                 color = Color.white
             };
-
-            return material;
         }
 
         private void RegisterCustomStatusEffects()
