@@ -43,19 +43,20 @@ namespace SuperVikingKart
 
         private static readonly BuffDefinition[] Buffs =
         {
-            new BuffDefinition("Speed Boost", "Potion_hasty", BuffTarget.Puller),
-            new BuffDefinition("Stamina Regen", "Potion_stamina_minor", BuffTarget.Puller),
-            new BuffDefinition("Shield", "GP_Bonemass", BuffTarget.Rider),
-            new BuffDefinition("Health Regen", "Potion_healthminor", BuffTarget.Rider),
-            new BuffDefinition("Living Dead", "CorpseRun", BuffTarget.Both),
+            new ("Speed Boost", "Potion_hasty", BuffTarget.Puller),
+            new ("Stamina Regen", "Potion_stamina_minor", BuffTarget.Puller),
+            new ("Shield", "GP_Bonemass", BuffTarget.Rider),
+            new ("Health Regen", "Potion_healthminor", BuffTarget.Rider),
+            new ("Living Dead", "CorpseRun", BuffTarget.Both),
+            new ("Ooze Bombs", "SuperVikingKart_OozeBombs", BuffTarget.Rider),
         };
 
         private static readonly BuffDefinition[] Debuffs =
         {
-            new BuffDefinition("Freezing", "Freezing", BuffTarget.Puller),
-            new BuffDefinition("Poison", "Poison", BuffTarget.Rider),
-            new BuffDefinition("Wet", "Wet", BuffTarget.Both),
-            new BuffDefinition("Encumbered", "Encumbered", BuffTarget.Puller),
+            new ("Freezing", "Freezing", BuffTarget.Puller),
+            new ("Poison", "Poison", BuffTarget.Rider),
+            new ("Wet", "Wet", BuffTarget.Both),
+            new ("Encumbered", "Encumbered", BuffTarget.Puller),
         };
 
         private BuffDefinition[] ActiveEffects => BlockType == BlockType.Buff ? Buffs : Debuffs;

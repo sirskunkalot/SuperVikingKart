@@ -31,8 +31,8 @@ namespace SuperVikingKart
         public static SuperVikingKart Instance;
         public static CustomLocalization Localization = LocalizationManager.Instance.GetLocalization();
 
-        public static ConfigEntry<float> CartRespawnTimeConfig;
-        public static ConfigEntry<float> BuffBlockRespawnTimeConfig;
+        public static ConfigEntry<int> CartRespawnTimeConfig;
+        public static ConfigEntry<int> BuffBlockRespawnTimeConfig;
         private static ConfigEntry<bool> _debugConfig;
 
         private Harmony _harmony;
@@ -42,13 +42,13 @@ namespace SuperVikingKart
             Instance = this;
 
             _debugConfig = Config.Bind("General", "Debug", false, "Enable debug logging");
-            CartRespawnTimeConfig = Config.Bind("General", "CartRespawnTime", 10f,
+            CartRespawnTimeConfig = Config.Bind("General", "CartRespawnTime", 10,
                 new ConfigDescription("Time in seconds before a destroyed cart respawns. Server synced value.",
-                    new AcceptableValueRange<float>(0f, 300f),
+                    new AcceptableValueRange<int>(0, 300),
                     new ConfigurationManagerAttributes { IsAdminOnly = true }));
-            BuffBlockRespawnTimeConfig = Config.Bind("General", "BuffBlockRespawnTime", 10f,
+            BuffBlockRespawnTimeConfig = Config.Bind("General", "BuffBlockRespawnTime", 10,
                 new ConfigDescription("Time in seconds before a collected buff block reappears. Server synced value.",
-                    new AcceptableValueRange<float>(0f, 300f),
+                    new AcceptableValueRange<int>(0, 300),
                     new ConfigurationManagerAttributes { IsAdminOnly = true }));
 
             _harmony = new Harmony(PluginGUID);
@@ -57,6 +57,7 @@ namespace SuperVikingKart
             PrefabManager.OnVanillaPrefabsAvailable += CloneCart;
             PrefabManager.OnVanillaPrefabsAvailable += CreateBuffBlock;
             PrefabManager.OnVanillaPrefabsAvailable += CreateDebuffBlock;
+            PrefabManager.OnVanillaPrefabsAvailable += RegisterCustomStatusEffects;
         }
 
         private void OnDestroy()
@@ -309,6 +310,16 @@ namespace SuperVikingKart
             };
 
             return material;
+        }
+        
+        private void RegisterCustomStatusEffects()
+        {
+            var oozeBombs = ScriptableObject.CreateInstance<SE_OozeBombs>();
+            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(oozeBombs, fixReference: false));
+
+            DebugLog("Custom status effects registered");
+
+            PrefabManager.OnVanillaPrefabsAvailable -= RegisterCustomStatusEffects;
         }
     }
 }
