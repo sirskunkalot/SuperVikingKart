@@ -38,11 +38,9 @@ namespace SuperVikingKart
             {
                 var zdo = _netView.GetZDO();
                 var attachedId = zdo.GetZDOID(ZdoKeyAttachedPlayer);
-
                 if (attachedId != ZDOID.None)
                 {
                     var playerObject = ZNetScene.instance.FindInstance(attachedId);
-
                     if (!playerObject)
                     {
                         SuperVikingKart.DebugLog($"Kart Awake - Clearing stale attachment: {attachedId}");
@@ -52,7 +50,6 @@ namespace SuperVikingKart
 
                 var vagon = GetComponentInParent<Vagon>();
                 var num = 10f / vagon.m_bodies.Length;
-
                 foreach (var body in vagon.m_bodies)
                 {
                     body.mass = num;
@@ -93,8 +90,8 @@ namespace SuperVikingKart
         private void Attach(Player player)
         {
             SuperVikingKart.DebugLog($"Kart Attach - Player: {player.GetPlayerName()}, ZDOID: {player.GetZDOID()}");
+            
             _attachedPlayer = player;
-
             if (_netView && _netView.GetZDO() != null)
                 _netView.InvokeRPC("SuperVikingKart_RPC_Attach", player.GetZDOID());
         }
@@ -102,8 +99,8 @@ namespace SuperVikingKart
         private void Detach()
         {
             SuperVikingKart.DebugLog($"Kart Detach - Player: {_attachedPlayer?.GetPlayerName() ?? "none"}");
-            _attachedPlayer = null;
 
+            _attachedPlayer = null;
             if (_netView && _netView.GetZDO() != null)
                 _netView.InvokeRPC("SuperVikingKart_RPC_Detach");
         }
@@ -156,7 +153,6 @@ namespace SuperVikingKart
                 return false;
 
             var player = human as Player;
-
             if (!player)
                 return false;
 
@@ -202,7 +198,6 @@ namespace SuperVikingKart
                 return "";
 
             var localPlayer = Player.m_localPlayer;
-
             if (!localPlayer)
                 return "";
 
@@ -230,7 +225,7 @@ namespace SuperVikingKart
             return Vector3.Distance(human.transform.position, AttachPoint.position) < UseDistance;
         }
     }
-    
+
     [HarmonyPatch(typeof(WearNTear), nameof(WearNTear.Destroy))]
     internal class KartRespawnPatch
     {
@@ -240,43 +235,38 @@ namespace SuperVikingKart
         {
             if (IsBeingRemoved)
                 return;
-            
-            var Kart = __instance.GetComponentInChildren<SuperVikingKartComponent>();
 
-            if (!Kart)
+            var kart = __instance.GetComponentInChildren<SuperVikingKartComponent>();
+            if (!kart)
                 return;
 
             var netView = __instance.GetComponent<ZNetView>();
-
             if (!netView || !netView.IsOwner())
                 return;
 
             var position = __instance.transform.position;
-            var rotation = __instance.transform.rotation;
+            var yRotation = Quaternion.Euler(0f, __instance.transform.eulerAngles.y, 0f);
 
             SuperVikingKart.DebugLog($"KartRespawn - Kart destroyed at {position}, scheduling respawn");
-
-            SuperVikingKart.Instance.StartCoroutine(RespawnKart(position));
+            SuperVikingKart.Instance.StartCoroutine(RespawnKart(position, yRotation));
         }
 
-        private static IEnumerator RespawnKart(Vector3 position)
+        private static IEnumerator RespawnKart(Vector3 position, Quaternion rotation)
         {
             yield return new WaitForSeconds(SuperVikingKart.CartRespawnTimeConfig.Value);
 
             var prefab = ZNetScene.instance.GetPrefab(SuperVikingKart.KartPrefabName);
-
             if (!prefab)
             {
                 Jotunn.Logger.LogWarning("KartRespawn - SuperVikingKart prefab not found");
                 yield break;
             }
 
-            SuperVikingKart.DebugLog($"KartRespawn - Spawning Kart at {position}");
-
-            ZNetScene.instance?.SpawnObject(position, Quaternion.identity, prefab);
+            SuperVikingKart.DebugLog($"KartRespawn - Spawning kart at {position}");
+            Object.Instantiate(prefab, position, rotation);
         }
     }
-    
+
     [HarmonyPatch(typeof(WearNTear), nameof(WearNTear.Remove))]
     internal class KartRemovePatch
     {
@@ -290,7 +280,7 @@ namespace SuperVikingKart
             KartRespawnPatch.IsBeingRemoved = false;
         }
     }
-    
+
     [HarmonyPatch(typeof(WearNTear), nameof(WearNTear.Damage))]
     internal class KartSelfDamagePatch
     {

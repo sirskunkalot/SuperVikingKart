@@ -9,6 +9,12 @@ namespace SuperVikingKart
         Both
     }
 
+    internal enum BlockType
+    {
+        Buff,
+        Debuff
+    }
+
     internal class BuffDefinition
     {
         public string Name;
@@ -28,6 +34,7 @@ namespace SuperVikingKart
     internal class BuffBlockComponent : MonoBehaviour
     {
         public GameObject Visual;
+        public BlockType BlockType;
 
         private const string ZdoKeyIsActive = "SuperVikingKart_BuffBlockActive";
 
@@ -42,6 +49,16 @@ namespace SuperVikingKart
             new BuffDefinition("Health Regen", "Potion_healthminor", BuffTarget.Rider),
             new BuffDefinition("Living Dead", "CorpseRun", BuffTarget.Both),
         };
+
+        private static readonly BuffDefinition[] Debuffs =
+        {
+            new BuffDefinition("Freezing", "Freezing", BuffTarget.Puller),
+            new BuffDefinition("Poison", "Poison", BuffTarget.Rider),
+            new BuffDefinition("Wet", "Wet", BuffTarget.Both),
+            new BuffDefinition("Encumbered", "Encumbered", BuffTarget.Puller),
+        };
+
+        private BuffDefinition[] ActiveEffects => BlockType == BlockType.Buff ? Buffs : Debuffs;
 
         // --- Lifecycle ---
 
@@ -58,7 +75,7 @@ namespace SuperVikingKart
             SuperVikingKart.DebugLog($"BuffBlock Awake - ZDO: {_netView.GetZDO().m_uid}, Owner: {_netView.IsOwner()}");
 
             _netView.Register<int, ZDOID>("SuperVikingKart_RPC_RequestCollection", RPC_RequestCollection);
-            _netView.Register("SuperVikingKart_RPC_BuffBlockCollected", RPC_BuffBlockCollected);
+            _netView.Register<int>("SuperVikingKart_RPC_BuffBlockCollected", RPC_BuffBlockCollected);
             _netView.Register("SuperVikingKart_RPC_BuffBlockRespawn", RPC_BuffBlockRespawn);
             _netView.Register<int, ZDOID>("SuperVikingKart_RPC_ApplyBuff", RPC_ApplyBuff);
 
@@ -133,9 +150,9 @@ namespace SuperVikingKart
             }
 
             var cartId = cartNetView.GetZDO().m_uid;
-            var buffIndex = Random.Range(0, Buffs.Length);
+            var buffIndex = Random.Range(0, ActiveEffects.Length);
 
-            SuperVikingKart.DebugLog($"BuffBlock - Requesting collection! Buff: {Buffs[buffIndex].Name} (index: {buffIndex}), CartId: {cartId}");
+            SuperVikingKart.DebugLog($"BuffBlock - Requesting collection! Effect: {ActiveEffects[buffIndex].Name} (index: {buffIndex}), CartId: {cartId}");
             _netView.InvokeRPC("SuperVikingKart_RPC_RequestCollection", buffIndex, cartId);
         }
 
@@ -168,7 +185,7 @@ namespace SuperVikingKart
             _respawnTimer = SuperVikingKart.BuffBlockRespawnTimeConfig.Value;
 
             _netView.InvokeRPC(ZNetView.Everybody, "SuperVikingKart_RPC_ApplyBuff", buffIndex, cartId);
-            _netView.InvokeRPC(ZNetView.Everybody, "SuperVikingKart_RPC_BuffBlockCollected");
+            _netView.InvokeRPC(ZNetView.Everybody, "SuperVikingKart_RPC_BuffBlockCollected", buffIndex);
         }
 
         // --- Buff Application ---
@@ -177,7 +194,9 @@ namespace SuperVikingKart
         {
             SuperVikingKart.DebugLog($"BuffBlock RPC_ApplyBuff - sender: {sender}, buffIndex: {buffIndex}, cartId: {cartId}");
 
-            if (buffIndex < 0 || buffIndex >= Buffs.Length)
+            var effects = ActiveEffects;
+
+            if (buffIndex < 0 || buffIndex >= effects.Length)
             {
                 Jotunn.Logger.LogWarning($"BuffBlock RPC_ApplyBuff - Invalid buff index: {buffIndex}");
                 return;
@@ -211,11 +230,21 @@ namespace SuperVikingKart
                 return;
             }
 
-            var buff = Buffs[buffIndex];
+            var buff = effects[buffIndex];
             var isPuller = vagon.IsAttached(localPlayer);
             var isRider = cart.GetAttachedPlayer() == localPlayer;
 
             SuperVikingKart.DebugLog($"BuffBlock RPC_ApplyBuff - Player: {localPlayer.GetPlayerName()}, IsPuller: {isPuller}, IsRider: {isRider}, BuffTarget: {buff.Target}");
+
+            var targetLabel = buff.Target switch
+            {
+                BuffTarget.Puller => "Puller",
+                BuffTarget.Rider => "Rider",
+                BuffTarget.Both => "Both",
+                _ => "Unknown"
+            };
+
+            var prefix = BlockType == BlockType.Debuff ? "Oh no" : "Yeah";
 
             switch (buff.Target)
             {
@@ -223,26 +252,21 @@ namespace SuperVikingKart
                     if (isPuller)
                         ApplyToPlayer(localPlayer, buff);
                     if (isPuller || isRider)
-                        localPlayer.Message(MessageHud.MessageType.Center, $"{buff.Name} for Puller!");
+                        localPlayer.Message(MessageHud.MessageType.Center, $"{prefix}! {buff.Name} for {targetLabel}!");
                     break;
                 case BuffTarget.Rider:
                     if (isRider)
                         ApplyToPlayer(localPlayer, buff);
                     if (isPuller || isRider)
-                        localPlayer.Message(MessageHud.MessageType.Center, $"{buff.Name} for Rider!");
+                        localPlayer.Message(MessageHud.MessageType.Center, $"{prefix}! {buff.Name} for {targetLabel}!");
                     break;
                 case BuffTarget.Both:
                     if (isPuller || isRider)
                     {
                         ApplyToPlayer(localPlayer, buff);
-                        localPlayer.Message(MessageHud.MessageType.Center, $"{buff.Name} for Both!");
+                        localPlayer.Message(MessageHud.MessageType.Center, $"{prefix}! {buff.Name} for {targetLabel}!");
                     }
                     break;
-            }
-            
-            if (buff.EffectPrefab)
-            {
-                ZNetScene.instance?.SpawnObject(transform.position, Quaternion.identity, buff.EffectPrefab);
             }
         }
 
@@ -278,14 +302,20 @@ namespace SuperVikingKart
                 Visual.SetActive(active);
         }
 
-        private void RPC_BuffBlockCollected(long sender)
+        private void RPC_BuffBlockCollected(long sender, int buffIndex)
         {
-            SuperVikingKart.DebugLog($"BuffBlock RPC_BuffBlockCollected - sender: {sender}, IsOwner: {_netView.IsOwner()}");
+            SuperVikingKart.DebugLog($"BuffBlock RPC_BuffBlockCollected - sender: {sender}, buffIndex: {buffIndex}, IsOwner: {_netView.IsOwner()}");
 
             if (_netView.IsOwner())
             {
                 _netView.GetZDO().Set(ZdoKeyIsActive, false);
                 _respawnTimer = SuperVikingKart.BuffBlockRespawnTimeConfig.Value;
+            }
+
+            var effects = ActiveEffects;
+            if (buffIndex >= 0 && buffIndex < effects.Length && effects[buffIndex].EffectPrefab)
+            {
+                Instantiate(effects[buffIndex].EffectPrefab, transform.position, Quaternion.identity);
             }
 
             SetVisual(false);

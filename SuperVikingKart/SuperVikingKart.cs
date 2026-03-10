@@ -18,32 +18,37 @@ namespace SuperVikingKart
         public const string PluginGUID = "de.sirskunkalot.SuperVikingKart";
         public const string PluginName = "SuperVikingKart";
         public const string PluginVersion = "0.0.1";
-        
+
         public const string KartPrefabName = "SuperVikingKart";
         public static readonly int KartPrefabHash = KartPrefabName.GetStableHashCode();
-        
+
         public const string BuffBlockPrefabName = "BuffBlock";
         public static readonly int BuffBlockPrefabHash = BuffBlockPrefabName.GetStableHashCode();
 
+        public const string DebuffBlockPrefabName = "DebuffBlock";
+        public static readonly int DebuffBlockPrefabHash = DebuffBlockPrefabName.GetStableHashCode();
 
         public static SuperVikingKart Instance;
         public static CustomLocalization Localization = LocalizationManager.Instance.GetLocalization();
-        public static ConfigEntry<int> CartRespawnTimeConfig;
-        public static ConfigEntry<int> BuffBlockRespawnTimeConfig;
+
+        public static ConfigEntry<float> CartRespawnTimeConfig;
+        public static ConfigEntry<float> BuffBlockRespawnTimeConfig;
         private static ConfigEntry<bool> _debugConfig;
+
         private Harmony _harmony;
 
         private void Awake()
         {
             Instance = this;
+
             _debugConfig = Config.Bind("General", "Debug", false, "Enable debug logging");
-            CartRespawnTimeConfig = Config.Bind("General", "CartRespawnTime", 10,
+            CartRespawnTimeConfig = Config.Bind("General", "CartRespawnTime", 10f,
                 new ConfigDescription("Time in seconds before a destroyed cart respawns. Server synced value.",
-                    new AcceptableValueRange<int>(0, 300),
+                    new AcceptableValueRange<float>(0f, 300f),
                     new ConfigurationManagerAttributes { IsAdminOnly = true }));
-            BuffBlockRespawnTimeConfig = Config.Bind("General", "BuffBlockRespawnTime", 10,
+            BuffBlockRespawnTimeConfig = Config.Bind("General", "BuffBlockRespawnTime", 10f,
                 new ConfigDescription("Time in seconds before a collected buff block reappears. Server synced value.",
-                    new AcceptableValueRange<int>(0, 300),
+                    new AcceptableValueRange<float>(0f, 300f),
                     new ConfigurationManagerAttributes { IsAdminOnly = true }));
 
             _harmony = new Harmony(PluginGUID);
@@ -51,6 +56,7 @@ namespace SuperVikingKart
 
             PrefabManager.OnVanillaPrefabsAvailable += CloneCart;
             PrefabManager.OnVanillaPrefabsAvailable += CreateBuffBlock;
+            PrefabManager.OnVanillaPrefabsAvailable += CreateDebuffBlock;
         }
 
         private void OnDestroy()
@@ -71,7 +77,7 @@ namespace SuperVikingKart
                 var cart = new CustomPiece(KartPrefabName, "Cart", new PieceConfig
                 {
                     Name = "SuperVikingKart",
-                    Description = "Mountable kart. Get ready to race.",
+                    Description = "Mountable cart. Get ready to race.",
                     PieceTable = PieceTables.Hammer,
                     Category = PieceCategories.Misc,
                     Requirements = new[]
@@ -81,7 +87,6 @@ namespace SuperVikingKart
                 });
 
                 cart.Piece.m_craftingStation = null;
-                cart.Piece.m_canBeRemoved = true;
                 PieceManager.Instance.AddPiece(cart);
 
                 var tf = cart.PiecePrefab.transform;
@@ -112,71 +117,9 @@ namespace SuperVikingKart
         {
             try
             {
-                // Base prefab with components
-                var prefab = new GameObject(BuffBlockPrefabName);
-                prefab.layer = LayerMask.NameToLayer("piece_nonsolid");
-                // IMPORTANT: Needs to be inactive while setting up or the ZNetView gets wrecked
-                prefab.SetActive(false); 
-
-                var netView = prefab.AddComponent<ZNetView>();
-                netView.m_persistent = true;
-
-                var piece = prefab.AddComponent<Piece>();
-                piece.m_canBeRemoved = true;
-
-                var collider = prefab.AddComponent<BoxCollider>();
-                collider.center = Vector3.up * 1f;
-                collider.size = Vector3.one * 0.8f;
-                
-                // Visual part
-                var visual = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                visual.name = "Visual";
-                visual.transform.SetParent(prefab.transform, false);
-                visual.transform.localPosition = Vector3.up * 1.5f;
-                visual.transform.localScale = Vector3.one * 0.8f;
-
-                var renderer = visual.GetComponent<MeshRenderer>();
-                renderer.material = CreateBuffBlockMaterial();
-
-                var trigger = visual.GetComponent<BoxCollider>();
-                trigger.isTrigger = true;
-                trigger.size = Vector3.one * 1.5f;
-
-                var rb = visual.AddComponent<Rigidbody>();
-                rb.isKinematic = true;
-                rb.useGravity = false;
-
-                visual.AddComponent<BuffBlockSpin>();
-                
-                // Add main component to prefab and wire visual
-                var buffBlock = prefab.AddComponent<BuffBlockComponent>();
-                buffBlock.Visual = visual;
-                
-                // Add trigger relay to visual and wire main component
-                var triggerRelay = visual.AddComponent<BuffBlockTrigger>();
-                triggerRelay.BuffBlock = buffBlock;
-
-                var icon = RenderManager.Instance.Render(prefab, RenderManager.IsometricRotation);
-
-                var customPiece = new CustomPiece(prefab, false, new PieceConfig
-                {
-                    Name = "BuffBlock",
-                    Description = "Drive through for a random buff!",
-                    PieceTable = PieceTables.Hammer,
-                    Category = PieceCategories.Misc,
-                    Icon = icon,
-                    Requirements = new[]
-                    {
-                        new RequirementConfig("Wood", 1)
-                    }
-                });
-
-                PieceManager.Instance.AddPiece(customPiece);
-
-                // IMPORTANT: Needs to be enabled again to actually be in game.
-                // After AddPiece it lives under a disabled parent in Jötunn. 
-                // Took me waaaay too much time figuring it out / remembering :D
-                prefab.SetActive(true);
+                CreateBlock(BuffBlockPrefabName, "BuffBlock",
+                    "Drive through for a random buff!",
+                    CreateBuffBlockMaterial(), BlockType.Buff);
             }
             catch (Exception ex)
             {
@@ -186,6 +129,85 @@ namespace SuperVikingKart
             {
                 PrefabManager.OnVanillaPrefabsAvailable -= CreateBuffBlock;
             }
+        }
+
+        private void CreateDebuffBlock()
+        {
+            try
+            {
+                CreateBlock(DebuffBlockPrefabName, "DebuffBlock",
+                    "Drive through for a random debuff!",
+                    CreateDebuffBlockMaterial(), BlockType.Debuff);
+            }
+            catch (Exception ex)
+            {
+                Jotunn.Logger.LogWarning($"Caught exception while creating debuff block: {ex}");
+            }
+            finally
+            {
+                PrefabManager.OnVanillaPrefabsAvailable -= CreateDebuffBlock;
+            }
+        }
+
+        private void CreateBlock(string prefabName, string displayName, string description, Material material, BlockType blockType)
+        {
+            var prefab = new GameObject(prefabName);
+            prefab.layer = LayerMask.NameToLayer("piece_nonsolid");
+            prefab.SetActive(false);
+
+            var netView = prefab.AddComponent<ZNetView>();
+            netView.m_persistent = true;
+
+            var piece = prefab.AddComponent<Piece>();
+            piece.m_canBeRemoved = true;
+
+            var collider = prefab.AddComponent<BoxCollider>();
+            collider.center = Vector3.up * 1f;
+            collider.size = Vector3.one * 0.8f;
+
+            var visual = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            visual.name = "Visual";
+            visual.transform.SetParent(prefab.transform, false);
+            visual.transform.localPosition = Vector3.up * 1.5f;
+            visual.transform.localScale = Vector3.one * 0.8f;
+
+            var renderer = visual.GetComponent<MeshRenderer>();
+            renderer.material = material;
+
+            var trigger = visual.GetComponent<BoxCollider>();
+            trigger.isTrigger = true;
+            trigger.size = Vector3.one * 1.5f;
+
+            var rb = visual.AddComponent<Rigidbody>();
+            rb.isKinematic = true;
+            rb.useGravity = false;
+
+            visual.AddComponent<BuffBlockSpin>();
+
+            var buffBlock = prefab.AddComponent<BuffBlockComponent>();
+            buffBlock.Visual = visual;
+            buffBlock.BlockType = blockType;
+
+            var triggerRelay = visual.AddComponent<BuffBlockTrigger>();
+            triggerRelay.BuffBlock = buffBlock;
+
+            var icon = RenderManager.Instance.Render(prefab, RenderManager.IsometricRotation);
+
+            var customPiece = new CustomPiece(prefab, false, new PieceConfig
+            {
+                Name = displayName,
+                Description = description,
+                PieceTable = PieceTables.Hammer,
+                Category = PieceCategories.Misc,
+                Icon = icon,
+                Requirements = new[]
+                {
+                    new RequirementConfig("Wood", 1)
+                }
+            });
+
+            PieceManager.Instance.AddPiece(customPiece);
+            prefab.SetActive(true);
         }
 
         private Material CreateBuffBlockMaterial()
@@ -208,26 +230,70 @@ namespace SuperVikingKart
             }
 
             var markColor = new Color(0.2f, 0.15f, 0f);
-
             for (var x = 22; x < 42; x++)
                 for (var y = 44; y < 52; y++)
                     colors[y * 64 + x] = markColor;
-
             for (var x = 36; x < 42; x++)
                 for (var y = 36; y < 44; y++)
                     colors[y * 64 + x] = markColor;
-
             for (var x = 28; x < 42; x++)
                 for (var y = 28; y < 36; y++)
                     colors[y * 64 + x] = markColor;
-
             for (var x = 28; x < 36; x++)
                 for (var y = 20; y < 28; y++)
                     colors[y * 64 + x] = markColor;
-
             for (var x = 28; x < 36; x++)
                 for (var y = 10; y < 18; y++)
                     colors[y * 64 + x] = markColor;
+
+            texture.SetPixels(colors);
+            texture.Apply();
+            texture.filterMode = FilterMode.Point;
+
+            var torchPrefab = PrefabManager.Instance.GetPrefab("Torch");
+            var torchMat = torchPrefab.GetComponentInChildren<MeshRenderer>().material;
+
+            var material = new Material(torchMat)
+            {
+                mainTexture = texture,
+                color = Color.white
+            };
+
+            return material;
+        }
+
+        private Material CreateDebuffBlockMaterial()
+        {
+            var texture = new Texture2D(64, 64);
+            var colors = new Color[64 * 64];
+
+            var bgColor = new Color(0.8f, 0.1f, 0.1f);
+            for (var i = 0; i < colors.Length; i++)
+                colors[i] = bgColor;
+
+            var borderColor = new Color(0.5f, 0.05f, 0.05f);
+            for (var x = 0; x < 64; x++)
+            {
+                for (var y = 0; y < 64; y++)
+                {
+                    if (x < 4 || x >= 60 || y < 4 || y >= 60)
+                        colors[y * 64 + x] = borderColor;
+                }
+            }
+
+            var markColor = new Color(0.2f, 0.02f, 0.02f);
+            for (var i = 12; i < 52; i++)
+            {
+                for (var t = -2; t <= 2; t++)
+                {
+                    var j = i + t;
+                    if (j >= 12 && j < 52)
+                    {
+                        colors[j * 64 + i] = markColor;
+                        colors[j * 64 + (63 - i)] = markColor;
+                    }
+                }
+            }
 
             texture.SetPixels(colors);
             texture.Apply();
