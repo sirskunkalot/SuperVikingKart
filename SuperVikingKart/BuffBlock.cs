@@ -12,6 +12,13 @@ namespace SuperVikingKart
     internal enum BlockType
     {
         Buff,
+        Debuff,
+        Mystery
+    }
+
+    internal enum BuffType
+    {
+        Buff,
         Debuff
     }
 
@@ -20,13 +27,15 @@ namespace SuperVikingKart
         public string Name;
         public string StatusEffect;
         public BuffTarget Target;
+        public BuffType Type;
         public GameObject EffectPrefab;
 
-        public BuffDefinition(string name, string statusEffect, BuffTarget target, GameObject effectPrefab = null)
+        public BuffDefinition(string name, string statusEffect, BuffTarget target, BuffType type = BuffType.Buff, GameObject effectPrefab = null)
         {
             Name = name;
             StatusEffect = statusEffect;
             Target = target;
+            Type = type;
             EffectPrefab = effectPrefab;
         }
     }
@@ -54,13 +63,34 @@ namespace SuperVikingKart
 
         private static readonly BuffDefinition[] Debuffs =
         {
-            new ("Freezing", "Freezing", BuffTarget.Puller),
-            new ("Poison", "Poison", BuffTarget.Rider),
-            new ("Wet", "Wet", BuffTarget.Both),
-            new ("Encumbered", "Encumbered", BuffTarget.Puller),
+            new ("Freezing", "Freezing", BuffTarget.Puller, BuffType.Debuff),
+            new ("Poison", "Poison", BuffTarget.Rider, BuffType.Debuff),
+            new ("Wet", "Wet", BuffTarget.Both, BuffType.Debuff),
+            new ("Encumbered", "Encumbered", BuffTarget.Puller, BuffType.Debuff),
         };
 
-        private BuffDefinition[] ActiveEffects => BlockType == BlockType.Buff ? Buffs : Debuffs;
+        private static readonly BuffDefinition[] MysteryEffects =
+        {
+            new ("Speed Boost", "Potion_hasty", BuffTarget.Puller),
+            new ("Stamina Regen", "Potion_stamina_minor", BuffTarget.Puller),
+            new ("Shield", "GP_Bonemass", BuffTarget.Rider),
+            new ("Health Regen", "Potion_healthminor", BuffTarget.Rider),
+            new ("Living Dead", "CorpseRun", BuffTarget.Both),
+            new ("Ooze Bombs", "SuperVikingKart_OozeBombs", BuffTarget.Rider),
+            new ("Stamina Burst", "SuperVikingKart_StaminaBurst", BuffTarget.Puller),
+            new ("Freezing", "Freezing", BuffTarget.Puller, BuffType.Debuff),
+            new ("Poison", "Poison", BuffTarget.Rider, BuffType.Debuff),
+            new ("Wet", "Wet", BuffTarget.Both, BuffType.Debuff),
+            new ("Encumbered", "Encumbered", BuffTarget.Puller, BuffType.Debuff),
+        };
+
+        private BuffDefinition[] ActiveEffects => BlockType switch
+        {
+            BlockType.Buff => Buffs,
+            BlockType.Debuff => Debuffs,
+            BlockType.Mystery => MysteryEffects,
+            _ => Buffs
+        };
 
         // --- Lifecycle ---
 
@@ -246,7 +276,7 @@ namespace SuperVikingKart
                 _ => "Unknown"
             };
 
-            var prefix = BlockType == BlockType.Debuff ? "Oh no" : "Yeah";
+            var prefix = buff.Type == BuffType.Debuff ? "Oh no" : "Yeah";
 
             switch (buff.Target)
             {

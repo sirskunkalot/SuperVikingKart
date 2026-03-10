@@ -28,6 +28,9 @@ namespace SuperVikingKart
         public const string DebuffBlockPrefabName = "DebuffBlock";
         public static readonly int DebuffBlockPrefabHash = DebuffBlockPrefabName.GetStableHashCode();
 
+        public const string MysteryBlockPrefabName = "MysteryBlock";
+        public static readonly int MysteryBlockPrefabHash = MysteryBlockPrefabName.GetStableHashCode();
+
         public static SuperVikingKart Instance;
         public static CustomLocalization Localization = LocalizationManager.Instance.GetLocalization();
 
@@ -57,6 +60,7 @@ namespace SuperVikingKart
             PrefabManager.OnVanillaPrefabsAvailable += CloneCart;
             PrefabManager.OnVanillaPrefabsAvailable += CreateBuffBlock;
             PrefabManager.OnVanillaPrefabsAvailable += CreateDebuffBlock;
+            PrefabManager.OnVanillaPrefabsAvailable += CreateMysteryBlock;
             PrefabManager.OnVanillaPrefabsAvailable += RegisterCustomStatusEffects;
         }
 
@@ -147,6 +151,24 @@ namespace SuperVikingKart
             finally
             {
                 PrefabManager.OnVanillaPrefabsAvailable -= CreateDebuffBlock;
+            }
+        }
+
+        private void CreateMysteryBlock()
+        {
+            try
+            {
+                CreateBlock(MysteryBlockPrefabName, "MysteryBlock",
+                    "Drive through for a mystery effect!",
+                    CreateMysteryBlockMaterial(), BlockType.Mystery);
+            }
+            catch (Exception ex)
+            {
+                Jotunn.Logger.LogWarning($"Caught exception while creating mystery block: {ex}");
+            }
+            finally
+            {
+                PrefabManager.OnVanillaPrefabsAvailable -= CreateMysteryBlock;
             }
         }
 
@@ -311,11 +333,67 @@ namespace SuperVikingKart
 
             return material;
         }
-        
+
+        private Material CreateMysteryBlockMaterial()
+        {
+            var texture = new Texture2D(64, 64);
+            var colors = new Color[64 * 64];
+
+            var bgColor = new Color(0.5f, 0.2f, 0.8f);
+            for (var i = 0; i < colors.Length; i++)
+                colors[i] = bgColor;
+
+            var borderColor = new Color(0.3f, 0.1f, 0.5f);
+            for (var x = 0; x < 64; x++)
+            {
+                for (var y = 0; y < 64; y++)
+                {
+                    if (x < 4 || x >= 60 || y < 4 || y >= 60)
+                        colors[y * 64 + x] = borderColor;
+                }
+            }
+
+            // Question mark
+            var markColor = new Color(0.15f, 0.05f, 0.3f);
+            // Top curve
+            for (var x = 22; x < 42; x++)
+                for (var y = 44; y < 52; y++)
+                    colors[y * 64 + x] = markColor;
+            for (var x = 36; x < 42; x++)
+                for (var y = 36; y < 44; y++)
+                    colors[y * 64 + x] = markColor;
+            for (var x = 26; x < 42; x++)
+                for (var y = 28; y < 36; y++)
+                    colors[y * 64 + x] = markColor;
+            for (var x = 26; x < 34; x++)
+                for (var y = 20; y < 28; y++)
+                    colors[y * 64 + x] = markColor;
+            // Dot
+            for (var x = 26; x < 34; x++)
+                for (var y = 10; y < 18; y++)
+                    colors[y * 64 + x] = markColor;
+
+            texture.SetPixels(colors);
+            texture.Apply();
+            texture.filterMode = FilterMode.Point;
+
+            var torchPrefab = PrefabManager.Instance.GetPrefab("Torch");
+            var torchMat = torchPrefab.GetComponentInChildren<MeshRenderer>().material;
+
+            var material = new Material(torchMat)
+            {
+                mainTexture = texture,
+                color = Color.white
+            };
+
+            return material;
+        }
+
         private void RegisterCustomStatusEffects()
         {
             var oozeBombs = ScriptableObject.CreateInstance<SE_OozeBombs>();
             ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(oozeBombs, fixReference: false));
+
             var staminaBurst = ScriptableObject.CreateInstance<SE_StaminaBurst>();
             ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(staminaBurst, fixReference: false));
 
