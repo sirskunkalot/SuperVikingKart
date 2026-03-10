@@ -18,6 +18,13 @@ namespace SuperVikingKart
         public const string PluginGUID = "de.sirskunkalot.SuperVikingKart";
         public const string PluginName = "SuperVikingKart";
         public const string PluginVersion = "0.0.1";
+        
+        public const string KartPrefabName = "SuperVikingKart";
+        public static readonly int KartPrefabHash = KartPrefabName.GetStableHashCode();
+        
+        public const string BuffBlockPrefabName = "BuffBlock";
+        public static readonly int BuffBlockPrefabHash = BuffBlockPrefabName.GetStableHashCode();
+
 
         public static SuperVikingKart Instance;
         public static CustomLocalization Localization = LocalizationManager.Instance.GetLocalization();
@@ -61,7 +68,7 @@ namespace SuperVikingKart
         {
             try
             {
-                var cart = new CustomPiece("SuperVikingKart", "Cart", new PieceConfig
+                var cart = new CustomPiece(KartPrefabName, "Cart", new PieceConfig
                 {
                     Name = "SuperVikingKart",
                     Description = "Mountable kart. Get ready to race.",
@@ -106,7 +113,7 @@ namespace SuperVikingKart
             try
             {
                 // Base prefab with components
-                var prefab = new GameObject("BuffBlock");
+                var prefab = new GameObject(BuffBlockPrefabName);
                 prefab.layer = LayerMask.NameToLayer("piece_nonsolid");
                 // IMPORTANT: Needs to be inactive while setting up or the ZNetView gets wrecked
                 prefab.SetActive(false); 

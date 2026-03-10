@@ -263,7 +263,7 @@ namespace SuperVikingKart
         {
             yield return new WaitForSeconds(SuperVikingKart.CartRespawnTimeConfig.Value);
 
-            var prefab = ZNetScene.instance.GetPrefab("SuperVikingKart");
+            var prefab = ZNetScene.instance.GetPrefab(SuperVikingKart.KartPrefabName);
 
             if (!prefab)
             {
@@ -296,18 +296,21 @@ namespace SuperVikingKart
     {
         private static bool Prefix(WearNTear __instance, HitData hit)
         {
-            var cart = __instance.GetComponentInChildren<SuperVikingKartComponent>();
-            if (!cart)
+            if (!__instance.m_nview || __instance.m_nview.GetZDO() == null)
+                return true;
+
+            if (__instance.m_nview.GetZDO().m_prefab != SuperVikingKart.KartPrefabHash)
                 return true;
 
             var attacker = hit.GetAttacker();
             if (!attacker)
                 return true;
 
-            if (attacker == cart.GetAttachedPlayer())
-                return false;
+            var cart = __instance.GetComponentInChildren<SuperVikingKartComponent>();
+            if (!cart)
+                return true;
 
-            return true;
+            return attacker != cart.GetAttachedPlayer();
         }
     }
 }
