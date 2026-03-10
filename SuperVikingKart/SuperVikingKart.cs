@@ -316,6 +316,8 @@ namespace SuperVikingKart
         {
             var oozeBombs = ScriptableObject.CreateInstance<SE_OozeBombs>();
             ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(oozeBombs, fixReference: false));
+            var staminaBurst = ScriptableObject.CreateInstance<SE_StaminaBurst>();
+            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(staminaBurst, fixReference: false));
 
             DebugLog("Custom status effects registered");
 

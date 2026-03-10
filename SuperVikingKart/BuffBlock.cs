@@ -49,6 +49,7 @@ namespace SuperVikingKart
             new ("Health Regen", "Potion_healthminor", BuffTarget.Rider),
             new ("Living Dead", "CorpseRun", BuffTarget.Both),
             new ("Ooze Bombs", "SuperVikingKart_OozeBombs", BuffTarget.Rider),
+            new ("Stamina Burst", "SuperVikingKart_StaminaBurst", BuffTarget.Puller),
         };
 
         private static readonly BuffDefinition[] Debuffs =

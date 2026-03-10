@@ -27,4 +27,20 @@ namespace SuperVikingKart
             player.GetInventory().AddItem(prefab, 5);
         }
     }
+    
+    internal class SE_StaminaBurst : SE_Stats
+    {
+        public void OnEnable()
+        {
+            name = "SuperVikingKart_StaminaBurst";
+            m_ttl = 0.1f;
+        }
+
+        public override void Setup(Character character)
+        {
+            base.Setup(character);
+            character.AddStamina(character.GetMaxStamina());
+            SuperVikingKart.DebugLog($"SE_StaminaBurst - Refilled stamina for {character.m_name}");
+        }
+    }
 }
