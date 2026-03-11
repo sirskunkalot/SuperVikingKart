@@ -1,5 +1,6 @@
 using System.Collections;
 using HarmonyLib;
+using Jotunn.Managers;
 using UnityEngine;
 
 namespace SuperVikingKart
@@ -255,7 +256,7 @@ namespace SuperVikingKart
         {
             yield return new WaitForSeconds(SuperVikingKart.CartRespawnTimeConfig.Value);
 
-            var prefab = ZNetScene.instance.GetPrefab(SuperVikingKart.KartPrefabName);
+            var prefab = PrefabManager.Instance.GetPrefab(SuperVikingKart.KartPrefabName);
             if (!prefab)
             {
                 Jotunn.Logger.LogWarning("KartRespawn - SuperVikingKart prefab not found");

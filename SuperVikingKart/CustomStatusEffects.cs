@@ -1,3 +1,5 @@
+using Jotunn.Managers;
+
 namespace SuperVikingKart
 {
     /// <summary>
@@ -19,7 +21,7 @@ namespace SuperVikingKart
             if (!player)
                 return;
 
-            var prefab = ZNetScene.instance.GetPrefab("BombOoze");
+            var prefab = PrefabManager.Instance.GetPrefab("BombOoze");
             if (!prefab)
                 return;
 
