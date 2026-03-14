@@ -68,6 +68,7 @@ namespace SuperVikingKart
             new ("Poison", "Poison", BuffTarget.Rider, BuffType.Debuff),
             new ("Wet", "Wet", BuffTarget.Both, BuffType.Debuff),
             new ("Encumbered", "Encumbered", BuffTarget.Puller, BuffType.Debuff),
+            new ("Swap!", "SuperVikingKart_Swap", BuffTarget.Puller, BuffType.Debuff),
         };
 
         private static readonly BuffDefinition[] MysteryEffects =
@@ -83,6 +84,7 @@ namespace SuperVikingKart
             new ("Poison", "Poison", BuffTarget.Rider, BuffType.Debuff),
             new ("Wet", "Wet", BuffTarget.Both, BuffType.Debuff),
             new ("Encumbered", "Encumbered", BuffTarget.Puller, BuffType.Debuff),
+            new ("Swap!", "SuperVikingKart_Swap", BuffTarget.Puller, BuffType.Debuff),
         };
 
         private BuffDefinition[] ActiveEffects => BlockType switch

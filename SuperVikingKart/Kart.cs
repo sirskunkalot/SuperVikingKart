@@ -15,7 +15,7 @@ namespace SuperVikingKart
 
         private ZNetView _netView;
         private float _lastSitTime;
-        private Player _attachedPlayer;
+        private Player _attachedPlayerLocal;
 
         // --- Lifecycle ---
 
@@ -34,6 +34,7 @@ namespace SuperVikingKart
 
             _netView.Register<ZDOID>("SuperVikingKart_RPC_Attach", RPC_Attach);
             _netView.Register("SuperVikingKart_RPC_Detach", RPC_Detach);
+            _netView.Register("SuperVikingKart_RPC_Swap", RPC_Swap);
 
             if (_netView.IsOwner())
             {
@@ -60,7 +61,7 @@ namespace SuperVikingKart
 
         public void Update()
         {
-            if (!_attachedPlayer)
+            if (!_attachedPlayerLocal)
                 return;
 
             if (!AttachPoint)
@@ -70,14 +71,14 @@ namespace SuperVikingKart
                 return;
             }
 
-            if (ZInput.GetButtonDown("Jump") || _attachedPlayer.IsDead())
+            if (ZInput.GetButtonDown("Jump") || _attachedPlayerLocal.IsDead())
             {
-                SuperVikingKart.DebugLog($"Kart Update - Detaching (Jump: {ZInput.GetButtonDown("Jump")}, Dead: {_attachedPlayer.IsDead()})");
+                SuperVikingKart.DebugLog($"Kart Update - Detaching (Jump: {ZInput.GetButtonDown("Jump")}, Dead: {_attachedPlayerLocal.IsDead()})");
                 Detach();
                 return;
             }
 
-            _attachedPlayer.transform.position = AttachPoint.position;
+            _attachedPlayerLocal.transform.position = AttachPoint.position;
         }
 
         private void OnDestroy()
@@ -92,16 +93,16 @@ namespace SuperVikingKart
         {
             SuperVikingKart.DebugLog($"Kart Attach - Player: {player.GetPlayerName()}, ZDOID: {player.GetZDOID()}");
             
-            _attachedPlayer = player;
+            _attachedPlayerLocal = player;
             if (_netView && _netView.GetZDO() != null)
                 _netView.InvokeRPC("SuperVikingKart_RPC_Attach", player.GetZDOID());
         }
-
+ 
         private void Detach()
         {
-            SuperVikingKart.DebugLog($"Kart Detach - Player: {_attachedPlayer?.GetPlayerName() ?? "none"}");
+            SuperVikingKart.DebugLog($"Kart Detach - Player: {_attachedPlayerLocal?.GetPlayerName() ?? "none"}");
 
-            _attachedPlayer = null;
+            _attachedPlayerLocal = null;
             if (_netView && _netView.GetZDO() != null)
                 _netView.InvokeRPC("SuperVikingKart_RPC_Detach");
         }
@@ -129,12 +130,106 @@ namespace SuperVikingKart
             if (_netView.IsOwner())
                 zdo.Set(ZdoKeyAttachedPlayer, ZDOID.None);
         }
+        
+        // --- Swap ---
+        
+        public void RequestSwap()
+        {
+            if (_netView && _netView.GetZDO() != null)
+                _netView.InvokeRPC(ZNetView.Everybody, "SuperVikingKart_RPC_Swap");
+        }
+
+        private void RPC_Swap(long sender)
+        {
+            var localPlayer = Player.m_localPlayer;
+            if (!localPlayer)
+                return;
+
+            var vagon = GetComponentInParent<Vagon>();
+            if (!vagon)
+                return;
+
+            var isPuller = vagon.IsAttached(localPlayer);
+            var isRider = _attachedPlayerLocal == localPlayer;
+
+            if (!isPuller && !isRider)
+                return;
+
+            if (isPuller)
+            {
+                SuperVikingKart.DebugLog("RPC_Swap - Puller detaching from cart");
+                vagon.Detach();
+            }
+            else
+            {
+                SuperVikingKart.DebugLog("RPC_Swap - Rider detaching from seat");
+                Detach();
+            }
+
+            StartCoroutine(DelayedSwap(localPlayer, isPuller));
+        }
+
+        private IEnumerator DelayedSwap(Player player, bool wasPuller)
+        {
+            yield return new WaitForSeconds(1f);
+
+            var vagon = GetComponentInParent<Vagon>();
+            if (!vagon)
+            {
+                SuperVikingKart.DebugLog("DelayedSwap - No vagon found");
+                yield break;
+            }
+
+            if (wasPuller)
+            {
+                SuperVikingKart.DebugLog("DelayedSwap - Old puller becoming rider");
+                Attach(player);
+            }
+            else
+            {
+                SuperVikingKart.DebugLog($"DelayedSwap - Old rider becoming puller, current owner: {vagon.m_nview.IsOwner()}, InUse: {vagon.InUse()}, IsAttached: {vagon.IsAttached()}");
+
+                player.transform.position = vagon.m_attachPoint.position - vagon.m_attachOffset;
+                player.m_body.position = player.transform.position;
+                player.m_body.velocity = Vector3.zero;
+
+                yield return new WaitForFixedUpdate();
+
+                SuperVikingKart.DebugLog($"DelayedSwap - CanAttach: {vagon.CanAttach(player.gameObject)}");
+
+                vagon.m_nview.ClaimOwnership();
+
+                SuperVikingKart.DebugLog($"DelayedSwap - After claim, owner: {vagon.m_nview.IsOwner()}");
+
+                if (vagon.m_nview.IsOwner())
+                {
+                    SuperVikingKart.DebugLog("DelayedSwap - Got ownership, attaching");
+                    vagon.AttachTo(player.gameObject);
+                }
+                else
+                {
+                    SuperVikingKart.DebugLog("DelayedSwap - Failed to get ownership");
+                }
+            }
+        }
 
         // --- State ---
 
         public Player GetAttachedPlayer()
         {
-            return _attachedPlayer;
+            var zdo = _netView.GetZDO();
+            if (zdo == null)
+                return null;
+
+            var attachedId = zdo.GetZDOID(ZdoKeyAttachedPlayer);
+            if (attachedId == ZDOID.None)
+                return null;
+
+            var playerObject = ZNetScene.instance.FindInstance(attachedId);
+            if (!playerObject)
+                return null;
+
+            return playerObject.GetComponent<Player>();
         }
 
         private bool IsInUse()
@@ -166,7 +261,7 @@ namespace SuperVikingKart
             if (Time.time - _lastSitTime < 2f)
                 return false;
 
-            if (_attachedPlayer && player == _attachedPlayer)
+            if (_attachedPlayerLocal && player == _attachedPlayerLocal)
             {
                 SuperVikingKart.DebugLog($"Kart Interact - Detaching player: {player.GetPlayerName()}");
                 Detach();
@@ -205,7 +300,7 @@ namespace SuperVikingKart
             if (!InUseDistance(localPlayer))
                 return Localization.instance.Localize("<color=grey>$piece_toofar</color>");
 
-            if (!_attachedPlayer && IsInUse())
+            if (!_attachedPlayerLocal && IsInUse())
                 return Localization.instance.Localize("<color=grey>In use</color>");
 
             return Localization.instance.Localize(Name + "\n[<color=yellow><b>$KEY_Use</b></color>] $piece_use");
