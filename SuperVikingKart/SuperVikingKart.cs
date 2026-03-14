@@ -306,9 +306,6 @@ namespace SuperVikingKart
             var staminaBurst = ScriptableObject.CreateInstance<SE_StaminaBurst>();
             ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(staminaBurst, fixReference: false));
             
-            var swap = ScriptableObject.CreateInstance<SE_Swap>();
-            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(swap, fixReference: false));
-            
             DebugLog("Custom status effects registered");
 
             PrefabManager.OnVanillaPrefabsAvailable -= RegisterCustomStatusEffects;

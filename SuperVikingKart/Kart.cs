@@ -34,7 +34,6 @@ namespace SuperVikingKart
 
             _netView.Register<ZDOID>("SuperVikingKart_RPC_Attach", RPC_Attach);
             _netView.Register("SuperVikingKart_RPC_Detach", RPC_Detach);
-            _netView.Register("SuperVikingKart_RPC_Swap", RPC_Swap);
 
             if (_netView.IsOwner())
             {
@@ -131,88 +130,6 @@ namespace SuperVikingKart
                 zdo.Set(ZdoKeyAttachedPlayer, ZDOID.None);
         }
         
-        // --- Swap ---
-        
-        public void RequestSwap()
-        {
-            if (_netView && _netView.GetZDO() != null)
-                _netView.InvokeRPC(ZNetView.Everybody, "SuperVikingKart_RPC_Swap");
-        }
-
-        private void RPC_Swap(long sender)
-        {
-            var localPlayer = Player.m_localPlayer;
-            if (!localPlayer)
-                return;
-
-            var vagon = GetComponentInParent<Vagon>();
-            if (!vagon)
-                return;
-
-            var isPuller = vagon.IsAttached(localPlayer);
-            var isRider = _attachedPlayerLocal == localPlayer;
-
-            if (!isPuller && !isRider)
-                return;
-
-            if (isPuller)
-            {
-                SuperVikingKart.DebugLog("RPC_Swap - Puller detaching from cart");
-                vagon.Detach();
-            }
-            else
-            {
-                SuperVikingKart.DebugLog("RPC_Swap - Rider detaching from seat");
-                Detach();
-            }
-
-            StartCoroutine(DelayedSwap(localPlayer, isPuller));
-        }
-
-        private IEnumerator DelayedSwap(Player player, bool wasPuller)
-        {
-            yield return new WaitForSeconds(1f);
-
-            var vagon = GetComponentInParent<Vagon>();
-            if (!vagon)
-            {
-                SuperVikingKart.DebugLog("DelayedSwap - No vagon found");
-                yield break;
-            }
-
-            if (wasPuller)
-            {
-                SuperVikingKart.DebugLog("DelayedSwap - Old puller becoming rider");
-                Attach(player);
-            }
-            else
-            {
-                SuperVikingKart.DebugLog($"DelayedSwap - Old rider becoming puller, current owner: {vagon.m_nview.IsOwner()}, InUse: {vagon.InUse()}, IsAttached: {vagon.IsAttached()}");
-
-                player.transform.position = vagon.m_attachPoint.position - vagon.m_attachOffset;
-                player.m_body.position = player.transform.position;
-                player.m_body.velocity = Vector3.zero;
-
-                yield return new WaitForFixedUpdate();
-
-                SuperVikingKart.DebugLog($"DelayedSwap - CanAttach: {vagon.CanAttach(player.gameObject)}");
-
-                vagon.m_nview.ClaimOwnership();
-
-                SuperVikingKart.DebugLog($"DelayedSwap - After claim, owner: {vagon.m_nview.IsOwner()}");
-
-                if (vagon.m_nview.IsOwner())
-                {
-                    SuperVikingKart.DebugLog("DelayedSwap - Got ownership, attaching");
-                    vagon.AttachTo(player.gameObject);
-                }
-                else
-                {
-                    SuperVikingKart.DebugLog("DelayedSwap - Failed to get ownership");
-                }
-            }
-        }
-
         // --- State ---
 
         public Player GetAttachedPlayer()
