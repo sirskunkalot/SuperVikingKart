@@ -239,6 +239,84 @@ namespace SuperVikingKart
         }
     }
 
+    internal class KartRespawnTimer : MonoBehaviour, Hoverable
+    {
+        private float _timeRemaining;
+        private GameObject _visual;
+        private TextMesh _text;
+
+        public void Setup(float duration)
+        {
+            _timeRemaining = duration;
+
+            _visual = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            _visual.name = "Visual";
+            _visual.transform.SetParent(transform, false);
+            _visual.transform.localPosition = Vector3.up * 1.5f;
+            _visual.transform.localScale = Vector3.one * 0.5f;
+
+            var collider = _visual.GetComponent<BoxCollider>();
+            if (collider) Destroy(collider);
+
+            var renderer = _visual.GetComponent<MeshRenderer>();
+            var material = new Material(PrefabManager.Cache.GetPrefab<Shader>("Standard"));
+            material.color = new Color(1f, 1f, 1f, 0.5f);
+            material.SetFloat("_Mode", 3f);
+            material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            material.SetInt("_ZWrite", 0);
+            material.DisableKeyword("_ALPHATEST_ON");
+            material.EnableKeyword("_ALPHABLEND_ON");
+            material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+            material.renderQueue = 3000;
+            renderer.material = material;
+
+            var textGo = new GameObject("TimerText");
+            textGo.transform.SetParent(transform, false);
+            textGo.transform.localPosition = Vector3.up * 2.5f;
+
+            _text = textGo.AddComponent<TextMesh>();
+            _text.alignment = TextAlignment.Center;
+            _text.anchor = TextAnchor.MiddleCenter;
+            _text.characterSize = 0.15f;
+            _text.fontSize = 32;
+            _text.color = Color.white;
+
+            var hoverCollider = gameObject.AddComponent<SphereCollider>();
+            hoverCollider.radius = 1f;
+            hoverCollider.center = Vector3.up * 1.5f;
+        }
+
+        private void Update()
+        {
+            _timeRemaining -= Time.deltaTime;
+
+            if (_timeRemaining <= 0f)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            _text.text = Mathf.CeilToInt(_timeRemaining).ToString();
+
+            var cam = Camera.main;
+            if (cam)
+                _text.transform.rotation = cam.transform.rotation;
+
+            _visual.transform.Rotate(Vector3.up, 50f * Time.deltaTime);
+        }
+
+        public string GetHoverText()
+        {
+            return $"Kart respawning in {Mathf.CeilToInt(_timeRemaining)}s";
+        }
+
+        public string GetHoverName()
+        {
+            return "Kart Respawn";
+        }
+    }
+
     [HarmonyPatch(typeof(WearNTear), nameof(WearNTear.Destroy))]
     internal class KartRespawnPatch
     {
@@ -260,7 +338,14 @@ namespace SuperVikingKart
             var position = __instance.transform.position;
             var yRotation = Quaternion.Euler(0f, __instance.transform.eulerAngles.y, 0f);
 
-            SuperVikingKart.DebugLog($"KartRespawn - Kart destroyed at {position}, scheduling respawn");
+            SuperVikingKart.DebugLog($"KartRespawn - Kart destroyed at {position}, spawning timer, scheduling respawn");
+            
+            var timerGo = new GameObject("KartRespawnTimer");
+            timerGo.transform.position = position;
+            timerGo.layer = LayerMask.NameToLayer("character");
+            var timer = timerGo.AddComponent<KartRespawnTimer>();
+            timer.Setup(SuperVikingKart.CartRespawnTimeConfig.Value);
+            
             SuperVikingKart.Instance.StartCoroutine(RespawnKart(position, yRotation));
         }
 
