@@ -44,6 +44,7 @@ namespace SuperVikingKart
     {
         public GameObject Visual;
         public BlockType BlockType;
+        public GameObject CollectEffectPrefab;
 
         private const string ZdoKeyIsActive = "SuperVikingKart_BuffBlockActive";
 
@@ -344,12 +345,17 @@ namespace SuperVikingKart
                 _respawnTimer = SuperVikingKart.BuffBlockRespawnTimeConfig.Value;
             }
 
+            if (CollectEffectPrefab)
+            {
+                Instantiate(CollectEffectPrefab, Visual.transform.position, Quaternion.identity);
+            }
+
             var effects = ActiveEffects;
             if (buffIndex >= 0 && buffIndex < effects.Length && effects[buffIndex].EffectPrefab)
             {
                 Instantiate(effects[buffIndex].EffectPrefab, transform.position, Quaternion.identity);
             }
-
+            
             SetVisual(false);
         }
 

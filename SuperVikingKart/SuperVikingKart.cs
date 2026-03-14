@@ -211,9 +211,12 @@ namespace SuperVikingKart
             buffBlock.Visual = visual;
             buffBlock.BlockType = blockType;
 
+            var collectEffect = PrefabManager.Instance.GetPrefab("vfx_Place_chest");
+            buffBlock.CollectEffectPrefab = collectEffect;
+
             var triggerRelay = visual.AddComponent<BuffBlockTrigger>();
             triggerRelay.BuffBlock = buffBlock;
-
+            
             var icon = RenderManager.Instance.Render(prefab, RenderManager.IsometricRotation);
 
             var customPiece = new CustomPiece(prefab, false, new PieceConfig
