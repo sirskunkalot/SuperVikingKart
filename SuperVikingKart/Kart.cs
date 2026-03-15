@@ -387,26 +387,6 @@ namespace SuperVikingKart
     }
     
     /// <summary>
-    /// Fixes a vanilla bug where the pulling player's death leaves a dangling
-    /// joint reference. LateUpdate runs before FixedUpdate can clean up,
-    /// causing NullReferenceException spam.
-    /// </summary>
-    [HarmonyPatch(typeof(Vagon), nameof(Vagon.LateUpdate))]
-    internal class VagonDeathPatch
-    {
-        private static bool Prefix(Vagon __instance)
-        {
-            if (__instance.m_attachJoin != null && __instance.m_attachJoin.connectedBody == null)
-            {
-                __instance.Detach();
-                return false;
-            }
-
-            return true;
-        }
-    }
-    
-    /// <summary>
     /// Allows the rider to hit targets through their own kart by temporarily
     /// disabling the kart's colliders during melee attack raycasts.
     /// Only activates for local player when riding a kart.
@@ -454,4 +434,25 @@ namespace SuperVikingKart
             }
         }
     }
+    
+    /// <summary>
+    /// Fixes a vanilla bug where the pulling player's death leaves a dangling
+    /// joint reference. LateUpdate runs before FixedUpdate can clean up,
+    /// causing NullReferenceException spam.
+    /// </summary>
+    [HarmonyPatch(typeof(Vagon), nameof(Vagon.LateUpdate))]
+    internal class VagonDeathPatch
+    {
+        private static bool Prefix(Vagon __instance)
+        {
+            if (__instance.m_attachJoin != null && __instance.m_attachJoin.connectedBody == null)
+            {
+                __instance.Detach();
+                return false;
+            }
+
+            return true;
+        }
+    }
+
 }

@@ -111,7 +111,6 @@ namespace SuperVikingKart
                     }
                 });
 
-                cart.Piece.m_craftingStation = null;
                 cart.Piece.m_canBeRemoved = true;
                 PieceManager.Instance.AddPiece(cart);
 
