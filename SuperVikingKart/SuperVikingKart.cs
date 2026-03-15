@@ -48,11 +48,11 @@ namespace SuperVikingKart
             DebugLogConfig = Config.Bind("General", "Debug", false, "Enable debug logging");
             CartRespawnTimeConfig = Config.Bind("General", "CartRespawnTime", 10,
                 new ConfigDescription("Time in seconds before a destroyed cart respawns. Server synced value.",
-                    new AcceptableValueRange<int>(0, 300),
+                    new AcceptableValueRange<int>(2, 20),
                     new ConfigurationManagerAttributes { IsAdminOnly = true }));
             BuffBlockRespawnTimeConfig = Config.Bind("General", "BuffBlockRespawnTime", 10,
                 new ConfigDescription("Time in seconds before a collected buff block reappears. Server synced value.",
-                    new AcceptableValueRange<int>(0, 300),
+                    new AcceptableValueRange<int>(2, 20),
                     new ConfigurationManagerAttributes { IsAdminOnly = true }));
             KartMassConfig = Config.Bind("General", "KartMass", 10,
                 new ConfigDescription("Total mass of the kart. Lower is faster. Server synced value.",
