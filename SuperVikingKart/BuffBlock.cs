@@ -59,6 +59,9 @@ namespace SuperVikingKart
             new ("Shield", "GP_Bonemass", BuffTarget.Rider),
             new ("Health Regen", "Potion_healthminor", BuffTarget.Rider),
             new ("Ooze Bombs", "SuperVikingKart_OozeBombs", BuffTarget.Rider),
+            new ("Fire Arrows", "SuperVikingKart_FireArrows", BuffTarget.Rider),
+            new ("Bile Bombs", "SuperVikingKart_BileBombs", BuffTarget.Rider),
+            new ("Berserk", "SuperVikingKart_Berserk", BuffTarget.Rider),
             // Both
             new ("Living Dead", "CorpseRun", BuffTarget.Both),
         };
@@ -73,6 +76,7 @@ namespace SuperVikingKart
             new ("Poison", "SuperVikingKart_Poison", BuffTarget.Rider, BuffType.Debuff),
             new ("Burning", "SuperVikingKart_Burn", BuffTarget.Rider, BuffType.Debuff),
             new ("Stagger", "SuperVikingKart_Stagger", BuffTarget.Rider, BuffType.Debuff),
+            new ("Disarm", "SuperVikingKart_Disarm", BuffTarget.Rider, BuffType.Debuff),
             // Both
             new ("Wet", "Wet", BuffTarget.Both, BuffType.Debuff),
             new ("Shock", "SuperVikingKart_Shock", BuffTarget.Both, BuffType.Debuff),
@@ -89,6 +93,9 @@ namespace SuperVikingKart
             new ("Shield", "GP_Bonemass", BuffTarget.Rider),
             new ("Health Regen", "Potion_healthminor", BuffTarget.Rider),
             new ("Ooze Bombs", "SuperVikingKart_OozeBombs", BuffTarget.Rider),
+            new ("Fire Arrows", "SuperVikingKart_FireArrows", BuffTarget.Rider),
+            new ("Bile Bombs", "SuperVikingKart_BileBombs", BuffTarget.Rider),
+            new ("Berserk", "SuperVikingKart_Berserk", BuffTarget.Rider),
             // Buffs - Both
             new ("Living Dead", "CorpseRun", BuffTarget.Both),
             // Debuffs - Puller
@@ -99,6 +106,7 @@ namespace SuperVikingKart
             new ("Poison", "SuperVikingKart_Poison", BuffTarget.Rider, BuffType.Debuff),
             new ("Burning", "SuperVikingKart_Burn", BuffTarget.Rider, BuffType.Debuff),
             new ("Stagger", "SuperVikingKart_Stagger", BuffTarget.Rider, BuffType.Debuff),
+            new ("Disarm", "SuperVikingKart_Disarm", BuffTarget.Rider, BuffType.Debuff),
             // Debuffs - Both
             new ("Wet", "Wet", BuffTarget.Both, BuffType.Debuff),
             new ("Shock", "SuperVikingKart_Shock", BuffTarget.Both, BuffType.Debuff),

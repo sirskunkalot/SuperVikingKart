@@ -391,4 +391,129 @@ namespace SuperVikingKart
             }
         }
     }
+    
+    /// <summary>
+    /// Status effect that gives the rider fire arrows
+    /// </summary>
+    internal class SE_FireArrows : SE_Stats
+    {
+        public void OnEnable()
+        {
+            name = "SuperVikingKart_FireArrows";
+            m_ttl = 0.1f;
+        }
+
+        public override void Setup(Character character)
+        {
+            base.Setup(character);
+            var player = character as Player;
+            if (!player) return;
+
+            var prefab = ZNetScene.instance.GetPrefab("ArrowFire");
+            if (!prefab) return;
+
+            SuperVikingKart.DebugLog($"SE_FireArrows - Adding fire arrows to {player.GetPlayerName()}");
+            player.GetInventory().AddItem(prefab, 20);
+        }
+    }
+
+    /// <summary>
+    /// Status effect that gives the rider bile bombs
+    /// </summary>
+    internal class SE_BileBombs : SE_Stats
+    {
+        public void OnEnable()
+        {
+            name = "SuperVikingKart_BileBombs";
+            m_ttl = 0.1f;
+        }
+
+        public override void Setup(Character character)
+        {
+            base.Setup(character);
+            var player = character as Player;
+            if (!player) return;
+
+            var prefab = ZNetScene.instance.GetPrefab("BombBile");
+            if (!prefab) return;
+
+            SuperVikingKart.DebugLog($"SE_BileBombs - Adding bile bombs to {player.GetPlayerName()}");
+            player.GetInventory().AddItem(prefab, 5);
+        }
+    }
+
+    /// <summary>
+    /// Status effect that massively increases damage output
+    /// </summary>
+    internal class SE_KartBerserk : SE_Stats
+    {
+        public void OnEnable()
+        {
+            name = "SuperVikingKart_Berserk";
+            m_ttl = 10f;
+            m_icon = PrefabManager.Cache.GetPrefab<Sprite>("Potion_bzerker");
+
+            var effect = PrefabManager.Cache.GetPrefab<GameObject>("vfx_MeadBzerker");
+            if (effect)
+            {
+                m_startEffects.m_effectPrefabs = new[]
+                {
+                    new EffectList.EffectData { m_prefab = effect, m_enabled = true, m_attach = true }
+                };
+            }
+        }
+
+        public override void Setup(Character character)
+        {
+            base.Setup(character);
+            SuperVikingKart.DebugLog($"SE_KartBerserk - Applied to {character.m_name}");
+        }
+
+        public override void ModifyAttack(Skills.SkillType skill, ref HitData hitData)
+        {
+            hitData.m_damage.m_damage *= 3f;
+            hitData.m_damage.m_blunt *= 3f;
+            hitData.m_damage.m_slash *= 3f;
+            hitData.m_damage.m_pierce *= 3f;
+        }
+
+        public override void Stop()
+        {
+            SuperVikingKart.DebugLog($"SE_KartBerserk - Stopped on {m_character?.m_name}");
+            base.Stop();
+        }
+    }
+
+    /// <summary>
+    /// Status effect that unequips and drops the rider's weapon
+    /// </summary>
+    internal class SE_KartDisarm : SE_Stats
+    {
+        public void OnEnable()
+        {
+            name = "SuperVikingKart_Disarm";
+            m_ttl = 0.1f;
+        }
+
+        public override void Setup(Character character)
+        {
+            base.Setup(character);
+            var player = character as Player;
+            if (!player) return;
+
+            var rightItem = player.GetRightItem();
+            if (rightItem != null)
+            {
+                SuperVikingKart.DebugLog($"SE_KartDisarm - Dropping {rightItem.m_shared.m_name} from {player.GetPlayerName()}");
+                player.DropItem(player.GetInventory(), rightItem, 1);
+            }
+
+            var leftItem = player.GetLeftItem();
+            if (leftItem != null)
+            {
+                SuperVikingKart.DebugLog($"SE_KartDisarm - Dropping {leftItem.m_shared.m_name} from {player.GetPlayerName()}");
+                player.DropItem(player.GetInventory(), leftItem, 1);
+            }
+        }
+    }
 }

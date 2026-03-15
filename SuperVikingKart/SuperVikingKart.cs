@@ -349,6 +349,18 @@ namespace SuperVikingKart
             var kartBounce = ScriptableObject.CreateInstance<SE_KartBounce>();
             ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartBounce, fixReference: false));
             
+            var fireArrows = ScriptableObject.CreateInstance<SE_FireArrows>();
+            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(fireArrows, fixReference: false));
+
+            var bileBombs = ScriptableObject.CreateInstance<SE_BileBombs>();
+            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(bileBombs, fixReference: false));
+
+            var kartBerserk = ScriptableObject.CreateInstance<SE_KartBerserk>();
+            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartBerserk, fixReference: false));
+
+            var kartDisarm = ScriptableObject.CreateInstance<SE_KartDisarm>();
+            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartDisarm, fixReference: false));
+            
             DebugLog("Custom status effects registered");
 
             PrefabManager.OnVanillaPrefabsAvailable -= RegisterCustomStatusEffects;
