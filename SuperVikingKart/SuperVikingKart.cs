@@ -325,12 +325,6 @@ namespace SuperVikingKart
             var staminaBurst = ScriptableObject.CreateInstance<SE_StaminaBurst>();
             ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(staminaBurst, fixReference: false));
             
-            var lightKart = ScriptableObject.CreateInstance<SE_LightKart>();
-            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(lightKart, fixReference: false));
-
-            var heavyKart = ScriptableObject.CreateInstance<SE_HeavyKart>();
-            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(heavyKart, fixReference: false));
-            
             var kartPoison = ScriptableObject.CreateInstance<SE_KartPoison>();
             ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartPoison, fixReference: false));
 

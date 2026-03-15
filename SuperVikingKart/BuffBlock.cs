@@ -55,7 +55,6 @@ namespace SuperVikingKart
             new ("Speed Boost", "Potion_hasty", BuffTarget.Puller),
             new ("Stamina Regen", "Potion_stamina_minor", BuffTarget.Puller),
             new ("Stamina Burst", "SuperVikingKart_StaminaBurst", BuffTarget.Puller),
-            new ("Light Kart", "SuperVikingKart_LightKart", BuffTarget.Puller),
             // Rider
             new ("Shield", "GP_Bonemass", BuffTarget.Rider),
             new ("Health Regen", "Potion_healthminor", BuffTarget.Rider),
@@ -67,7 +66,6 @@ namespace SuperVikingKart
         private static readonly BuffDefinition[] Debuffs =
         {
             // Puller
-            new ("Heavy Kart", "SuperVikingKart_HeavyCart", BuffTarget.Puller, BuffType.Debuff),
             new ("Frost", "SuperVikingKart_Frost", BuffTarget.Puller, BuffType.Debuff),
             new ("Tarred", "SuperVikingKart_Tarred", BuffTarget.Puller, BuffType.Debuff),
             // Rider
@@ -85,7 +83,6 @@ namespace SuperVikingKart
             new ("Speed Boost", "Potion_hasty", BuffTarget.Puller),
             new ("Stamina Regen", "Potion_stamina_minor", BuffTarget.Puller),
             new ("Stamina Burst", "SuperVikingKart_StaminaBurst", BuffTarget.Puller),
-            new ("Light Kart", "SuperVikingKart_LightKart", BuffTarget.Puller),
             // Buffs - Rider
             new ("Shield", "GP_Bonemass", BuffTarget.Rider),
             new ("Health Regen", "Potion_healthminor", BuffTarget.Rider),
@@ -93,7 +90,6 @@ namespace SuperVikingKart
             // Buffs - Both
             new ("Living Dead", "CorpseRun", BuffTarget.Both),
             // Debuffs - Puller
-            new ("Heavy Kart", "SuperVikingKart_HeavyCart", BuffTarget.Puller, BuffType.Debuff),
             new ("Frost", "SuperVikingKart_Frost", BuffTarget.Puller, BuffType.Debuff),
             new ("Tarred", "SuperVikingKart_Tarred", BuffTarget.Puller, BuffType.Debuff),
             // Debuffs - Rider
