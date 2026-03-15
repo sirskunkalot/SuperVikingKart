@@ -1,18 +1,25 @@
 using System.Collections;
+using System.Collections.Generic;
 using HarmonyLib;
 using Jotunn.Managers;
 using UnityEngine;
 
 namespace SuperVikingKart
 {
+    /// <summary>
+    /// Core component for the racing kart. Handles rider attachment, detachment,
+    /// and position pinning. Placed on the Container child of the cloned Cart prefab.
+    /// Tracks all instances for efficient lookup by patches and status effects.
+    /// </summary>
     internal class SuperVikingKartComponent : MonoBehaviour, Hoverable, Interactable
     {
+        public static readonly List<SuperVikingKartComponent> Instances = new ();
+
         public string Name = "SuperVikingKartAttach";
         public float UseDistance = 2f;
         public Transform AttachPoint;
-
+        
         private const string ZdoKeyAttachedPlayer = "SuperVikingKart_AttachedPlayer";
-
         private ZNetView _netView;
         private float _lastSitTime;
         private Player _attachedPlayerLocal;
@@ -20,9 +27,10 @@ namespace SuperVikingKart
         // --- Lifecycle ---
 
         public void Awake()
-        {
+        {    
+            Instances.Add(this);
+            
             _netView = gameObject.GetComponentInParent<ZNetView>();
-
             if (!_netView || _netView.GetZDO() == null)
             {
                 SuperVikingKart.DebugLog("Kart Awake - no ZNetView or ZDO, disabling");
@@ -78,7 +86,8 @@ namespace SuperVikingKart
         }
 
         private void OnDestroy()
-        {
+        {    
+            Instances.Remove(this);
             SuperVikingKart.DebugLog("Kart OnDestroy");
             Detach();
         }
@@ -97,7 +106,6 @@ namespace SuperVikingKart
         private void Detach()
         {
             SuperVikingKart.DebugLog($"Kart Detach - Player: {_attachedPlayerLocal?.GetPlayerName() ?? "none"}");
-
             _attachedPlayerLocal = null;
             if (_netView && _netView.GetZDO() != null)
                 _netView.InvokeRPC("SuperVikingKart_RPC_Detach");
@@ -106,11 +114,9 @@ namespace SuperVikingKart
         private void RPC_Attach(long sender, ZDOID playerId)
         {
             SuperVikingKart.DebugLog($"Kart RPC_Attach - sender: {sender}, playerId: {playerId}, IsOwner: {_netView.IsOwner()}");
-
             var zdo = _netView.GetZDO();
             if (zdo == null)
                 return;
-
             if (_netView.IsOwner())
                 zdo.Set(ZdoKeyAttachedPlayer, playerId);
         }
@@ -118,31 +124,29 @@ namespace SuperVikingKart
         private void RPC_Detach(long sender)
         {
             SuperVikingKart.DebugLog($"Kart RPC_Detach - sender: {sender}, IsOwner: {_netView.IsOwner()}");
-
             var zdo = _netView.GetZDO();
             if (zdo == null)
                 return;
-
             if (_netView.IsOwner())
                 zdo.Set(ZdoKeyAttachedPlayer, ZDOID.None);
         }
         
         // --- State ---
 
+        /// <summary>
+        /// Resolves the attached player from ZDO, works on any client.
+        /// </summary>
         public Player GetAttachedPlayer()
         {
             var zdo = _netView.GetZDO();
             if (zdo == null)
                 return null;
-
             var attachedId = zdo.GetZDOID(ZdoKeyAttachedPlayer);
             if (attachedId == ZDOID.None)
                 return null;
-
             var playerObject = ZNetScene.instance.FindInstance(attachedId);
             if (!playerObject)
                 return null;
-
             return playerObject.GetComponent<Player>();
         }
 
@@ -151,7 +155,6 @@ namespace SuperVikingKart
             var zdo = _netView.GetZDO();
             if (zdo == null)
                 return false;
-
             return zdo.GetZDOID(ZdoKeyAttachedPlayer) != ZDOID.None;
         }
 
@@ -161,20 +164,15 @@ namespace SuperVikingKart
         {
             if (hold)
                 return false;
-
             var player = human as Player;
             if (!player)
                 return false;
-
             if (!AttachPoint)
                 return false;
-
             if (!InUseDistance(player))
                 return false;
-
             if (Time.time - _lastSitTime < 2f)
                 return false;
-
             if (_attachedPlayerLocal && player == _attachedPlayerLocal)
             {
                 SuperVikingKart.DebugLog($"Kart Interact - Detaching player: {player.GetPlayerName()}");
@@ -182,13 +180,11 @@ namespace SuperVikingKart
                 _lastSitTime = Time.time;
                 return true;
             }
-
             if (IsInUse())
             {
                 SuperVikingKart.DebugLog("Kart Interact - Already in use");
                 return false;
             }
-
             SuperVikingKart.DebugLog($"Kart Interact - Attaching player: {player.GetPlayerName()}");
             Attach(player);
             _lastSitTime = Time.time;
@@ -206,17 +202,13 @@ namespace SuperVikingKart
         {
             if (Time.time - _lastSitTime < 2f)
                 return "";
-
             var localPlayer = Player.m_localPlayer;
             if (!localPlayer)
                 return "";
-
             if (!InUseDistance(localPlayer))
                 return Localization.instance.Localize("<color=grey>$piece_toofar</color>");
-
             if (!_attachedPlayerLocal && IsInUse())
                 return Localization.instance.Localize("<color=grey>In use</color>");
-
             return Localization.instance.Localize(Name + "\n[<color=yellow><b>$KEY_Use</b></color>] $piece_use");
         }
 
@@ -231,11 +223,14 @@ namespace SuperVikingKart
         {
             if (!human || !AttachPoint)
                 return false;
-
             return Vector3.Distance(human.transform.position, AttachPoint.position) < UseDistance;
         }
     }
 
+    /// <summary>
+    /// Floating countdown timer spawned at the kart's destroy position.
+    /// Shows remaining time until respawn and auto-destroys when done.
+    /// </summary>
     internal class KartRespawnComponent : MonoBehaviour, Hoverable
     {
         private float _timeRemaining;
@@ -292,11 +287,16 @@ namespace SuperVikingKart
         }
     }
 
+    /// <summary>
+    /// Respawns destroyed karts after a configurable delay.
+    /// Only triggers for actual destruction, not hammer removal.
+    /// Spawns a visible countdown timer at the destroy position.
+    /// </summary>
     [HarmonyPatch(typeof(WearNTear), nameof(WearNTear.Destroy))]
     internal class KartRespawnPatch
     {
-        // static could be a race condition if a kart gets destroyed while
-        // another gets removed. But welp, too small of a window
+        // Static flag could race if a kart gets destroyed while another gets
+        // removed in the same frame. Negligible in practice.
         internal static bool IsBeingRemoved;
 
         private static void Prefix(WearNTear __instance)
@@ -342,6 +342,10 @@ namespace SuperVikingKart
         }
     }
 
+    /// <summary>
+    /// Prevents kart respawn when removed with the hammer.
+    /// Sets a flag that KartRespawnPatch checks before scheduling a respawn.
+    /// </summary>
     [HarmonyPatch(typeof(WearNTear), nameof(WearNTear.Remove))]
     internal class KartRemovePatch
     {
@@ -356,6 +360,10 @@ namespace SuperVikingKart
         }
     }
 
+    /// <summary>
+    /// Prevents the rider from damaging their own kart.
+    /// Uses prefab hash for fast early-out on non-kart damage events.
+    /// </summary>
     [HarmonyPatch(typeof(WearNTear), nameof(WearNTear.Damage))]
     internal class KartSelfDamagePatch
     {
@@ -363,7 +371,6 @@ namespace SuperVikingKart
         {
             if (!__instance.m_nview || __instance.m_nview.GetZDO() == null)
                 return true;
-
             if (__instance.m_nview.GetZDO().m_prefab != SuperVikingKart.KartPrefabHash)
                 return true;
 
@@ -380,10 +387,9 @@ namespace SuperVikingKart
     }
     
     /// <summary>
-    /// Fixes a vanilla bug where the Vagon's LateUpdate tries to access the
-    /// attach joint's connected body after the pulling player dies.
-    /// LateUpdate runs before FixedUpdate can catch and detach, causing a
-    /// NullReferenceException spam.
+    /// Fixes a vanilla bug where the pulling player's death leaves a dangling
+    /// joint reference. LateUpdate runs before FixedUpdate can clean up,
+    /// causing NullReferenceException spam.
     /// </summary>
     [HarmonyPatch(typeof(Vagon), nameof(Vagon.LateUpdate))]
     internal class VagonDeathPatch
@@ -397,6 +403,55 @@ namespace SuperVikingKart
             }
 
             return true;
+        }
+    }
+    
+    /// <summary>
+    /// Allows the rider to hit targets through their own kart by temporarily
+    /// disabling the kart's colliders during melee attack raycasts.
+    /// Only activates for local player when riding a kart.
+    /// </summary>
+    [HarmonyPatch(typeof(Attack), nameof(Attack.DoMeleeAttack))]
+    internal class AttackThroughOwnCartPatch
+    {
+        private static void Prefix(Attack __instance, out List<Collider> __state)
+        {
+            __state = null;
+
+            var player = __instance.m_character as Player;
+            if (player == null || player != Player.m_localPlayer)
+                return;
+
+            foreach (var kart in SuperVikingKartComponent.Instances)
+            {
+                if (kart.GetAttachedPlayer() != player)
+                    continue;
+
+                var vagon = kart.GetComponentInParent<Vagon>();
+                if (!vagon) continue;
+
+                __state = new List<Collider>();
+                foreach (var collider in vagon.GetComponentsInChildren<Collider>())
+                {
+                    if (collider.enabled)
+                    {
+                        collider.enabled = false;
+                        __state.Add(collider);
+                    }
+                }
+                return;
+            }
+        }
+
+        private static void Postfix(List<Collider> __state)
+        {
+            if (__state == null) return;
+
+            foreach (var collider in __state)
+            {
+                if (collider)
+                    collider.enabled = true;
+            }
         }
     }
 }

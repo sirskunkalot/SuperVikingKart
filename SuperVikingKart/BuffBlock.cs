@@ -84,37 +84,8 @@ namespace SuperVikingKart
             new ("Blind", "SuperVikingKart_Blind", BuffTarget.Both, BuffType.Debuff),
         };
 
-        /*private static readonly BuffDefinition[] MysteryEffects =
-        {
-            // Buffs - Puller
-            new ("Speed Boost", "Potion_hasty", BuffTarget.Puller),
-            new ("Stamina Regen", "Potion_stamina_minor", BuffTarget.Puller),
-            new ("Stamina Burst", "SuperVikingKart_StaminaBurst", BuffTarget.Puller),
-            // Buffs - Rider
-            new ("Shield", "GP_Bonemass", BuffTarget.Rider),
-            new ("Health Regen", "Potion_healthminor", BuffTarget.Rider),
-            new ("Ooze Bombs", "SuperVikingKart_OozeBombs", BuffTarget.Rider),
-            new ("Fire Arrows", "SuperVikingKart_FireArrows", BuffTarget.Rider),
-            new ("Bile Bombs", "SuperVikingKart_BileBombs", BuffTarget.Rider),
-            new ("Berserk", "SuperVikingKart_Berserk", BuffTarget.Rider),
-            // Buffs - Both
-            new ("Living Dead", "CorpseRun", BuffTarget.Both),
-            // Debuffs - Puller
-            new ("Frost", "SuperVikingKart_Frost", BuffTarget.Puller, BuffType.Debuff),
-            new ("Tarred", "SuperVikingKart_Tarred", BuffTarget.Puller, BuffType.Debuff),
-            new ("Bouncy", "SuperVikingKart_Bounce", BuffTarget.Puller, BuffType.Debuff),
-            // Debuffs - Rider
-            new ("Poison", "SuperVikingKart_Poison", BuffTarget.Rider, BuffType.Debuff),
-            new ("Burning", "SuperVikingKart_Burn", BuffTarget.Rider, BuffType.Debuff),
-            new ("Stagger", "SuperVikingKart_Stagger", BuffTarget.Rider, BuffType.Debuff),
-            new ("Disarm", "SuperVikingKart_Disarm", BuffTarget.Rider, BuffType.Debuff),
-            // Debuffs - Both
-            new ("Wet", "Wet", BuffTarget.Both, BuffType.Debuff),
-            new ("Shock", "SuperVikingKart_Shock", BuffTarget.Both, BuffType.Debuff),
-            new ("Blind", "SuperVikingKart_Blind", BuffTarget.Both, BuffType.Debuff),
-        };*/
         private static readonly BuffDefinition[] MysteryEffects = Buffs.Concat(Debuffs).ToArray();
-        
+
         public static BuffDefinition[] AllEffects
         {
             get
@@ -176,6 +147,11 @@ namespace SuperVikingKart
 
         // --- Collection ---
 
+        /// <summary>
+        /// Called by BuffBlockTrigger when a collider enters.
+        /// Only the puller's client initiates collection to prevent duplicates.
+        /// Sends a request to the ZDO owner who authorizes it.
+        /// </summary>
         public void OnBuffBlockTriggerEnter(Collider other)
         {
             SuperVikingKart.DebugLog($"BuffBlock trigger entered by: {other.name} (parent: {other.transform.root.name})");
@@ -242,6 +218,11 @@ namespace SuperVikingKart
 
         // --- Collection Authority ---
 
+        /// <summary>
+        /// Runs on the ZDO owner only. Validates the collection request and
+        /// broadcasts the effect application and visual update to all clients.
+        /// Rejects duplicate collections from simultaneous triggers.
+        /// </summary>
         private void RPC_RequestCollection(long sender, int buffIndex, ZDOID cartId)
         {
             SuperVikingKart.DebugLog($"BuffBlock RPC_RequestCollection - sender: {sender}, buffIndex: {buffIndex}, cartId: {cartId}, IsOwner: {_netView.IsOwner()}");
@@ -264,6 +245,11 @@ namespace SuperVikingKart
 
         // --- Buff Application ---
 
+        /// <summary>
+        /// Runs on all clients. Each client checks if the local player is the
+        /// puller or rider and applies the effect accordingly.
+        /// Shows a message to both puller and rider regardless of who receives the effect.
+        /// </summary>
         private void RPC_ApplyBuff(long sender, int buffIndex, ZDOID cartId)
         {
             SuperVikingKart.DebugLog($"BuffBlock RPC_ApplyBuff - sender: {sender}, buffIndex: {buffIndex}, cartId: {cartId}");
@@ -376,6 +362,10 @@ namespace SuperVikingKart
                 Visual.SetActive(active);
         }
 
+        /// <summary>
+        /// Runs on all clients. Hides the block visual and spawns
+        /// an optional collection effect at the block position.
+        /// </summary>
         private void RPC_BuffBlockCollected(long sender, int buffIndex)
         {
             SuperVikingKart.DebugLog($"BuffBlock RPC_BuffBlockCollected - sender: {sender}, buffIndex: {buffIndex}, IsOwner: {_netView.IsOwner()}");
@@ -405,6 +395,10 @@ namespace SuperVikingKart
         }
     }
 
+    /// <summary>
+    /// Relays trigger events from the visual child to the parent BuffBlockComponent.
+    /// Needed because the trigger collider is on the Visual child, not the root.
+    /// </summary>
     internal class BuffBlockTrigger : MonoBehaviour
     {
         public BuffBlockComponent BuffBlock;
@@ -416,6 +410,9 @@ namespace SuperVikingKart
         }
     }
 
+    /// <summary>
+    /// Rotates and bobs the block visual for a floating item box look.
+    /// </summary>
     internal class BuffBlockSpin : MonoBehaviour
     {
         public float RotationSpeed = 50f;
