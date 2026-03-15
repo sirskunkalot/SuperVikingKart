@@ -342,7 +342,13 @@ namespace SuperVikingKart
             
             var kartShock = ScriptableObject.CreateInstance<SE_KartShock>();
             ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartShock, fixReference: false));
+            
+            var kartStagger = ScriptableObject.CreateInstance<SE_KartStagger>();
+            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartStagger, fixReference: false));
 
+            var kartTarred = ScriptableObject.CreateInstance<SE_KartTarred>();
+            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartTarred, fixReference: false));
+            
             DebugLog("Custom status effects registered");
 
             PrefabManager.OnVanillaPrefabsAvailable -= RegisterCustomStatusEffects;

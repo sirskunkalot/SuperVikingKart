@@ -69,9 +69,11 @@ namespace SuperVikingKart
             // Puller
             new ("Heavy Kart", "SuperVikingKart_HeavyCart", BuffTarget.Puller, BuffType.Debuff),
             new ("Frost", "SuperVikingKart_Frost", BuffTarget.Puller, BuffType.Debuff),
+            new ("Tarred", "SuperVikingKart_Tarred", BuffTarget.Puller, BuffType.Debuff),
             // Rider
             new ("Poison", "SuperVikingKart_Poison", BuffTarget.Rider, BuffType.Debuff),
             new ("Burning", "SuperVikingKart_Burn", BuffTarget.Rider, BuffType.Debuff),
+            new ("Stagger", "SuperVikingKart_Stagger", BuffTarget.Rider, BuffType.Debuff),
             // Both
             new ("Wet", "Wet", BuffTarget.Both, BuffType.Debuff),
             new ("Shock", "SuperVikingKart_Shock", BuffTarget.Both, BuffType.Debuff),
@@ -93,9 +95,11 @@ namespace SuperVikingKart
             // Debuffs - Puller
             new ("Heavy Kart", "SuperVikingKart_HeavyCart", BuffTarget.Puller, BuffType.Debuff),
             new ("Frost", "SuperVikingKart_Frost", BuffTarget.Puller, BuffType.Debuff),
+            new ("Tarred", "SuperVikingKart_Tarred", BuffTarget.Puller, BuffType.Debuff),
             // Debuffs - Rider
             new ("Poison", "SuperVikingKart_Poison", BuffTarget.Rider, BuffType.Debuff),
             new ("Burning", "SuperVikingKart_Burn", BuffTarget.Rider, BuffType.Debuff),
+            new ("Stagger", "SuperVikingKart_Stagger", BuffTarget.Rider, BuffType.Debuff),
             // Debuffs - Both
             new ("Wet", "Wet", BuffTarget.Both, BuffType.Debuff),
             new ("Shock", "SuperVikingKart_Shock", BuffTarget.Both, BuffType.Debuff),

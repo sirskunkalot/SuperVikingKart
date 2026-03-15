@@ -348,4 +348,62 @@ namespace SuperVikingKart
             base.Stop();
         }
     }
+    
+    /// <summary>
+    /// Status effect that staggers the player on impact
+    /// </summary>
+    internal class SE_KartStagger : SE_Stats
+    {
+        public void OnEnable()
+        {
+            name = "SuperVikingKart_Stagger";
+            m_ttl = 0.1f;
+        }
+
+        public override void Setup(Character character)
+        {
+            base.Setup(character);
+            character.Stagger(character.transform.forward * -1f);
+            SuperVikingKart.DebugLog($"SE_KartStagger - Staggered {character.m_name}");
+        }
+    }
+
+    /// <summary>
+    /// Status effect that slows movement like being covered in tar
+    /// </summary>
+    internal class SE_KartTarred : SE_Stats
+    {
+        public void OnEnable()
+        {
+            name = "SuperVikingKart_Tarred";
+            m_ttl = 8f;
+            m_icon = PrefabManager.Cache.GetPrefab<Sprite>("Tared");
+
+            var effect = PrefabManager.Cache.GetPrefab<GameObject>("vfx_Tared");
+            if (effect)
+            {
+                m_startEffects.m_effectPrefabs = new[]
+                {
+                    new EffectList.EffectData { m_prefab = effect, m_enabled = true, m_attach = true }
+                };
+            }
+        }
+
+        public override void Setup(Character character)
+        {
+            base.Setup(character);
+            SuperVikingKart.DebugLog($"SE_KartTarred - Applied to {character.m_name}");
+        }
+
+        public override void ModifySpeed(float baseSpeed, ref float speed, Character character, Vector3 dir)
+        {
+            speed *= 0.3f;
+        }
+
+        public override void Stop()
+        {
+            SuperVikingKart.DebugLog($"SE_KartTarred - Stopped on {m_character?.m_name}");
+            base.Stop();
+        }
+    }
 }
