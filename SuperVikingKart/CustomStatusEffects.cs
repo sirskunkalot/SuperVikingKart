@@ -300,4 +300,64 @@ namespace SuperVikingKart
             base.Stop();
         }
     }
+    
+    /// <summary>
+    /// Status effect that blinds the player with a screen overlay
+    /// </summary>
+    internal class SE_KartBlind : SE_Stats
+    {
+        private GameObject _overlay;
+
+        public void OnEnable()
+        {
+            name = "SuperVikingKart_Blind";
+            m_ttl = 5f;
+            m_icon = PrefabManager.Cache.GetPrefab<Sprite>("Smoked");
+
+            var effect = PrefabManager.Cache.GetPrefab<GameObject>("vfx_Smoked");
+            if (effect)
+            {
+                m_startEffects.m_effectPrefabs = new[]
+                {
+                    new EffectList.EffectData { m_prefab = effect, m_enabled = true, m_attach = true }
+                };
+            }
+        }
+
+        public override void Setup(Character character)
+        {
+            base.Setup(character);
+            SuperVikingKart.DebugLog($"SE_KartBlind - Applied to {character.m_name}");
+
+            if (character != Player.m_localPlayer)
+                return;
+
+            _overlay = new GameObject("BlindOverlay");
+            var canvas = _overlay.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 999;
+
+            var image = new GameObject("BlindImage");
+            image.transform.SetParent(_overlay.transform, false);
+
+            var rectTransform = image.AddComponent<RectTransform>();
+            rectTransform.anchorMin = Vector2.zero;
+            rectTransform.anchorMax = Vector2.one;
+            rectTransform.offsetMin = Vector2.zero;
+            rectTransform.offsetMax = Vector2.zero;
+
+            var img = image.AddComponent<UnityEngine.UI.Image>();
+            img.color = new Color(0.15f, 0.15f, 0.15f, 0.98f);
+        }
+
+        public override void Stop()
+        {
+            SuperVikingKart.DebugLog($"SE_KartBlind - Stopped on {m_character?.m_name}");
+
+            if (_overlay)
+                Object.Destroy(_overlay);
+
+            base.Stop();
+        }
+    }
 }

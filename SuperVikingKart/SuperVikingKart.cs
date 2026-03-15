@@ -343,6 +343,9 @@ namespace SuperVikingKart
             var kartTarred = ScriptableObject.CreateInstance<SE_KartTarred>();
             ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartTarred, fixReference: false));
             
+            var kartBlind = ScriptableObject.CreateInstance<SE_KartBlind>();
+            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartBlind, fixReference: false));
+            
             DebugLog("Custom status effects registered");
 
             PrefabManager.OnVanillaPrefabsAvailable -= RegisterCustomStatusEffects;

@@ -75,6 +75,7 @@ namespace SuperVikingKart
             // Both
             new ("Wet", "Wet", BuffTarget.Both, BuffType.Debuff),
             new ("Shock", "SuperVikingKart_Shock", BuffTarget.Both, BuffType.Debuff),
+            new ("Blind", "SuperVikingKart_Blind", BuffTarget.Both, BuffType.Debuff),
         };
 
         private static readonly BuffDefinition[] MysteryEffects =
@@ -99,6 +100,7 @@ namespace SuperVikingKart
             // Debuffs - Both
             new ("Wet", "Wet", BuffTarget.Both, BuffType.Debuff),
             new ("Shock", "SuperVikingKart_Shock", BuffTarget.Both, BuffType.Debuff),
+            new ("Blind", "SuperVikingKart_Blind", BuffTarget.Both, BuffType.Debuff),
         };
 
         private BuffDefinition[] ActiveEffects => BlockType switch
