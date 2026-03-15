@@ -28,15 +28,13 @@ namespace SuperVikingKart
         public string StatusEffect;
         public BuffTarget Target;
         public BuffType Type;
-        public GameObject EffectPrefab;
 
-        public BuffDefinition(string name, string statusEffect, BuffTarget target, BuffType type = BuffType.Buff, GameObject effectPrefab = null)
+        public BuffDefinition(string name, string statusEffect, BuffTarget target, BuffType type = BuffType.Buff)
         {
             Name = name;
             StatusEffect = statusEffect;
             Target = target;
             Type = type;
-            EffectPrefab = effectPrefab;
         }
     }
 
@@ -368,12 +366,6 @@ namespace SuperVikingKart
                 Instantiate(CollectEffectPrefab, Visual.transform.position, Quaternion.identity);
             }
 
-            var effects = ActiveEffects;
-            if (buffIndex >= 0 && buffIndex < effects.Length && effects[buffIndex].EffectPrefab)
-            {
-                Instantiate(effects[buffIndex].EffectPrefab, transform.position, Quaternion.identity);
-            }
-            
             SetVisual(false);
         }
 

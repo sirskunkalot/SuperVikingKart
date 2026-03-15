@@ -63,7 +63,7 @@ namespace SuperVikingKart
             m_ttl = 10f;
             m_icon = PrefabManager.Cache.GetPrefab<Sprite>("SlowFall");
             
-            var effect = PrefabManager.Cache.GetPrefab<GameObject>("vfx_MeadHasty");
+            var effect = PrefabManager.Cache.GetPrefab<GameObject>("vfx_LightFoot");
             if (effect)
             {
                 m_startEffects.m_effectPrefabs = new[]
