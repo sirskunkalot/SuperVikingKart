@@ -112,6 +112,17 @@ namespace SuperVikingKart
             new ("Shock", "SuperVikingKart_Shock", BuffTarget.Both, BuffType.Debuff),
             new ("Blind", "SuperVikingKart_Blind", BuffTarget.Both, BuffType.Debuff),
         };
+        
+        public static BuffDefinition[] AllEffects
+        {
+            get
+            {
+                var all = new BuffDefinition[Buffs.Length + Debuffs.Length];
+                Buffs.CopyTo(all, 0);
+                Debuffs.CopyTo(all, Buffs.Length);
+                return all;
+            }
+        }
 
         private BuffDefinition[] ActiveEffects => BlockType switch
         {

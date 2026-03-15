@@ -84,6 +84,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BuffBlock.cs" />
+    <Compile Include="Commands.cs" />
     <Compile Include="Kart.cs" />
     <Compile Include="Properties\IgnoreAccessModifiers.cs" />
     <Compile Include="CustomStatusEffects.cs" />

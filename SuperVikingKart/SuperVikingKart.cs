@@ -37,7 +37,7 @@ namespace SuperVikingKart
         public static ConfigEntry<int> CartRespawnTimeConfig;
         public static ConfigEntry<int> BuffBlockRespawnTimeConfig;
         public static ConfigEntry<int> KartMassConfig;
-        private static ConfigEntry<bool> _debugConfig;
+        public static ConfigEntry<bool> DebugLogConfig;
 
         private Harmony _harmony;
 
@@ -45,7 +45,7 @@ namespace SuperVikingKart
         {
             Instance = this;
 
-            _debugConfig = Config.Bind("General", "Debug", false, "Enable debug logging");
+            DebugLogConfig = Config.Bind("General", "Debug", false, "Enable debug logging");
             CartRespawnTimeConfig = Config.Bind("General", "CartRespawnTime", 10,
                 new ConfigDescription("Time in seconds before a destroyed cart respawns. Server synced value.",
                     new AcceptableValueRange<int>(0, 300),
@@ -80,6 +80,8 @@ namespace SuperVikingKart
             PrefabManager.OnVanillaPrefabsAvailable += CreateDebuffBlock;
             PrefabManager.OnVanillaPrefabsAvailable += CreateMysteryBlock;
             PrefabManager.OnVanillaPrefabsAvailable += RegisterCustomStatusEffects;
+            
+            Commands.Register();
         }
 
         private void OnDestroy()
@@ -89,7 +91,7 @@ namespace SuperVikingKart
 
         public static void DebugLog(string message)
         {
-            if (_debugConfig.Value)
+            if (DebugLogConfig.Value)
                 Jotunn.Logger.LogDebug(message);
         }
 
