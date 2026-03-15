@@ -39,6 +39,14 @@ namespace SuperVikingKart
         }
     }
 
+    /// <summary>
+    /// Collectible block that applies random buffs/debuffs when a kart drives through it.
+    /// Collection flow:
+    /// 1. Puller's client detects trigger and sends RequestCollection RPC to ZDO owner
+    /// 2. Owner validates (prevents double collection) and broadcasts ApplyBuff + Collected RPCs
+    /// 3. Each client checks if local player is puller/rider and applies effect accordingly
+    /// 4. Block visual is hidden and respawns after configurable delay
+    /// </summary>
     internal class BuffBlockComponent : MonoBehaviour
     {
         public GameObject Visual;
@@ -84,29 +92,23 @@ namespace SuperVikingKart
             new ("Blind", "SuperVikingKart_Blind", BuffTarget.Both, BuffType.Debuff),
         };
 
-        private static readonly BuffDefinition[] MysteryEffects = Buffs.Concat(Debuffs).ToArray();
-
-        public static BuffDefinition[] AllEffects
-        {
-            get
-            {
-                var all = new BuffDefinition[Buffs.Length + Debuffs.Length];
-                Buffs.CopyTo(all, 0);
-                Debuffs.CopyTo(all, Buffs.Length);
-                return all;
-            }
-        }
+        public static readonly BuffDefinition[] AllEffects = Buffs.Concat(Debuffs).ToArray();
 
         private BuffDefinition[] ActiveEffects => BlockType switch
         {
             BlockType.Buff => Buffs,
             BlockType.Debuff => Debuffs,
-            BlockType.Mystery => MysteryEffects,
+            BlockType.Mystery => AllEffects,
             _ => Buffs
         };
 
         // --- Lifecycle ---
-
+        
+        /// <summary>
+        /// Initializes the buff block. Sets up networking RPCs for the collection flow
+        /// and restores the visual state from ZDO persistence.
+        /// Disables itself if no valid ZNetView/ZDO exists (placement ghost).
+        /// </summary>
         private void Awake()
         {
             _netView = GetComponent<ZNetView>();
@@ -124,11 +126,16 @@ namespace SuperVikingKart
             _netView.Register("SuperVikingKart_RPC_BuffBlockRespawn", RPC_BuffBlockRespawn);
             _netView.Register<int, ZDOID>("SuperVikingKart_RPC_ApplyBuff", RPC_ApplyBuff);
 
+            // Restore visual state from ZDO on load
             var isActive = _netView.GetZDO().GetBool(ZdoKeyIsActive, true);
             SuperVikingKart.DebugLog($"BuffBlock Awake - IsActive: {isActive}");
             SetVisual(isActive);
         }
 
+        /// <summary>
+        /// Owner-only update. Counts down the respawn timer and broadcasts
+        /// respawn RPC when the timer expires.
+        /// </summary>
         private void Update()
         {
             if (!_netView.IsOwner())
@@ -150,7 +157,7 @@ namespace SuperVikingKart
         /// <summary>
         /// Called by BuffBlockTrigger when a collider enters.
         /// Only the puller's client initiates collection to prevent duplicates.
-        /// Sends a request to the ZDO owner who authorizes it.
+        /// Picks a random effect from the active pool and sends a request to the ZDO owner.
         /// </summary>
         public void OnBuffBlockTriggerEnter(Collider other)
         {
@@ -206,6 +213,9 @@ namespace SuperVikingKart
             _netView.InvokeRPC("SuperVikingKart_RPC_RequestCollection", buffIndex, cartId);
         }
 
+        /// <summary>
+        /// Finds the player currently pulling a Vagon by checking all players.
+        /// </summary>
         private Player GetPuller(Vagon vagon)
         {
             foreach (var player in Player.GetAllPlayers())
@@ -236,9 +246,11 @@ namespace SuperVikingKart
                 return;
             }
 
+            // Mark as collected immediately to reject any further requests
             _netView.GetZDO().Set(ZdoKeyIsActive, false);
             _respawnTimer = SuperVikingKart.BuffBlockRespawnTimeConfig.Value;
 
+            // Broadcast to all clients
             _netView.InvokeRPC(ZNetView.Everybody, "SuperVikingKart_RPC_ApplyBuff", buffIndex, cartId);
             _netView.InvokeRPC(ZNetView.Everybody, "SuperVikingKart_RPC_BuffBlockCollected", buffIndex);
         }
@@ -247,8 +259,8 @@ namespace SuperVikingKart
 
         /// <summary>
         /// Runs on all clients. Each client checks if the local player is the
-        /// puller or rider and applies the effect accordingly.
-        /// Shows a message to both puller and rider regardless of who receives the effect.
+        /// puller or rider of the collecting kart and applies the effect accordingly.
+        /// Both puller and rider see the message regardless of who receives the effect.
         /// </summary>
         private void RPC_ApplyBuff(long sender, int buffIndex, ZDOID cartId)
         {
@@ -269,6 +281,7 @@ namespace SuperVikingKart
                 return;
             }
 
+            // Find the kart that collected this block
             var cartObject = ZNetScene.instance.FindInstance(cartId);
             if (!cartObject)
             {
@@ -306,6 +319,7 @@ namespace SuperVikingKart
 
             var prefix = buff.Type == BuffType.Debuff ? "Oh no" : "Yeah";
 
+            // Apply effect to the correct player, show message to both
             switch (buff.Target)
             {
                 case BuffTarget.Puller:
@@ -330,6 +344,9 @@ namespace SuperVikingKart
             }
         }
 
+        /// <summary>
+        /// Looks up the status effect by name hash and applies it to the player.
+        /// </summary>
         private void ApplyToPlayer(Player player, BuffDefinition buff)
         {
             if (!player)
@@ -348,6 +365,9 @@ namespace SuperVikingKart
 
         // --- Visual State ---
 
+        /// <summary>
+        /// Reads active state from ZDO. Defaults to true if not set.
+        /// </summary>
         private bool IsActive()
         {
             var zdo = _netView.GetZDO();
@@ -356,6 +376,9 @@ namespace SuperVikingKart
             return zdo.GetBool(ZdoKeyIsActive, true);
         }
 
+        /// <summary>
+        /// Toggles the visual child game object.
+        /// </summary>
         private void SetVisual(bool active)
         {
             if (Visual)
@@ -363,8 +386,8 @@ namespace SuperVikingKart
         }
 
         /// <summary>
-        /// Runs on all clients. Hides the block visual and spawns
-        /// an optional collection effect at the block position.
+        /// Runs on all clients. Hides the block visual, starts the respawn timer
+        /// on the owner, and spawns an optional collection effect.
         /// </summary>
         private void RPC_BuffBlockCollected(long sender, int buffIndex)
         {
@@ -384,6 +407,10 @@ namespace SuperVikingKart
             SetVisual(false);
         }
 
+        /// <summary>
+        /// Runs on all clients. Restores the block visual and marks it as active
+        /// in the ZDO on the owner.
+        /// </summary>
         private void RPC_BuffBlockRespawn(long sender)
         {
             SuperVikingKart.DebugLog($"BuffBlock RPC_BuffBlockRespawn - sender: {sender}, IsOwner: {_netView.IsOwner()}");
@@ -397,7 +424,8 @@ namespace SuperVikingKart
 
     /// <summary>
     /// Relays trigger events from the visual child to the parent BuffBlockComponent.
-    /// Needed because the trigger collider is on the Visual child, not the root.
+    /// Needed because the trigger collider is on the Visual child object,
+    /// not on the root where BuffBlockComponent lives.
     /// </summary>
     internal class BuffBlockTrigger : MonoBehaviour
     {
@@ -412,6 +440,7 @@ namespace SuperVikingKart
 
     /// <summary>
     /// Rotates and bobs the block visual for a floating item box look.
+    /// Attached to the Visual child of the buff block prefab.
     /// </summary>
     internal class BuffBlockSpin : MonoBehaviour
     {
