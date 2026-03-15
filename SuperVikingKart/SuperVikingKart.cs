@@ -30,12 +30,13 @@ namespace SuperVikingKart
 
         public const string MysteryBlockPrefabName = "MysteryBlock";
         public static readonly int MysteryBlockPrefabHash = MysteryBlockPrefabName.GetStableHashCode();
-
+        
         public static SuperVikingKart Instance;
         public static CustomLocalization Localization = LocalizationManager.Instance.GetLocalization();
 
         public static ConfigEntry<int> CartRespawnTimeConfig;
         public static ConfigEntry<int> BuffBlockRespawnTimeConfig;
+        public static ConfigEntry<int> KartMassConfig;
         private static ConfigEntry<bool> _debugConfig;
 
         private Harmony _harmony;
@@ -53,6 +54,23 @@ namespace SuperVikingKart
                 new ConfigDescription("Time in seconds before a collected buff block reappears. Server synced value.",
                     new AcceptableValueRange<int>(0, 300),
                     new ConfigurationManagerAttributes { IsAdminOnly = true }));
+            KartMassConfig = Config.Bind("General", "KartMass", 10,
+                new ConfigDescription("Total mass of the kart. Lower is faster. Server synced value.",
+                    new AcceptableValueRange<int>(1, 100),
+                    new ConfigurationManagerAttributes { IsAdminOnly = true }));
+
+            KartMassConfig.SettingChanged += (_, _) =>
+            {
+                foreach (var vagon in Vagon.m_instances)
+                {
+                    var kart = vagon.GetComponentInChildren<SuperVikingKartComponent>();
+                    if (!kart) continue;
+
+                    vagon.m_baseMass = (float)KartMassConfig.Value;
+                    vagon.SetMass(vagon.m_baseMass);
+                    DebugLog($"KartMass updated to {KartMassConfig.Value}");
+                }
+            };
 
             _harmony = new Harmony(PluginGUID);
             _harmony.PatchAll();
@@ -307,6 +325,24 @@ namespace SuperVikingKart
             var staminaBurst = ScriptableObject.CreateInstance<SE_StaminaBurst>();
             ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(staminaBurst, fixReference: false));
             
+            var lightKart = ScriptableObject.CreateInstance<SE_LightKart>();
+            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(lightKart, fixReference: false));
+
+            var heavyKart = ScriptableObject.CreateInstance<SE_HeavyKart>();
+            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(heavyKart, fixReference: false));
+            
+            var kartPoison = ScriptableObject.CreateInstance<SE_KartPoison>();
+            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartPoison, fixReference: false));
+
+            var kartBurn = ScriptableObject.CreateInstance<SE_KartBurn>();
+            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartBurn, fixReference: false));
+
+            var kartFrost = ScriptableObject.CreateInstance<SE_KartFrost>();
+            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartFrost, fixReference: false));
+            
+            var kartShock = ScriptableObject.CreateInstance<SE_KartShock>();
+            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartShock, fixReference: false));
+
             DebugLog("Custom status effects registered");
 
             PrefabManager.OnVanillaPrefabsAvailable -= RegisterCustomStatusEffects;

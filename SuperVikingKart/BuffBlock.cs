@@ -53,38 +53,54 @@ namespace SuperVikingKart
 
         private static readonly BuffDefinition[] Buffs =
         {
+            // Puller
             new ("Speed Boost", "Potion_hasty", BuffTarget.Puller),
             new ("Stamina Regen", "Potion_stamina_minor", BuffTarget.Puller),
+            new ("Stamina Burst", "SuperVikingKart_StaminaBurst", BuffTarget.Puller),
+            new ("Light Kart", "SuperVikingKart_LightKart", BuffTarget.Puller),
+            // Rider
             new ("Shield", "GP_Bonemass", BuffTarget.Rider),
             new ("Health Regen", "Potion_healthminor", BuffTarget.Rider),
-            new ("Living Dead", "CorpseRun", BuffTarget.Both),
             new ("Ooze Bombs", "SuperVikingKart_OozeBombs", BuffTarget.Rider),
-            new ("Stamina Burst", "SuperVikingKart_StaminaBurst", BuffTarget.Puller),
+            // Both
+            new ("Living Dead", "CorpseRun", BuffTarget.Both),
         };
 
         private static readonly BuffDefinition[] Debuffs =
         {
-            new ("Freezing", "Freezing", BuffTarget.Puller, BuffType.Debuff),
-            new ("Poison", "Poison", BuffTarget.Rider, BuffType.Debuff),
+            // Puller
+            new ("Heavy Kart", "SuperVikingKart_HeavyCart", BuffTarget.Puller, BuffType.Debuff),
+            new ("Frost", "SuperVikingKart_Frost", BuffTarget.Puller, BuffType.Debuff),
+            // Rider
+            new ("Poison", "SuperVikingKart_Poison", BuffTarget.Rider, BuffType.Debuff),
+            new ("Burning", "SuperVikingKart_Burn", BuffTarget.Rider, BuffType.Debuff),
+            // Both
             new ("Wet", "Wet", BuffTarget.Both, BuffType.Debuff),
-            new ("Encumbered", "Encumbered", BuffTarget.Puller, BuffType.Debuff),
-            new ("Swap!", "SuperVikingKart_Swap", BuffTarget.Puller, BuffType.Debuff),
+            new ("Shock", "SuperVikingKart_Shock", BuffTarget.Both, BuffType.Debuff),
         };
 
         private static readonly BuffDefinition[] MysteryEffects =
         {
+            // Buffs - Puller
             new ("Speed Boost", "Potion_hasty", BuffTarget.Puller),
             new ("Stamina Regen", "Potion_stamina_minor", BuffTarget.Puller),
+            new ("Stamina Burst", "SuperVikingKart_StaminaBurst", BuffTarget.Puller),
+            new ("Light Kart", "SuperVikingKart_LightKart", BuffTarget.Puller),
+            // Buffs - Rider
             new ("Shield", "GP_Bonemass", BuffTarget.Rider),
             new ("Health Regen", "Potion_healthminor", BuffTarget.Rider),
-            new ("Living Dead", "CorpseRun", BuffTarget.Both),
             new ("Ooze Bombs", "SuperVikingKart_OozeBombs", BuffTarget.Rider),
-            new ("Stamina Burst", "SuperVikingKart_StaminaBurst", BuffTarget.Puller),
-            new ("Freezing", "Freezing", BuffTarget.Puller, BuffType.Debuff),
-            new ("Poison", "Poison", BuffTarget.Rider, BuffType.Debuff),
+            // Buffs - Both
+            new ("Living Dead", "CorpseRun", BuffTarget.Both),
+            // Debuffs - Puller
+            new ("Heavy Kart", "SuperVikingKart_HeavyCart", BuffTarget.Puller, BuffType.Debuff),
+            new ("Frost", "SuperVikingKart_Frost", BuffTarget.Puller, BuffType.Debuff),
+            // Debuffs - Rider
+            new ("Poison", "SuperVikingKart_Poison", BuffTarget.Rider, BuffType.Debuff),
+            new ("Burning", "SuperVikingKart_Burn", BuffTarget.Rider, BuffType.Debuff),
+            // Debuffs - Both
             new ("Wet", "Wet", BuffTarget.Both, BuffType.Debuff),
-            new ("Encumbered", "Encumbered", BuffTarget.Puller, BuffType.Debuff),
-            new ("Swap!", "SuperVikingKart_Swap", BuffTarget.Puller, BuffType.Debuff),
+            new ("Shock", "SuperVikingKart_Shock", BuffTarget.Both, BuffType.Debuff),
         };
 
         private BuffDefinition[] ActiveEffects => BlockType switch

@@ -50,11 +50,8 @@ namespace SuperVikingKart
                 }
 
                 var vagon = GetComponentInParent<Vagon>();
-                var num = 10f / vagon.m_bodies.Length;
-                foreach (var body in vagon.m_bodies)
-                {
-                    body.mass = num;
-                }
+                vagon.m_baseMass = (float)SuperVikingKart.KartMassConfig.Value;
+                vagon.SetMass(vagon.m_baseMass);
             }
         }
 
@@ -298,6 +295,8 @@ namespace SuperVikingKart
     [HarmonyPatch(typeof(WearNTear), nameof(WearNTear.Destroy))]
     internal class KartRespawnPatch
     {
+        // static could be a race condition if a kart gets destroyed while
+        // another gets removed. But welp, too small of a window
         internal static bool IsBeingRemoved;
 
         private static void Prefix(WearNTear __instance)
