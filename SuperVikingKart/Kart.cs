@@ -378,4 +378,25 @@ namespace SuperVikingKart
             return attacker != cart.GetAttachedPlayer();
         }
     }
+    
+    /// <summary>
+    /// Fixes a vanilla bug where the Vagon's LateUpdate tries to access the
+    /// attach joint's connected body after the pulling player dies.
+    /// LateUpdate runs before FixedUpdate can catch and detach, causing a
+    /// NullReferenceException spam.
+    /// </summary>
+    [HarmonyPatch(typeof(Vagon), nameof(Vagon.LateUpdate))]
+    internal class VagonDeathPatch
+    {
+        private static bool Prefix(Vagon __instance)
+        {
+            if (__instance.m_attachJoin != null && __instance.m_attachJoin.connectedBody == null)
+            {
+                __instance.Detach();
+                return false;
+            }
+
+            return true;
+        }
+    }
 }
