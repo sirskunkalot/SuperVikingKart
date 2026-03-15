@@ -360,4 +360,35 @@ namespace SuperVikingKart
             base.Stop();
         }
     }
+    
+    /// <summary>
+    /// Status effect that launches the cart upward
+    /// </summary>
+    internal class SE_KartBounce : SE_Stats
+    {
+        public void OnEnable()
+        {
+            name = "SuperVikingKart_Bounce";
+            m_ttl = 0.1f;
+        }
+
+        public override void Setup(Character character)
+        {
+            base.Setup(character);
+            var player = character as Player;
+            if (!player) return;
+
+            foreach (var v in Vagon.m_instances)
+            {
+                if (v.IsAttached(player))
+                {
+                    foreach (var body in v.m_bodies)
+                        body.AddForce(Vector3.up * 40f, ForceMode.Impulse);
+
+                    SuperVikingKart.DebugLog("SE_KartBounce - Launched cart");
+                    break;
+                }
+            }
+        }
+    }
 }
