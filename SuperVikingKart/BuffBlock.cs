@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 
 namespace SuperVikingKart
@@ -83,7 +84,7 @@ namespace SuperVikingKart
             new ("Blind", "SuperVikingKart_Blind", BuffTarget.Both, BuffType.Debuff),
         };
 
-        private static readonly BuffDefinition[] MysteryEffects =
+        /*private static readonly BuffDefinition[] MysteryEffects =
         {
             // Buffs - Puller
             new ("Speed Boost", "Potion_hasty", BuffTarget.Puller),
@@ -111,7 +112,8 @@ namespace SuperVikingKart
             new ("Wet", "Wet", BuffTarget.Both, BuffType.Debuff),
             new ("Shock", "SuperVikingKart_Shock", BuffTarget.Both, BuffType.Debuff),
             new ("Blind", "SuperVikingKart_Blind", BuffTarget.Both, BuffType.Debuff),
-        };
+        };*/
+        private static readonly BuffDefinition[] MysteryEffects = Buffs.Concat(Debuffs).ToArray();
         
         public static BuffDefinition[] AllEffects
         {
