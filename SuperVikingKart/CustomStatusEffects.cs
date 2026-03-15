@@ -62,6 +62,15 @@ namespace SuperVikingKart
             name = "SuperVikingKart_LightKart";
             m_ttl = 10f;
             m_icon = PrefabManager.Cache.GetPrefab<Sprite>("SlowFall");
+            
+            var effect = PrefabManager.Cache.GetPrefab<GameObject>("vfx_MeadHasty");
+            if (effect)
+            {
+                m_startEffects.m_effectPrefabs = new[]
+                {
+                    new EffectList.EffectData { m_prefab = effect, m_enabled = true, m_attach = true }
+                };
+            }
         }
 
         public override void Setup(Character character)
@@ -106,6 +115,15 @@ namespace SuperVikingKart
             name = "SuperVikingKart_HeavyCart";
             m_ttl = 10f;
             m_icon = PrefabManager.Cache.GetPrefab<Sprite>("Encumbered");
+            
+            var effect = PrefabManager.Cache.GetPrefab<GameObject>("vfx_sledge_hit");
+            if (effect)
+            {
+                m_startEffects.m_effectPrefabs = new[]
+                {
+                    new EffectList.EffectData { m_prefab = effect, m_enabled = true, m_attach = true }
+                };
+            }
         }
 
         public override void Setup(Character character)
