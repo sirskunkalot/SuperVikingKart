@@ -53,7 +53,7 @@ namespace SuperVikingKart
         private static readonly BuffDefinition[] Buffs =
         {
             // Puller
-            new ("Speed Boost", "Potion_hasty", BuffTarget.Puller),
+            new ("Speed Boost", "SuperVikingKart_SpeedBoost", BuffTarget.Puller),
             new ("Stamina Regen", "Potion_stamina_minor", BuffTarget.Puller),
             new ("Stamina Burst", "SuperVikingKart_StaminaBurst", BuffTarget.Puller),
             // Rider

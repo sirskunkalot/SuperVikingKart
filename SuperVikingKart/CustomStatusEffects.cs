@@ -516,4 +516,43 @@ namespace SuperVikingKart
             }
         }
     }
+    
+    /// <summary>
+    /// Status effect that gives a short speed boost
+    /// </summary>
+    internal class SE_KartSpeedBoost : SE_Stats
+    {
+        public void OnEnable()
+        {
+            name = "SuperVikingKart_SpeedBoost";
+            m_ttl = 10f;
+            m_icon = PrefabManager.Cache.GetPrefab<Sprite>("potion_hasty");
+
+            var effect = PrefabManager.Cache.GetPrefab<GameObject>("vfx_MeadHasty");
+            if (effect)
+            {
+                m_startEffects.m_effectPrefabs = new[]
+                {
+                    new EffectList.EffectData { m_prefab = effect, m_enabled = true, m_attach = true }
+                };
+            }
+        }
+
+        public override void Setup(Character character)
+        {
+            base.Setup(character);
+            SuperVikingKart.DebugLog($"SE_KartSpeedBoost - Applied to {character.m_name}");
+        }
+
+        public override void ModifySpeed(float baseSpeed, ref float speed, Character character, Vector3 dir)
+        {
+            speed *= 1.5f;
+        }
+
+        public override void Stop()
+        {
+            SuperVikingKart.DebugLog($"SE_KartSpeedBoost - Stopped on {m_character?.m_name}");
+            base.Stop();
+        }
+    }
 }
