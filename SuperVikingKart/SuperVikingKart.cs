@@ -110,7 +110,9 @@ namespace SuperVikingKart
                         new RequirementConfig("Wood", 1)
                     }
                 });
-
+                
+                //TODO: with or without station?
+                cart.Piece.m_craftingStation = null; 
                 cart.Piece.m_canBeRemoved = true;
                 PieceManager.Instance.AddPiece(cart);
 
@@ -203,6 +205,8 @@ namespace SuperVikingKart
 
             var piece = prefab.AddComponent<Piece>();
             piece.m_canBeRemoved = true;
+            //TODO: with or without station?
+            //piece.m_craftingStation = PrefabManager.Cache.GetPrefab<CraftingStation>(CraftingStations.Workbench);
 
             var collider = prefab.AddComponent<BoxCollider>();
             collider.center = Vector3.up * 1f;
