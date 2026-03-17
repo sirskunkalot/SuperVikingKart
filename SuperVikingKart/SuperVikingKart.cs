@@ -75,11 +75,15 @@ namespace SuperVikingKart
             _harmony = new Harmony(PluginGUID);
             _harmony.PatchAll();
 
+            // Create Objects once after starting the game and loading into the menu
             PrefabManager.OnVanillaPrefabsAvailable += CloneCart;
             PrefabManager.OnVanillaPrefabsAvailable += CreateBuffBlock;
             PrefabManager.OnVanillaPrefabsAvailable += CreateDebuffBlock;
             PrefabManager.OnVanillaPrefabsAvailable += CreateMysteryBlock;
             PrefabManager.OnVanillaPrefabsAvailable += RegisterCustomStatusEffects;
+            
+            // (Re-)Initialize the RaceManager on every connect to a server / start of a local game
+            MinimapManager.OnVanillaMapDataLoaded += RaceManager.Init;
             
             Commands.Register();
         }
