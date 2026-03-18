@@ -32,6 +32,9 @@ namespace SuperVikingKart
         public const string MysteryBlockPrefabName = "MysteryBlock";
         public static readonly int MysteryBlockPrefabHash = MysteryBlockPrefabName.GetStableHashCode();
         
+        public const string RaceBoardPrefabName = "RaceBoard";
+        public static readonly int RaceBoardPrefabHash = RaceBoardPrefabName.GetStableHashCode();
+
         public static SuperVikingKart Instance;
         public static CustomLocalization Localization = LocalizationManager.Instance.GetLocalization();
 
@@ -93,7 +96,7 @@ namespace SuperVikingKart
             {
                 var cart = new CustomPiece(KartPrefabName, "Cart", new PieceConfig
                 {
-                    Name = "SuperVikingKart",
+                    Name = "Super Viking Kart",
                     Description = "Mountable cart. Get ready to race.",
                     PieceTable = PieceTables.Hammer,
                     Category = PieceCategories.Misc,
@@ -136,7 +139,7 @@ namespace SuperVikingKart
         {
             try
             {
-                CreateBlock(BuffBlockPrefabName, "BuffBlock",
+                CreateBlock(BuffBlockPrefabName, "Buff Block",
                     "Drive through for a random buff!",
                     CreateBuffBlockMaterial(), BlockType.Buff);
             }
@@ -154,7 +157,7 @@ namespace SuperVikingKart
         {
             try
             {
-                CreateBlock(DebuffBlockPrefabName, "DebuffBlock",
+                CreateBlock(DebuffBlockPrefabName, "Debuff Block",
                     "Drive through for a random debuff!",
                     CreateDebuffBlockMaterial(), BlockType.Debuff);
             }
@@ -172,7 +175,7 @@ namespace SuperVikingKart
         {
             try
             {
-                CreateBlock(MysteryBlockPrefabName, "MysteryBlock",
+                CreateBlock(MysteryBlockPrefabName, "Mystery Block",
                     "Drive through for a mystery effect!",
                     CreateMysteryBlockMaterial(), BlockType.Mystery);
             }
@@ -470,7 +473,7 @@ namespace SuperVikingKart
         {
             try
             {
-                var prefab = new GameObject("RaceBoard");
+                var prefab = new GameObject(RaceBoardPrefabName);
                 prefab.layer = LayerMask.NameToLayer("piece");
                 prefab.SetActive(false);
 
@@ -500,7 +503,7 @@ namespace SuperVikingKart
                 tmp.alignment          = TMPro.TextAlignmentOptions.TopLeft;
                 tmp.fontSize           = 1f;
                 tmp.color              = Color.white;
-                tmp.enableWordWrapping = true;
+                tmp.textWrappingMode   = TextWrappingModes.Normal;
                 tmp.overflowMode       = TMPro.TextOverflowModes.Overflow;
 
                 tmp.rectTransform.pivot              = new Vector2(0.5f, 0.5f);
@@ -532,8 +535,8 @@ namespace SuperVikingKart
 
                 PieceManager.Instance.AddPiece(new CustomPiece(prefab, false, new PieceConfig
                 {
-                    Name         = "RaceBoard",
-                    Description  = "Place to configure and manage a race.",
+                    Name         = "Race Board",
+                    Description  = "Place to configure and manage a race. Shows you race statistics in real time.",
                     PieceTable   = PieceTables.Hammer,
                     Category     = PieceCategories.Misc,
                     Icon         = icon,
@@ -611,7 +614,7 @@ namespace SuperVikingKart
             labelTmp.alignment          = TMPro.TextAlignmentOptions.Center;
             labelTmp.fontSize           = 1f;
             labelTmp.color              = Color.white;
-            labelTmp.enableWordWrapping = false;
+            labelTmp.textWrappingMode   = TextWrappingModes.Normal;
             labelTmp.rectTransform.sizeDelta       = new Vector2(0.44f, 0.16f);
             labelTmp.rectTransform.pivot           = new Vector2(0.5f, 0.5f);
             labelTmp.rectTransform.anchorMin       = new Vector2(0.5f, 0.5f);
