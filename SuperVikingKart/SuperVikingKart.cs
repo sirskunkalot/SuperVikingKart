@@ -6,7 +6,6 @@ using Jotunn.Entities;
 using Jotunn.Managers;
 using Jotunn.Utils;
 using System;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
@@ -38,7 +37,6 @@ namespace SuperVikingKart
 
         public static ConfigEntry<int> CartRespawnTimeConfig;
         public static ConfigEntry<int> BuffBlockRespawnTimeConfig;
-        public static ConfigEntry<int> KartMassConfig;
         public static ConfigEntry<bool> DebugLogConfig;
 
         private Harmony _harmony;
@@ -56,24 +54,7 @@ namespace SuperVikingKart
                 new ConfigDescription("Time in seconds before a collected buff block reappears. Server synced value.",
                     new AcceptableValueRange<int>(2, 20),
                     new ConfigurationManagerAttributes { IsAdminOnly = true }));
-            KartMassConfig = Config.Bind("General", "KartMass", 10,
-                new ConfigDescription("Total mass of the kart. Lower is faster. Server synced value.",
-                    new AcceptableValueRange<int>(1, 100),
-                    new ConfigurationManagerAttributes { IsAdminOnly = true }));
-
-            KartMassConfig.SettingChanged += (_, _) =>
-            {
-                foreach (var vagon in Vagon.m_instances)
-                {
-                    var kart = vagon.GetComponentInChildren<SuperVikingKartComponent>();
-                    if (!kart) continue;
-
-                    vagon.m_baseMass = (float)KartMassConfig.Value;
-                    vagon.SetMass(vagon.m_baseMass);
-                    DebugLog($"KartMass updated to {KartMassConfig.Value}");
-                }
-            };
-
+            
             _harmony = new Harmony(PluginGUID);
             _harmony.PatchAll();
 
@@ -576,6 +557,31 @@ namespace SuperVikingKart
             }
         }
 
+        private Material CreateRaceBoardMaterial()
+        {
+            var texture = new Texture2D(64, 64);
+            var colors  = new Color[64 * 64];
+            var bg      = new Color(0.15f, 0.1f, 0.05f);
+            var border  = new Color(0.6f,  0.4f, 0.1f);
+
+            for (var i = 0; i < colors.Length; i++)
+                colors[i] = bg;
+
+            for (var x = 0; x < 64; x++)
+            for (var y = 0; y < 64; y++)
+                if (x < 3 || x >= 61 || y < 3 || y >= 61)
+                    colors[y * 64 + x] = border;
+
+            texture.SetPixels(colors);
+            texture.Apply();
+            texture.filterMode = FilterMode.Point;
+
+            var torchMat = PrefabManager.Instance.GetPrefab("Torch")
+                .GetComponentInChildren<MeshRenderer>().material;
+
+            return new Material(torchMat) { mainTexture = texture, color = Color.white };
+        }
+
         private GameObject CreateButtonObject(string name, Transform parent, Vector3 localPos, string label)
         {
             var go = new GameObject(name);
@@ -646,31 +652,6 @@ namespace SuperVikingKart
             btn.ButtonType = type;
             btn.Board      = board;
             return btn;
-        }
-
-        private Material CreateRaceBoardMaterial()
-        {
-            var texture = new Texture2D(64, 64);
-            var colors  = new Color[64 * 64];
-            var bg      = new Color(0.15f, 0.1f, 0.05f);
-            var border  = new Color(0.6f,  0.4f, 0.1f);
-
-            for (var i = 0; i < colors.Length; i++)
-                colors[i] = bg;
-
-            for (var x = 0; x < 64; x++)
-            for (var y = 0; y < 64; y++)
-                if (x < 3 || x >= 61 || y < 3 || y >= 61)
-                    colors[y * 64 + x] = border;
-
-            texture.SetPixels(colors);
-            texture.Apply();
-            texture.filterMode = FilterMode.Point;
-
-            var torchMat = PrefabManager.Instance.GetPrefab("Torch")
-                .GetComponentInChildren<MeshRenderer>().material;
-
-            return new Material(torchMat) { mainTexture = texture, color = Color.white };
         }
     }
 }

@@ -69,9 +69,9 @@ namespace SuperVikingKart
                     }
                 }
 
-                // Apply configured mass to the cart's physics bodies
+                // Make the carts a bit lighter
                 var vagon = GetComponentInParent<Vagon>();
-                vagon.m_baseMass = (float)SuperVikingKart.KartMassConfig.Value;
+                vagon.m_baseMass = 10f;
                 vagon.SetMass(vagon.m_baseMass);
             }
         }
