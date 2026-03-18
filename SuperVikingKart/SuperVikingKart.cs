@@ -6,6 +6,8 @@ using Jotunn.Entities;
 using Jotunn.Managers;
 using Jotunn.Utils;
 using System;
+using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 namespace SuperVikingKart
@@ -81,10 +83,15 @@ namespace SuperVikingKart
             PrefabManager.OnVanillaPrefabsAvailable += CreateDebuffBlock;
             PrefabManager.OnVanillaPrefabsAvailable += CreateMysteryBlock;
             PrefabManager.OnVanillaPrefabsAvailable += RegisterCustomStatusEffects;
+            PrefabManager.OnVanillaPrefabsAvailable += CreateRaceBoard;
             
             // (Re-)Initialize the RaceManager on every connect to a server / start of a local game
             MinimapManager.OnVanillaMapDataLoaded += RaceManager.Init;
+
+            // (Re-)Build the Admin GUI on every GUI creation
+            GUIManager.OnCustomGUIAvailable += RaceBoardAdminGui.Build;
             
+            // Create the commands once directly on mod Awake
             Commands.Register();
         }
 
@@ -376,6 +383,294 @@ namespace SuperVikingKart
             DebugLog("Custom status effects registered");
 
             PrefabManager.OnVanillaPrefabsAvailable -= RegisterCustomStatusEffects;
+        }
+        
+        /*private void CreateRaceBoard()
+        {
+            try
+            {
+                var assetBundle = AssetUtils.LoadAssetBundleFromResources("supervikingkart");
+                var prefab = assetBundle.LoadAsset<GameObject>("RaceBoard");
+                prefab.SetActive(false);
+
+                // Root — add coordinator only, ZNetView/Piece/WearNTear come from Unity
+                var board = prefab.AddComponent<RaceBoardComponent>();
+
+                // StatusDisplay child — add TextMeshPro
+                var displayGo = prefab.transform.Find("StatusDisplay").gameObject;
+                var tmp = displayGo.AddComponent<TMPro.TextMeshPro>();
+                tmp.alignment = TMPro.TextAlignmentOptions.TopLeft;
+                tmp.fontSize = 3f;
+                tmp.color = Color.white;
+                board.StatusDisplay = tmp;
+
+                // Wire up buttons
+                board.RegisterButton = WireButton(prefab, "RegisterButton", RaceBoardButtonType.Register, board);
+                board.StartButton    = WireButton(prefab, "StartButton",    RaceBoardButtonType.Start,    board);
+                board.ResetButton    = WireButton(prefab, "ResetButton",    RaceBoardButtonType.Reset,    board);
+                board.AdminButton    = WireButton(prefab, "AdminButton",    RaceBoardButtonType.Admin,    board);
+                
+                // Rgister into KitbashManeger to apply the kitbash
+                KitbashManager.Instance.AddKitbash(prefab, new KitbashConfig { 
+                    Layer = "piece",
+                    KitbashSources = new List<KitbashSourceConfig>
+                    {
+                        new()
+                        {
+                            Name = "eye_1",
+                            SourcePrefab = "Ruby",
+                            SourcePath = "attach/model",
+                            Position = new Vector3(0.528f, 0.1613345f, -0.253f),
+                            Rotation = Quaternion.Euler(0, 180, 0f),
+                            Scale = new Vector3(0.02473f, 0.05063999f, 0.05064f)
+                        },
+                        new()
+                        {
+                            Name = "eye_2",
+                            SourcePrefab = "Ruby",
+                            SourcePath = "attach/model",
+                            Position = new Vector3(0.528f, 0.1613345f, 0.253f),
+                            Rotation = Quaternion.Euler(0, 180, 0f),
+                            Scale = new Vector3(0.02473f, 0.05063999f, 0.05064f)
+                        },
+                        new()
+                        {
+                            Name = "mouth",
+                            SourcePrefab = "draugr_bow",
+                            SourcePath = "attach/bow",
+                            Position = new Vector3(0.53336f, -0.315f, -0.001953f),
+                            Rotation = Quaternion.Euler(-0.06500001f, -2.213f, -272.086f),
+                            Scale = new Vector3(0.41221f, 0.41221f, 0.41221f)
+                        }
+                    }
+                }); 
+
+                var icon = RenderManager.Instance.Render(prefab, RenderManager.IsometricRotation);
+
+                var customPiece = new CustomPiece(prefab, true, new PieceConfig
+                {
+                    Name = "Race Board",
+                    Description = "Place to configure and manage a race.",
+                    PieceTable = PieceTables.Hammer,
+                    Category = PieceCategories.Misc,
+                    Icon = icon,
+                    Requirements = new[]
+                    {
+                        new RequirementConfig("Wood", 4),
+                        new RequirementConfig("Stone", 2)
+                    }
+                });
+
+                PieceManager.Instance.AddPiece(customPiece);
+                prefab.SetActive(true);
+                DebugLog("RaceBoard prefab registered");
+            }
+            catch (Exception ex)
+            {
+                Jotunn.Logger.LogWarning($"Caught exception while creating race board: {ex}");
+            }
+            finally
+            {
+                PrefabManager.OnVanillaPrefabsAvailable -= CreateRaceBoard;
+            }
+            
+            RaceBoardButton WireButton(GameObject prefab, string childName,
+                RaceBoardButtonType type, RaceBoardComponent board)
+            {
+                var go = prefab.transform.Find(childName).gameObject;
+                var button = go.AddComponent<RaceBoardButton>();
+                button.ButtonType = type;
+                button.Board = board;
+                return button;
+            }
+        }*/
+        
+        private void CreateRaceBoard()
+        {
+            try
+            {
+                var prefab = new GameObject("RaceBoard");
+                prefab.layer = LayerMask.NameToLayer("piece");
+                prefab.SetActive(false);
+
+                var netView = prefab.AddComponent<ZNetView>();
+                netView.m_persistent = true;
+
+                var piece = prefab.AddComponent<Piece>();
+                piece.m_canBeRemoved = true;
+
+                // BoardVisual
+                var boardVisual = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                boardVisual.name = "BoardVisual";
+                boardVisual.transform.SetParent(prefab.transform, false);
+                boardVisual.transform.localPosition = new Vector3(0f, 2.6f, 0f);
+                boardVisual.transform.localScale    = new Vector3(2.4f, 2.8f, 0.1f);
+                DestroyImmediate(boardVisual.GetComponent<BoxCollider>());
+                boardVisual.GetComponent<MeshRenderer>().material = CreateRaceBoardMaterial();
+
+                // StatusDisplay
+                var displayGo = new GameObject("StatusDisplay");
+                displayGo.transform.SetParent(prefab.transform, false);
+                displayGo.transform.localRotation = Quaternion.identity;
+                displayGo.transform.localScale    = Vector3.one;
+
+                var tmp = displayGo.AddComponent<TMPro.TextMeshPro>();
+                tmp.font               = PrefabManager.Cache.GetPrefab<TMP_FontAsset>("Valheim-AveriaSansLibre");
+                tmp.alignment          = TMPro.TextAlignmentOptions.TopLeft;
+                tmp.fontSize           = 1f;
+                tmp.color              = Color.white;
+                tmp.enableWordWrapping = true;
+                tmp.overflowMode       = TMPro.TextOverflowModes.Overflow;
+
+                tmp.rectTransform.pivot              = new Vector2(0.5f, 0.5f);
+                tmp.rectTransform.anchorMin          = new Vector2(0.5f, 0.5f);
+                tmp.rectTransform.anchorMax          = new Vector2(0.5f, 0.5f);
+                tmp.rectTransform.sizeDelta          = new Vector2(2.1f, 2.7f);
+                tmp.rectTransform.anchoredPosition3D = new Vector3(0.05f, 2.4f, -0.06f);
+
+                // Buttons
+                var registerButtonGo = CreateButtonObject("RegisterButton", prefab.transform, new Vector3(-0.9f,  1.25f, -0.06f), "Register");
+                var startButtonGo    = CreateButtonObject("StartButton",    prefab.transform, new Vector3(-0.3f,  1.25f, -0.06f), "Start");
+                var resetButtonGo    = CreateButtonObject("ResetButton",    prefab.transform, new Vector3( 0.3f,  1.25f, -0.06f), "Reset");
+                var adminButtonGo    = CreateButtonObject("AdminButton",    prefab.transform, new Vector3( 0.9f,  1.25f, -0.06f), "Admin");
+
+                // Collider
+                var rootCollider    = prefab.AddComponent<BoxCollider>();
+                rootCollider.center = new Vector3(0f, 2f, 0f);
+                rootCollider.size   = new Vector3(2.5f, 4f, 0.2f);
+
+                // RaceBoardComponent
+                var board            = prefab.AddComponent<RaceBoardComponent>();
+                board.StatusDisplay  = tmp;
+                board.RegisterButton = WireButton(registerButtonGo, RaceBoardButtonType.Register, board);
+                board.StartButton    = WireButton(startButtonGo,    RaceBoardButtonType.Start,    board);
+                board.ResetButton    = WireButton(resetButtonGo,    RaceBoardButtonType.Reset,    board);
+                board.AdminButton    = WireButton(adminButtonGo,    RaceBoardButtonType.Admin,    board);
+
+                var icon = RenderManager.Instance.Render(prefab, RenderManager.IsometricRotation);
+
+                PieceManager.Instance.AddPiece(new CustomPiece(prefab, false, new PieceConfig
+                {
+                    Name         = "RaceBoard",
+                    Description  = "Place to configure and manage a race.",
+                    PieceTable   = PieceTables.Hammer,
+                    Category     = PieceCategories.Misc,
+                    Icon         = icon,
+                    Requirements = new[]
+                    {
+                        new RequirementConfig("Wood", 4),
+                        new RequirementConfig("Stone", 2)
+                    }
+                }));
+
+                prefab.SetActive(true);
+                DebugLog("RaceBoard prefab registered");
+            }
+            catch (Exception ex)
+            {
+                Jotunn.Logger.LogWarning($"Caught exception while creating race board: {ex}");
+            }
+            finally
+            {
+                PrefabManager.OnVanillaPrefabsAvailable -= CreateRaceBoard;
+            }
+        }
+
+        private GameObject CreateButtonObject(string name, Transform parent, Vector3 localPos, string label)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPos;
+            go.transform.localScale    = Vector3.one;
+
+            var visual = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            visual.name = "Visual";
+            visual.transform.SetParent(go.transform, false);
+            visual.transform.localScale = new Vector3(0.48f, 0.18f, 0.06f);
+            DestroyImmediate(visual.GetComponent<BoxCollider>());
+            visual.GetComponent<MeshRenderer>().material = CreateButtonMaterial();
+
+            var collider  = go.AddComponent<BoxCollider>();
+            collider.size = new Vector3(0.48f, 0.18f, 0.12f);
+
+            // Label parented to root (no inherited scale from visual cube)
+            var labelGo = new GameObject("Label");
+            labelGo.transform.SetParent(go.transform, false);
+            labelGo.transform.localPosition = new Vector3(0f, 0f, -0.04f);
+            labelGo.transform.localScale    = Vector3.one;
+
+            var labelTmp = labelGo.AddComponent<TMPro.TextMeshPro>();
+            labelTmp.font               = PrefabManager.Cache.GetPrefab<TMP_FontAsset>("Valheim-AveriaSansLibre");
+            labelTmp.text               = label;
+            labelTmp.alignment          = TMPro.TextAlignmentOptions.Center;
+            labelTmp.fontSize           = 1f;
+            labelTmp.color              = Color.white;
+            labelTmp.enableWordWrapping = false;
+            labelTmp.rectTransform.sizeDelta       = new Vector2(0.44f, 0.16f);
+            labelTmp.rectTransform.pivot           = new Vector2(0.5f, 0.5f);
+            labelTmp.rectTransform.anchorMin       = new Vector2(0.5f, 0.5f);
+            labelTmp.rectTransform.anchorMax       = new Vector2(0.5f, 0.5f);
+            labelTmp.rectTransform.anchoredPosition = Vector2.zero;
+
+            return go;
+        }
+
+        private Material CreateButtonMaterial()
+        {
+            var texture = new Texture2D(32, 16);
+            var colors  = new Color[32 * 16];
+            var bg      = new Color(0.20f, 0.12f, 0.04f);
+            var border  = new Color(0.55f, 0.35f, 0.08f);
+
+            for (var i = 0; i < colors.Length; i++)
+                colors[i] = bg;
+
+            for (var x = 0; x < 32; x++)
+            for (var y = 0; y < 16; y++)
+                if (x < 2 || x >= 30 || y < 2 || y >= 14)
+                    colors[y * 32 + x] = border;
+
+            texture.SetPixels(colors);
+            texture.Apply();
+            texture.filterMode = FilterMode.Point;
+
+            var torchMat = PrefabManager.Instance.GetPrefab("Torch")
+                .GetComponentInChildren<MeshRenderer>().material;
+
+            return new Material(torchMat) { mainTexture = texture, color = Color.white };
+        }
+
+        private RaceBoardButton WireButton(GameObject go, RaceBoardButtonType type, RaceBoardComponent board)
+        {
+            var btn = go.AddComponent<RaceBoardButton>();
+            btn.ButtonType = type;
+            btn.Board      = board;
+            return btn;
+        }
+
+        private Material CreateRaceBoardMaterial()
+        {
+            var texture = new Texture2D(64, 64);
+            var colors  = new Color[64 * 64];
+            var bg      = new Color(0.15f, 0.1f, 0.05f);
+            var border  = new Color(0.6f,  0.4f, 0.1f);
+
+            for (var i = 0; i < colors.Length; i++)
+                colors[i] = bg;
+
+            for (var x = 0; x < 64; x++)
+            for (var y = 0; y < 64; y++)
+                if (x < 3 || x >= 61 || y < 3 || y >= 61)
+                    colors[y * 64 + x] = border;
+
+            texture.SetPixels(colors);
+            texture.Apply();
+            texture.filterMode = FilterMode.Point;
+
+            var torchMat = PrefabManager.Instance.GetPrefab("Torch")
+                .GetComponentInChildren<MeshRenderer>().material;
+
+            return new Material(torchMat) { mainTexture = texture, color = Color.white };
         }
     }
 }
