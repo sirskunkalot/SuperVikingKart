@@ -129,9 +129,9 @@ namespace SuperVikingKart
 
             // 7. Direction guard — must be moving in the line's +Z direction
             var rb = kart.GetComponentInParent<Rigidbody>();
-            if (rb != null && rb.velocity.sqrMagnitude > 0.01f)
+            if (rb != null && rb.linearVelocity.sqrMagnitude > 0.01f)
             {
-                var dot = Vector3.Dot(rb.velocity.normalized, transform.forward);
+                var dot = Vector3.Dot(rb.linearVelocity.normalized, transform.forward);
                 if (dot <= 0f)
                     return;
             }
