@@ -44,7 +44,6 @@ namespace SuperVikingKart
                 return;
             }
 
-            UpdateLabel();
             SuperVikingKart.DebugLog(
                 $"RaceLine Awake - ZDO: {_netView.GetZDO().m_uid}, Role: {GetRole()}, RaceId: {GetRaceId()}");
         }
@@ -59,10 +58,37 @@ namespace SuperVikingKart
                     toRemove.Add(kvp.Key);
             foreach (var id in toRemove)
                 _cooldowns.Remove(id);
+            
+            // Update label
+            UpdateLabel();
         }
+        
+        private void UpdateLabel()
+        {
+            if (!Label)
+                return;
 
-        // --- Trigger entry (forwarded from RaceLineTrigger child)---
+            var raceId = GetRaceId();
+            if (string.IsNullOrEmpty(raceId))
+            {
+                Label.text = "Not configured";
+                return;
+            }
 
+            var race = RaceManager.GetRace(raceId);
+            if (race == null)
+            {
+                Label.text = $"[{raceId}] Waiting for race data...";
+                return;
+            }
+
+            Label.text = $"{race.Name} ({GetRole()})";
+        }
+        
+        /// <summary>
+        /// Called by RaceLineTrigger when a collider enters.
+        /// Only the puller's client initiates collection to prevent duplicates.
+        /// </summary>
         public void OnRaceLineTriggerEnter(Collider other)
         {
             SuperVikingKart.DebugLog($"RaceLine trigger entered by: {other.name} (parent: {other.transform.root.name})");
@@ -116,13 +142,15 @@ namespace SuperVikingKart
             switch (GetRole())
             {
                 case RaceLineRole.StartFinish:
+                    if (!contestant.CrossedStart)
+                        RaceManager.SendCrossedStart(raceId, playerId);
+                    else
+                        RaceManager.SendLap(raceId, playerId);
+                    break;
                 case RaceLineRole.Start:
                     if (!contestant.CrossedStart)
                         RaceManager.SendCrossedStart(raceId, playerId);
-                    else if (GetRole() == RaceLineRole.StartFinish)
-                        RaceManager.SendLap(raceId, playerId);
                     break;
-
                 case RaceLineRole.Finish:
                     if (contestant.CrossedStart)
                         RaceManager.SendLap(raceId, playerId);
@@ -139,20 +167,7 @@ namespace SuperVikingKart
             _netView.GetZDO().Set(ZdoKeyRaceId, raceId);
             _netView.GetZDO().Set(ZdoKeyRole, (int)role);
             
-            UpdateLabel();
-
             SuperVikingKart.DebugLog($"RaceLine - Configured [{raceId}] {role}");
-        }
-
-        // --- Label ---
-
-        public void UpdateLabel()
-        {
-            if (!Label) return;
-            var id = GetRaceId();
-            Label.text = string.IsNullOrEmpty(id)
-                ? $"<color=grey>{GetRole()}\nNot configured</color>"
-                : $"{GetRole()}\n{id}";
         }
 
         // --- ZDO Accessors ---
@@ -172,8 +187,15 @@ namespace SuperVikingKart
 
         public string GetHoverText()
         {
-            var configured = !string.IsNullOrEmpty(GetRaceId());
-            var info = configured ? $"{GetRole()} — {GetRaceId()}" : "Not configured";
+            string info;
+            var raceId = GetRaceId();
+            var race = RaceManager.GetRace(raceId);
+            if (string.IsNullOrEmpty(raceId))
+                info = "Not configured";
+            else if (race == null)
+                info = $"[{raceId}] Waiting for race data...";
+            else
+                info = $"{race.Name} ({GetRole()})";
 
             if (!SynchronizationManager.Instance.PlayerIsAdmin)
                 return $"Race Line\n<color=grey>{info}</color>";

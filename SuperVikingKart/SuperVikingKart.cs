@@ -739,8 +739,9 @@ namespace SuperVikingKart
                 var tmp = labelGo.AddComponent<TextMeshPro>();
                 tmp.font             = PrefabManager.Cache.GetPrefab<TMP_FontAsset>("Valheim-Norse");
                 tmp.alignment        = TextAlignmentOptions.Center;
-                tmp.fontSize         = 1.2f;
+                tmp.fontSize         = 3f;
                 tmp.color            = Color.black;
+                tmp.fontStyle        = FontStyles.Bold;
                 tmp.textWrappingMode = TextWrappingModes.Normal;
                 tmp.overflowMode     = TextOverflowModes.Overflow;
                 tmp.rectTransform.sizeDelta          = new Vector2(6f, 1.5f);
@@ -755,7 +756,6 @@ namespace SuperVikingKart
                 banner.transform.SetParent(prefab.transform, false);
                 banner.transform.localPosition = new Vector3(0f, 3f, 0f);
                 banner.transform.localScale    = new Vector3(6f, 0.4f, 0.01f);
-                //DestroyImmediate(banner.GetComponent<MeshCollider>());
                 banner.GetComponent<MeshRenderer>().material = CreateBannerMaterial();
                 
                 // RaceLineComponent on root
