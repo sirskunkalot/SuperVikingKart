@@ -176,21 +176,21 @@ namespace SuperVikingKart
                 return;
             }
 
-            var cart = other.GetComponentInParent<SuperVikingKartComponent>();
-            if (!cart)
+            var kart = other.GetComponentInParent<SuperVikingKartComponent>();
+            if (!kart)
             {
                 SuperVikingKart.DebugLog("BuffBlock - No kart found on collider");
                 return;
             }
 
-            var vagon = cart.GetComponentInParent<Vagon>();
+            var vagon = kart.GetVagon();
             if (!vagon)
             {
                 SuperVikingKart.DebugLog("BuffBlock - No vagon found on kart");
                 return;
             }
 
-            var puller = GetPuller(vagon);
+            var puller = kart.GetPuller();
             SuperVikingKart.DebugLog($"BuffBlock - Puller: {puller?.GetPlayerName() ?? "none"}, LocalPlayer: {localPlayer.GetPlayerName()}");
 
             if (puller != localPlayer)
@@ -199,31 +199,18 @@ namespace SuperVikingKart
                 return;
             }
 
-            var cartNetView = cart.GetComponentInParent<ZNetView>();
-            if (!cartNetView)
+            var kartNetView = kart.GetComponentInParent<ZNetView>();
+            if (!kartNetView)
             {
                 SuperVikingKart.DebugLog("BuffBlock - No ZNetView on kart");
                 return;
             }
 
-            var cartId = cartNetView.GetZDO().m_uid;
+            var kartId = kartNetView.GetZDO().m_uid;
             var buffIndex = Random.Range(0, ActiveEffects.Length);
 
-            SuperVikingKart.DebugLog($"BuffBlock - Requesting collection! Effect: {ActiveEffects[buffIndex].Name} (index: {buffIndex}), CartId: {cartId}");
-            _netView.InvokeRPC("SuperVikingKart_RPC_RequestCollection", buffIndex, cartId);
-        }
-
-        /// <summary>
-        /// Finds the player currently pulling a Vagon by checking all players.
-        /// </summary>
-        private Player GetPuller(Vagon vagon)
-        {
-            foreach (var player in Player.GetAllPlayers())
-            {
-                if (vagon.IsAttached(player))
-                    return player;
-            }
-            return null;
+            SuperVikingKart.DebugLog($"BuffBlock - Requesting collection! Effect: {ActiveEffects[buffIndex].Name} (index: {buffIndex}), kartId: {kartId}");
+            _netView.InvokeRPC("SuperVikingKart_RPC_RequestCollection", buffIndex, kartId);
         }
 
         // --- Collection Authority ---
@@ -233,9 +220,9 @@ namespace SuperVikingKart
         /// broadcasts the effect application and visual update to all clients.
         /// Rejects duplicate collections from simultaneous triggers.
         /// </summary>
-        private void RPC_RequestCollection(long sender, int buffIndex, ZDOID cartId)
+        private void RPC_RequestCollection(long sender, int buffIndex, ZDOID kartId)
         {
-            SuperVikingKart.DebugLog($"BuffBlock RPC_RequestCollection - sender: {sender}, buffIndex: {buffIndex}, cartId: {cartId}, IsOwner: {_netView.IsOwner()}");
+            SuperVikingKart.DebugLog($"BuffBlock RPC_RequestCollection - sender: {sender}, buffIndex: {buffIndex}, kartId: {kartId}, IsOwner: {_netView.IsOwner()}");
 
             if (!_netView.IsOwner())
                 return;
@@ -251,7 +238,7 @@ namespace SuperVikingKart
             _respawnTimer = SuperVikingKart.BuffBlockRespawnTimeConfig.Value;
 
             // Broadcast to all clients
-            _netView.InvokeRPC(ZNetView.Everybody, "SuperVikingKart_RPC_ApplyBuff", buffIndex, cartId);
+            _netView.InvokeRPC(ZNetView.Everybody, "SuperVikingKart_RPC_ApplyBuff", buffIndex, kartId);
             _netView.InvokeRPC(ZNetView.Everybody, "SuperVikingKart_RPC_BuffBlockCollected", buffIndex);
         }
 
@@ -262,9 +249,9 @@ namespace SuperVikingKart
         /// puller or rider of the collecting kart and applies the effect accordingly.
         /// Both puller and rider see the message regardless of who receives the effect.
         /// </summary>
-        private void RPC_ApplyBuff(long sender, int buffIndex, ZDOID cartId)
+        private void RPC_ApplyBuff(long sender, int buffIndex, ZDOID kartId)
         {
-            SuperVikingKart.DebugLog($"BuffBlock RPC_ApplyBuff - sender: {sender}, buffIndex: {buffIndex}, cartId: {cartId}");
+            SuperVikingKart.DebugLog($"BuffBlock RPC_ApplyBuff - sender: {sender}, buffIndex: {buffIndex}, kartId: {kartId}");
 
             var effects = ActiveEffects;
 
@@ -282,30 +269,30 @@ namespace SuperVikingKart
             }
 
             // Find the kart that collected this block
-            var cartObject = ZNetScene.instance.FindInstance(cartId);
-            if (!cartObject)
+            var kartObject = ZNetScene.instance.FindInstance(kartId);
+            if (!kartObject)
             {
-                SuperVikingKart.DebugLog($"BuffBlock RPC_ApplyBuff - Kart not found for ZDOID: {cartId}");
+                SuperVikingKart.DebugLog($"BuffBlock RPC_ApplyBuff - Kart not found for ZDOID: {kartId}");
                 return;
             }
 
-            var cart = cartObject.GetComponentInChildren<SuperVikingKartComponent>();
-            if (!cart)
+            var kart = kartObject.GetComponentInChildren<SuperVikingKartComponent>();
+            if (!kart)
             {
                 SuperVikingKart.DebugLog("BuffBlock RPC_ApplyBuff - No SuperVikingKartComponent on kart");
                 return;
             }
 
-            var vagon = cart.GetComponentInParent<Vagon>();
+            var vagon = kart.GetVagon();
             if (!vagon)
             {
-                SuperVikingKart.DebugLog("BuffBlock RPC_ApplyBuff - No Vagon on kart");
+                SuperVikingKart.DebugLog("BuffBlock RPC_ApplyBuff - No vagon on kart");
                 return;
             }
 
             var buff = effects[buffIndex];
             var isPuller = vagon.IsAttached(localPlayer);
-            var isRider = cart.GetAttachedPlayer() == localPlayer;
+            var isRider = kart.GetRider() == localPlayer;
 
             SuperVikingKart.DebugLog($"BuffBlock RPC_ApplyBuff - Player: {localPlayer.GetPlayerName()}, IsPuller: {isPuller}, IsRider: {isRider}, BuffTarget: {buff.Target}");
 

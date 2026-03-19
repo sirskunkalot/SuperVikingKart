@@ -67,17 +67,17 @@ namespace SuperVikingKart
         {
             SuperVikingKart.DebugLog($"RaceLine trigger entered by: {other.name} (parent: {other.transform.root.name})");
 
-            // 1. Match the collider's root against the Instances list
-            var kart = FindKart(other);
+            // 1. Find the Kart component
+            var kart = other.GetComponentInParent<SuperVikingKartComponent>();
             if (kart == null)
                 return;
 
-            // 2. Resolve attached player from ZDO (works on any client)
-            var player = kart.GetAttachedPlayer();
+            // 2. Resolve puller from vagon via Player.AllPlayers
+            var player = kart.GetPuller();
             if (player == null)
                 return;
 
-            // 3. Only the rider's own client sends RPCs
+            // 3. Only the puller's own client sends RPCs
             if (player != Player.m_localPlayer)
                 return;
 
@@ -91,7 +91,7 @@ namespace SuperVikingKart
                 return;
 
             // 5. Contestant must be registered
-            var playerId   = player.GetZDOID();
+            var playerId = player.GetZDOID();
             var contestant = race.GetContestant(playerId);
             if (contestant == null)
                 return;
@@ -205,16 +205,6 @@ namespace SuperVikingKart
 
         public bool UseItem(Humanoid user, ItemDrop.ItemData item) => false;
 
-        // --- Helpers ---
-
-        private static SuperVikingKartComponent FindKart(Collider other)
-        {
-            var root = other.transform.root;
-            foreach (var kart in SuperVikingKartComponent.Instances)
-                if (kart.transform.root == root)
-                    return kart;
-            return null;
-        }
     }
 
     /// <summary>

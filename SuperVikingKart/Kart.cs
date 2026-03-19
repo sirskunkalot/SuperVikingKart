@@ -21,6 +21,7 @@ namespace SuperVikingKart
         
         private const string ZdoKeyAttachedPlayer = "SuperVikingKart_AttachedPlayer";
         private ZNetView _netView;
+        private Vagon _vagon;
         private float _lastSitTime;
 
         /// <summary>
@@ -34,7 +35,7 @@ namespace SuperVikingKart
         /// <summary>
         /// Initializes the kart component. Sets up networking RPCs for rider attachment,
         /// registers in the global instances list, clears stale attachments from ZDO,
-        /// and configures the cart mass from server-synced config.
+        /// and configures the kart mass from server-synced config.
         /// Disables itself if no valid ZNetView/ZDO exists (placement ghost).
         /// </summary>
         public void Awake()
@@ -68,12 +69,12 @@ namespace SuperVikingKart
                         zdo.Set(ZdoKeyAttachedPlayer, ZDOID.None);
                     }
                 }
-
-                // Make the carts a bit lighter
-                var vagon = GetComponentInParent<Vagon>();
-                vagon.m_baseMass = 10f;
-                vagon.SetMass(vagon.m_baseMass);
             }
+            
+            // Cache vagon component and make the kart a bit lighter
+            _vagon = GetComponentInParent<Vagon>();
+            _vagon.m_baseMass = 10f;
+            _vagon.SetMass(_vagon.m_baseMass);
         }
 
         /// <summary>
@@ -140,7 +141,7 @@ namespace SuperVikingKart
         }
 
         /// <summary>
-        /// Persists the rider's ZDOID in the cart's ZDO. Only the owner writes.
+        /// Persists the rider's ZDOID in the kart's ZDO. Only the owner writes.
         /// </summary>
         private void RPC_Attach(long sender, ZDOID playerId)
         {
@@ -153,7 +154,7 @@ namespace SuperVikingKart
         }
 
         /// <summary>
-        /// Clears the rider's ZDOID in the cart's ZDO. Only the owner writes.
+        /// Clears the rider's ZDOID in the kart's ZDO. Only the owner writes.
         /// </summary>
         private void RPC_Detach(long sender)
         {
@@ -168,11 +169,34 @@ namespace SuperVikingKart
         // --- State ---
 
         /// <summary>
+        /// Gets the cached Vagon component of this Kart.
+        /// </summary>
+        public Vagon GetVagon()
+        {
+            return _vagon;
+        }
+
+        /// <summary>
+        /// Finds the player currently pulling this Vagon by checking all players.
+        /// </summary>
+        public Player GetPuller()
+        {
+            if (!_vagon) 
+                return null;
+            foreach (var player in Player.GetAllPlayers())
+            {
+                if (_vagon.IsAttached(player))
+                    return player;
+            }
+            return null;
+        }
+
+        /// <summary>
         /// Resolves the attached player from ZDO. Works on any client since
         /// ZDOs are replicated. Used for cross-client checks like damage prevention
         /// and buff application.
         /// </summary>
-        public Player GetAttachedPlayer()
+        public Player GetRider()
         {
             var zdo = _netView.GetZDO();
             if (zdo == null)
@@ -444,12 +468,12 @@ namespace SuperVikingKart
             if (!attacker)
                 return true;
 
-            var cart = __instance.GetComponentInChildren<SuperVikingKartComponent>();
-            if (!cart)
+            var kart = __instance.GetComponentInChildren<SuperVikingKartComponent>();
+            if (!kart)
                 return true;
 
             // Block damage if the attacker is the rider
-            return attacker != cart.GetAttachedPlayer();
+            return attacker != kart.GetRider();
         }
     }
     
@@ -461,7 +485,7 @@ namespace SuperVikingKart
     /// Colliders are re-enabled in the Postfix regardless of exceptions.
     /// </summary>
     [HarmonyPatch(typeof(Attack), nameof(Attack.DoMeleeAttack))]
-    internal class AttackThroughOwnCartPatch
+    internal class AttackThroughOwnKartPatch
     {
         /// <summary>
         /// Disables the kart's colliders before the attack raycast runs.
@@ -479,13 +503,13 @@ namespace SuperVikingKart
             // Find if this player is riding a kart
             foreach (var kart in SuperVikingKartComponent.Instances)
             {
-                if (kart.GetAttachedPlayer() != player)
+                if (kart.GetRider() != player)
                     continue;
 
-                var vagon = kart.GetComponentInParent<Vagon>();
+                var vagon = kart.GetVagon();
                 if (!vagon) continue;
 
-                // Disable all cart colliders so raycasts pass through
+                // Disable all kart colliders so raycasts pass through
                 __state = new List<Collider>();
                 foreach (var collider in vagon.GetComponentsInChildren<Collider>())
                 {
