@@ -89,6 +89,7 @@
     <Compile Include="Properties\IgnoreAccessModifiers.cs" />
     <Compile Include="CustomStatusEffects.cs" />
     <Compile Include="RaceBoard.cs" />
+    <Compile Include="RaceLine.cs" />
     <Compile Include="RaceManager.cs" />
     <Compile Include="SuperVikingKart.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

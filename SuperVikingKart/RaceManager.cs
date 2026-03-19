@@ -13,31 +13,28 @@ namespace SuperVikingKart
         Finished
     }
 
-    internal enum RaceLineType
-    {
-        Start,
-        Finish,
-        StartFinish
-    }
+    // RaceLineType enum removed — replaced by RaceLineRole in RaceLine.cs
 
     internal class RaceContestant
     {
         public string PlayerName;
-        public ZDOID PlayerId;
-        public float FinishTime;
-        public int Position;
-        public bool Finished;
-        public int CurrentLap;
-        public bool IsDnf;
+        public ZDOID  PlayerId;
+        public bool   CrossedStart;
+        public int    CurrentLap;
+        public bool   Finished;
+        public int    Position;
+        public float  FinishTime;
+        public bool   IsDnf;
 
         public RaceContestant(string playerName, ZDOID playerId)
         {
-            PlayerName = playerName;
-            PlayerId = playerId;
-            FinishTime = -1f;
-            Position = -1;
-            Finished = false;
-            CurrentLap = 0;
+            PlayerName   = playerName;
+            PlayerId     = playerId;
+            CrossedStart = false;
+            CurrentLap   = 0;
+            Finished     = false;
+            Position     = -1;
+            FinishTime   = -1f;
         }
     }
 
@@ -58,7 +55,7 @@ namespace SuperVikingKart
         public Race(string raceId, string name = null, int laps = 1)
         {
             RaceId = raceId;
-            Name = string.IsNullOrEmpty(name) ? raceId : name;
+            Name   = string.IsNullOrEmpty(name) ? raceId : name;
             TotalLaps = laps;
         }
 
@@ -117,9 +114,9 @@ namespace SuperVikingKart
 
         public void StartRace()
         {
-            State = RaceState.Racing;
+            State         = RaceState.Racing;
             RaceStartTime = Time.time;
-            NextPosition = 1;
+            NextPosition  = 1;
             SuperVikingKart.DebugLog($"Race [{RaceId}] - Race started");
         }
 
@@ -152,8 +149,8 @@ namespace SuperVikingKart
             if (contestant == null || contestant.Finished)
                 return;
 
-            contestant.IsDnf = true;
-            contestant.Finished = true; // counts as done for AllFinished()
+            contestant.IsDnf    = true;
+            contestant.Finished = true;
 
             SuperVikingKart.DebugLog($"Race [{RaceId}] - {contestant.PlayerName} DNF");
 
@@ -177,9 +174,9 @@ namespace SuperVikingKart
             if (contestant == null || contestant.Finished)
                 return;
 
-            contestant.Finished = true;
-            contestant.FinishTime = finishTime;
-            contestant.Position = NextPosition++;
+            contestant.Finished    = true;
+            contestant.FinishTime  = finishTime;
+            contestant.Position    = NextPosition++;
 
             SuperVikingKart.DebugLog($"Race [{RaceId}] - {contestant.PlayerName} finished P{contestant.Position} in {contestant.FinishTime:F1}s");
 
@@ -189,7 +186,7 @@ namespace SuperVikingKart
                 SuperVikingKart.DebugLog($"Race [{RaceId}] - All finished");
             }
         }
-        
+
         public bool AllFinished()
         {
             return Contestants.All(c => c.Finished);
@@ -197,7 +194,7 @@ namespace SuperVikingKart
 
         public void Reset()
         {
-            State = RaceState.Idle;
+            State        = RaceState.Idle;
             Contestants.Clear();
             NextPosition = 1;
             SuperVikingKart.DebugLog($"Race [{RaceId}] - Reset");
@@ -205,11 +202,8 @@ namespace SuperVikingKart
 
         public string GetResultsText()
         {
-            var sorted = Contestants
-                .Where(c => c.Finished && !c.IsDnf)
-                .OrderBy(c => c.Position)
-                .ToList();
-            var dnf = Contestants.Where(c => c.IsDnf).ToList();
+            var sorted     = Contestants.Where(c => c.Finished && !c.IsDnf).OrderBy(c => c.Position).ToList();
+            var dnf        = Contestants.Where(c => c.IsDnf).ToList();
             var stillRacing = Contestants.Where(c => !c.Finished && !c.IsDnf).ToList();
 
             var text = $"{Name} ({TotalLaps} laps) Results:\n";
@@ -246,25 +240,23 @@ namespace SuperVikingKart
             ZRoutedRpc.instance.Register<string, string, int>("SuperVikingKart_Race_Create", RPC_CreateRace);
             ZRoutedRpc.instance.Register<string>("SuperVikingKart_Race_Remove", RPC_RemoveRace);
             ZRoutedRpc.instance.Register<string, string>("SuperVikingKart_Race_SetName", RPC_SetName);
-            ZRoutedRpc.instance.Register<string, int>("SuperVikingKart_Race_SetLaps", RPC_SetLaps);
+            ZRoutedRpc.instance.Register<string, int>("SuperVikingKart_Race_SetLaps",  RPC_SetLaps);
             ZRoutedRpc.instance.Register<string, int>("SuperVikingKart_Race_SetState", RPC_SetState);
             ZRoutedRpc.instance.Register<string, string, ZDOID>("SuperVikingKart_Race_Register", RPC_Register);
             ZRoutedRpc.instance.Register<string, ZDOID>("SuperVikingKart_Race_Unregister", RPC_Unregister);
             ZRoutedRpc.instance.Register<string>("SuperVikingKart_Race_StartCountdown", RPC_StartCountdown);
             ZRoutedRpc.instance.Register<string, int>("SuperVikingKart_Race_CountdownTick", RPC_CountdownTick);
             ZRoutedRpc.instance.Register<string>("SuperVikingKart_Race_Go", RPC_Go);
+            ZRoutedRpc.instance.Register<string, ZDOID>("SuperVikingKart_Race_CrossedStart", RPC_CrossedStart);
             ZRoutedRpc.instance.Register<string, ZDOID>("SuperVikingKart_Race_Lap", RPC_Lap);
             ZRoutedRpc.instance.Register<string, ZDOID>("SuperVikingKart_Race_Dnf", RPC_Dnf);
             ZRoutedRpc.instance.Register<string>("SuperVikingKart_Race_Reset", RPC_Reset);
 
-            // Only request sync when connecting to an existing server
-            // not when hosting or loading solo
             if (!ZNet.instance.IsServer())
                 ZRoutedRpc.instance.InvokeRoutedRPC(
                     ZRoutedRpc.instance.GetServerPeerID(),
                     "SuperVikingKart_Race_RequestSync");
-            
-            // Clear stale race state from previous world
+
             Races.Clear();
 
             SuperVikingKart.DebugLog("RaceManager initialized");
@@ -282,32 +274,32 @@ namespace SuperVikingKart
             return Races.Values;
         }
 
-        // --- Send Methods (called by components and commands) ---
-        
+        // --- Send Methods ---
+
         public static void SendCreateRace(string raceId, string name, int laps)
         {
             ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
                 "SuperVikingKart_Race_Create", raceId, name, laps);
         }
-        
+
         public static void SendRemoveRace(string raceId)
         {
             ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
                 "SuperVikingKart_Race_Remove", raceId);
         }
-        
+
         public static void SendSetName(string raceId, string name)
         {
             ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
                 "SuperVikingKart_Race_SetName", raceId, name);
         }
-        
+
         public static void SendSetLaps(string raceId, int laps)
         {
             ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
                 "SuperVikingKart_Race_SetLaps", raceId, laps);
         }
-        
+
         public static void SendState(string raceId, RaceState state)
         {
             ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
@@ -344,12 +336,22 @@ namespace SuperVikingKart
                 "SuperVikingKart_Race_Go", raceId);
         }
 
+        /// <summary>
+        /// Called by RaceLineComponent when a kart crosses a Start or StartFinish
+        /// line for the first time. Sets CrossedStart on all clients.
+        /// </summary>
+        public static void SendCrossedStart(string raceId, ZDOID playerId)
+        {
+            ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
+                "SuperVikingKart_Race_CrossedStart", raceId, playerId);
+        }
+
         public static void SendLap(string raceId, ZDOID playerId)
         {
             ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
                 "SuperVikingKart_Race_Lap", raceId, playerId);
         }
-        
+
         public static void SendDnf(string raceId, ZDOID playerId)
         {
             ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
@@ -363,7 +365,7 @@ namespace SuperVikingKart
         }
 
         // --- RPC Handlers ---
-        
+
         private static void RPC_RequestSync(long sender)
         {
             if (!ZNet.instance.IsServer())
@@ -388,10 +390,11 @@ namespace SuperVikingKart
                 {
                     pkg.Write(c.PlayerName);
                     pkg.Write(c.PlayerId);
-                    pkg.Write(c.FinishTime);
-                    pkg.Write(c.Position);
-                    pkg.Write(c.Finished);
+                    pkg.Write(c.CrossedStart);
                     pkg.Write(c.CurrentLap);
+                    pkg.Write(c.Finished);
+                    pkg.Write(c.Position);
+                    pkg.Write(c.FinishTime);
                     pkg.Write(c.IsDnf);
                 }
             }
@@ -410,10 +413,10 @@ namespace SuperVikingKart
             {
                 var race = new Race(pkg.ReadString(), pkg.ReadString())
                 {
-                    TotalLaps = pkg.ReadInt(),
-                    State = (RaceState)pkg.ReadInt(),
+                    TotalLaps     = pkg.ReadInt(),
+                    State         = (RaceState)pkg.ReadInt(),
                     RaceStartTime = pkg.ReadSingle(),
-                    NextPosition = pkg.ReadInt()
+                    NextPosition  = pkg.ReadInt()
                 };
 
                 var contestantCount = pkg.ReadInt();
@@ -421,11 +424,12 @@ namespace SuperVikingKart
                 {
                     var contestant = new RaceContestant(pkg.ReadString(), pkg.ReadZDOID())
                     {
-                        FinishTime = pkg.ReadSingle(),
-                        Position = pkg.ReadInt(),
-                        Finished = pkg.ReadBool(),
-                        CurrentLap = pkg.ReadInt(),
-                        IsDnf = pkg.ReadBool()
+                        CrossedStart = pkg.ReadBool(),
+                        CurrentLap   = pkg.ReadInt(),
+                        Finished     = pkg.ReadBool(),
+                        Position     = pkg.ReadInt(),
+                        FinishTime   = pkg.ReadSingle(),
+                        IsDnf        = pkg.ReadBool(),
                     };
                     race.Contestants.Add(contestant);
                 }
@@ -434,38 +438,36 @@ namespace SuperVikingKart
                 SuperVikingKart.DebugLog($"RaceManager - Synced race [{race.RaceId}] State: {race.State}, Contestants: {race.Contestants.Count}");
             }
         }
-        
+
         private static void RPC_CreateRace(long sender, string raceId, string name, int laps)
         {
             if (Races.ContainsKey(raceId)) return;
             Races[raceId] = new Race(raceId, name, laps);
             SuperVikingKart.DebugLog($"RaceManager - Created race [{raceId}] \"{name}\" ({laps} laps)");
         }
-        
+
         private static void RPC_RemoveRace(long sender, string raceId)
         {
             Races.Remove(raceId);
             SuperVikingKart.DebugLog($"RaceManager - Removed race [{raceId}]");
         }
-        
+
         private static void RPC_SetName(long sender, string raceId, string name)
         {
             var race = GetRace(raceId);
             if (race == null) return;
-
             race.Name = name;
             SuperVikingKart.DebugLog($"RaceManager - Race [{raceId}] renamed to \"{name}\"");
         }
-        
+
         private static void RPC_SetLaps(long sender, string raceId, int laps)
         {
             var race = GetRace(raceId);
             if (race == null) return;
-
             race.TotalLaps = laps;
             SuperVikingKart.DebugLog($"RaceManager - Laps set to {laps} for [{raceId}]");
         }
-        
+
         private static void RPC_SetState(long sender, string raceId, int state)
         {
             var race = GetRace(raceId);
@@ -473,7 +475,7 @@ namespace SuperVikingKart
             race.State = (RaceState)state;
             SuperVikingKart.DebugLog($"RaceManager - State set to {(RaceState)state} for [{raceId}]");
         }
-        
+
         private static void RPC_Register(long sender, string raceId, string playerName, ZDOID playerId)
         {
             var race = GetRace(raceId);
@@ -512,7 +514,6 @@ namespace SuperVikingKart
             }
             else if (localPlayer && race.IsRegistered(localPlayer.GetZDOID()) && wasRacing)
             {
-                // Notify other contestants
                 localPlayer.Message(MessageHud.MessageType.Center,
                     $"{contestant.PlayerName} left the race - DNF");
             }
@@ -525,15 +526,10 @@ namespace SuperVikingKart
 
             race.StartCountdown();
 
-            // Only the initiator runs the countdown coroutine
             if (sender == ZDOMan.GetSessionID())
                 RunCountdown(raceId);
         }
 
-        /// <summary>
-        /// Starts the countdown coroutine on the plugin instance.
-        /// Only called on the initiator's client.
-        /// </summary>
         public static void RunCountdown(string raceId)
         {
             SuperVikingKart.Instance.StartCoroutine(CountdownCoroutine(raceId));
@@ -568,17 +564,10 @@ namespace SuperVikingKart
 
             race.StartRace();
 
-            // Only the server runs the watchdog
             if (ZNet.instance.IsServer())
-                SuperVikingKart.Instance.StartCoroutine(
-                    DisconnectWatchdog(raceId));
+                SuperVikingKart.Instance.StartCoroutine(DisconnectWatchdog(raceId));
         }
-        
-        /// <summary>
-        /// Server-only polling coroutine. Checks every 5 seconds whether each
-        /// racing contestant is still connected. Sends a DNF RPC for any that are gone.
-        /// Stops automatically when the race leaves the Racing state.
-        /// </summary>
+
         private static IEnumerator DisconnectWatchdog(string raceId)
         {
             SuperVikingKart.DebugLog($"RaceManager - Watchdog started for [{raceId}]");
@@ -590,7 +579,7 @@ namespace SuperVikingKart
                 var race = GetRace(raceId);
                 if (race == null || race.State != RaceState.Racing)
                 {
-                    SuperVikingKart.DebugLog($"RaceManager - Watchdog stopping for [{raceId}] (race gone or not Racing)");
+                    SuperVikingKart.DebugLog($"RaceManager - Watchdog stopping for [{raceId}]");
                     yield break;
                 }
 
@@ -601,20 +590,37 @@ namespace SuperVikingKart
                     if (contestant.Finished) continue;
 
                     var stillConnected = peers.Any(p => p.m_characterID == contestant.PlayerId);
-
-                    // Also consider the server's own local player as connected
-                    var localPlayer = Player.m_localPlayer;
+                    var localPlayer    = Player.m_localPlayer;
                     if (!stillConnected && localPlayer && localPlayer.GetZDOID() == contestant.PlayerId)
                         stillConnected = true;
 
                     if (!stillConnected)
                     {
-                        SuperVikingKart.DebugLog(
-                            $"RaceManager - Watchdog: {contestant.PlayerName} disconnected, sending DNF");
+                        SuperVikingKart.DebugLog($"RaceManager - Watchdog: {contestant.PlayerName} disconnected, sending DNF");
                         SendDnf(raceId, contestant.PlayerId);
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Sets CrossedStart = true for the contestant on all clients.
+        /// Called when a kart crosses a Start or StartFinish line for the first time.
+        /// </summary>
+        private static void RPC_CrossedStart(long sender, string raceId, ZDOID playerId)
+        {
+            var race = GetRace(raceId);
+            if (race == null || race.State != RaceState.Racing) return;
+
+            var contestant = race.GetContestant(playerId);
+            if (contestant == null || contestant.Finished) return;
+
+            contestant.CrossedStart = true;
+            SuperVikingKart.DebugLog($"Race [{raceId}] - {contestant.PlayerName} crossed start line");
+
+            var localPlayer = Player.m_localPlayer;
+            if (localPlayer && localPlayer.GetZDOID() == playerId)
+                localPlayer.Message(MessageHud.MessageType.Center, "Go!");
         }
 
         /// <summary>
@@ -631,7 +637,7 @@ namespace SuperVikingKart
             if (contestant == null || contestant.Finished)
                 return;
 
-            var finished = race.RecordLap(playerId);
+            var finished    = race.RecordLap(playerId);
             var localPlayer = Player.m_localPlayer;
 
             if (finished)
@@ -663,7 +669,7 @@ namespace SuperVikingKart
                         $"{contestant.PlayerName} - Lap {contestant.CurrentLap}/{race.TotalLaps}");
             }
         }
-        
+
         private static void RPC_Dnf(long sender, string raceId, ZDOID playerId)
         {
             var race = GetRace(raceId);

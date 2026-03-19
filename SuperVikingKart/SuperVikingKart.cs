@@ -34,6 +34,9 @@ namespace SuperVikingKart
         
         public const string RaceBoardPrefabName = "RaceBoard";
         public static readonly int RaceBoardPrefabHash = RaceBoardPrefabName.GetStableHashCode();
+  
+        public const string RaceLinePrefabName = "RaceLine";
+        public static readonly int RaceLinePrefabHash = RaceLinePrefabName.GetStableHashCode();
 
         public static SuperVikingKart Instance;
         public static CustomLocalization Localization = LocalizationManager.Instance.GetLocalization();
@@ -68,13 +71,17 @@ namespace SuperVikingKart
             PrefabManager.OnVanillaPrefabsAvailable += CreateMysteryBlock;
             PrefabManager.OnVanillaPrefabsAvailable += RegisterCustomStatusEffects;
             PrefabManager.OnVanillaPrefabsAvailable += CreateRaceBoard;
+            PrefabManager.OnVanillaPrefabsAvailable += CreateRaceLine;
             
             // (Re-)Initialize the RaceManager on every connect to a server / start of a local game
             MinimapManager.OnVanillaMapDataLoaded += RaceManager.Init;
 
-            // (Re-)Build the Admin GUI on every GUI creation
+            // (Re-)Build the RaceBoard Admin GUI on every GUI creation
             GUIManager.OnCustomGUIAvailable += RaceBoardAdminGui.Build;
-            
+
+            // (Re-)Build the RaceLine Admin GUI on every GUI creation
+            GUIManager.OnCustomGUIAvailable += RaceLineAdminGui.Build;
+
             // Create the commands once directly on mod Awake
             Commands.Register();
         }
@@ -655,6 +662,243 @@ namespace SuperVikingKart
             btn.ButtonType = type;
             btn.Board      = board;
             return btn;
+        }
+    
+        private void CreateRaceLine()
+        {
+            try
+            {
+                // ---- Root -------------------------------------------------------
+                var prefab = new GameObject(RaceLinePrefabName);
+                prefab.layer = LayerMask.NameToLayer("piece");
+                prefab.SetActive(false);
+
+                var netView = prefab.AddComponent<ZNetView>();
+                netView.m_persistent = true;
+
+                var piece = prefab.AddComponent<Piece>();
+                piece.m_canBeRemoved = true;
+
+                // Solid root collider for placement snapping
+                var rootCollider        = prefab.AddComponent<BoxCollider>();
+                rootCollider.center     = new Vector3(0f, 1.5f, 0f);
+                rootCollider.size       = new Vector3(6f, 3f, 0.2f);
+
+                // RaceLineComponent lives on the root
+                prefab.AddComponent<RaceLineComponent>();
+
+                // ---- Trigger volume child ---------------------------------------
+                var triggerGo = new GameObject("TriggerVolume");
+                triggerGo.transform.SetParent(prefab.transform, false);
+                triggerGo.transform.localPosition = new Vector3(0f, 1.5f, 0f);
+                // Use piece_nonsolid so the trigger fires but doesn't block movement
+                triggerGo.layer = LayerMask.NameToLayer("piece_nonsolid");
+
+                // Kinematic Rigidbody required for trigger callbacks
+                var rb           = triggerGo.AddComponent<Rigidbody>();
+                rb.isKinematic   = true;
+                rb.useGravity    = false;
+
+                var triggerCol      = triggerGo.AddComponent<BoxCollider>();
+                triggerCol.isTrigger = true;
+                triggerCol.size      = new Vector3(6f, 3f, 1f); // wide, tall, thin
+
+                var relay = triggerGo.AddComponent<RaceLineTrigger>();
+                // Relay is wired to the RaceLineComponent after Awake, set in Awake
+                // We store the reference after AddComponent on the root
+                relay.Line = prefab.GetComponent<RaceLineComponent>();
+
+                // ---- Gate posts -------------------------------------------------
+                CreatePost("PostLeft",  prefab.transform, new Vector3(-3f, 1.5f, 0f));
+                CreatePost("PostRight", prefab.transform, new Vector3( 3f, 1.5f, 0f));
+
+                // ---- Ground quad (chequered) ------------------------------------
+                var groundQuad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                groundQuad.name = "GroundQuad";
+                groundQuad.transform.SetParent(prefab.transform, false);
+                groundQuad.transform.localPosition = new Vector3(0f, 0.02f, 0f);
+                groundQuad.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                groundQuad.transform.localScale    = new Vector3(6f, 1f, 1f);
+                DestroyImmediate(groundQuad.GetComponent<MeshCollider>());
+                groundQuad.GetComponent<MeshRenderer>().material = CreateChequeredMaterial();
+
+                // ---- Direction arrow --------------------------------------------
+                var arrowQuad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                arrowQuad.name = "DirectionArrow";
+                arrowQuad.transform.SetParent(prefab.transform, false);
+                arrowQuad.transform.localPosition = new Vector3(0f, 0.03f, 0.6f); // slightly in front of line
+                arrowQuad.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                arrowQuad.transform.localScale    = new Vector3(1f, 1f, 1f);
+                DestroyImmediate(arrowQuad.GetComponent<MeshCollider>());
+                arrowQuad.GetComponent<MeshRenderer>().material = CreateArrowMaterial();
+
+                // ---- World-space label ------------------------------------------
+                var labelGo = new GameObject("Label");
+                labelGo.transform.SetParent(prefab.transform, false);
+                labelGo.transform.localPosition = new Vector3(0f, 3.4f, -0.05f);
+                labelGo.transform.localScale    = Vector3.one;
+
+                var tmp = labelGo.AddComponent<TextMeshPro>();
+                tmp.font             = PrefabManager.Cache.GetPrefab<TMP_FontAsset>("Valheim-AveriaSansLibre");
+                tmp.alignment        = TextAlignmentOptions.Center;
+                tmp.fontSize         = 1.2f;
+                tmp.color            = Color.white;
+                tmp.textWrappingMode = TextWrappingModes.Normal;
+                tmp.overflowMode     = TextOverflowModes.Overflow;
+                tmp.rectTransform.sizeDelta          = new Vector2(6f, 1.5f);
+                tmp.rectTransform.pivot              = new Vector2(0.5f, 0.5f);
+                tmp.rectTransform.anchorMin          = new Vector2(0.5f, 0.5f);
+                tmp.rectTransform.anchorMax          = new Vector2(0.5f, 0.5f);
+                tmp.rectTransform.anchoredPosition3D = Vector3.zero;
+
+                // ---- Banner between posts ---------------------------------------
+                var banner = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                banner.name = "Banner";
+                banner.transform.SetParent(prefab.transform, false);
+                banner.transform.localPosition = new Vector3(0f, 3f, 0f);
+                banner.transform.localScale    = new Vector3(6f, 0.4f, 1f);
+                DestroyImmediate(banner.GetComponent<MeshCollider>());
+                banner.GetComponent<MeshRenderer>().material = CreateBannerMaterial();
+
+                // ---- Register ---------------------------------------------------
+                var icon = RenderManager.Instance.Render(prefab, RenderManager.IsometricRotation);
+
+                PieceManager.Instance.AddPiece(new CustomPiece(prefab, false, new PieceConfig
+                {
+                    Name        = "Race Line",
+                    Description = "Start, finish or checkpoint line for a race. Place the arrow facing the direction of travel.",
+                    PieceTable  = PieceTables.Hammer,
+                    Category    = PieceCategories.Misc,
+                    Icon        = icon,
+                    Requirements = new[]
+                    {
+                        new RequirementConfig("Wood", 2)
+                    }
+                }));
+
+                prefab.SetActive(true);
+                DebugLog("RaceLine prefab registered");
+            }
+            catch (Exception ex)
+            {
+                Jotunn.Logger.LogWarning($"Caught exception while creating race line: {ex}");
+            }
+            finally
+            {
+                PrefabManager.OnVanillaPrefabsAvailable -= CreateRaceLine;
+            }
+        }
+
+        // ---- Prefab helpers -------------------------------------------------
+
+        private void CreatePost(string name, Transform parent, Vector3 localPos)
+        {
+            var post = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            post.name = name;
+            post.transform.SetParent(parent, false);
+            post.transform.localPosition = localPos;
+            post.transform.localScale    = new Vector3(0.15f, 1.5f, 0.15f); // height = 3 units total
+            DestroyImmediate(post.GetComponent<CapsuleCollider>());
+            post.GetComponent<MeshRenderer>().material = CreatePostMaterial();
+        }
+
+        private Material CreateChequeredMaterial()
+        {
+            const int size = 64;
+            var texture = new Texture2D(size, size);
+            var colors  = new Color[size * size];
+
+            for (var x = 0; x < size; x++)
+            for (var y = 0; y < size; y++)
+            {
+                // 8x8 chequered squares
+                var cx = x / 8;
+                var cy = y / 8;
+                colors[y * size + x] = ((cx + cy) % 2 == 0) ? Color.white : Color.black;
+            }
+
+            texture.SetPixels(colors);
+            texture.Apply();
+            texture.filterMode = FilterMode.Point;
+
+            var torchMat = PrefabManager.Instance.GetPrefab("Torch")
+                .GetComponentInChildren<MeshRenderer>().material;
+            return new Material(torchMat) { mainTexture = texture, color = Color.white };
+        }
+
+        private Material CreateArrowMaterial()
+        {
+            const int size = 32;
+            var texture = new Texture2D(size, size);
+            var colors  = new Color[size * size];
+
+            // Transparent background
+            for (var i = 0; i < colors.Length; i++)
+                colors[i] = new Color(1f, 0.6f, 0f, 0f);
+
+            // Paint a simple right-pointing arrow in orange (pointing toward +Z = forward)
+            // Arrow body
+            for (var x = 4; x < 20; x++)
+            for (var y = 12; y < 20; y++)
+                colors[y * size + x] = new Color(1f, 0.6f, 0f, 1f);
+
+            // Arrow head (triangle pointing right)
+            for (var x = 20; x < 30; x++)
+            {
+                var halfWidth = (30 - x);
+                var yMin = 16 - halfWidth;
+                var yMax = 16 + halfWidth;
+                for (var y = yMin; y <= yMax; y++)
+                    if (y >= 0 && y < size)
+                        colors[y * size + x] = new Color(1f, 0.6f, 0f, 1f);
+            }
+
+            texture.SetPixels(colors);
+            texture.Apply();
+            texture.filterMode = FilterMode.Point;
+
+            var torchMat = PrefabManager.Instance.GetPrefab("Torch")
+                .GetComponentInChildren<MeshRenderer>().material;
+            var mat = new Material(torchMat)
+            {
+                mainTexture = texture,
+                color       = Color.white
+            };
+            return mat;
+        }
+
+        private Material CreatePostMaterial()
+        {
+            var texture = new Texture2D(4, 4);
+            var colors  = new Color[16];
+            for (var i = 0; i < 16; i++)
+                colors[i] = new Color(0.9f, 0.85f, 0.1f); // bright yellow
+            texture.SetPixels(colors);
+            texture.Apply();
+
+            var torchMat = PrefabManager.Instance.GetPrefab("Torch")
+                .GetComponentInChildren<MeshRenderer>().material;
+            return new Material(torchMat) { mainTexture = texture, color = Color.white };
+        }
+
+        private Material CreateBannerMaterial()
+        {
+            const int w = 64, h = 16;
+            var texture = new Texture2D(w, h);
+            var colors  = new Color[w * h];
+
+            // Alternating red/white stripes
+            for (var x = 0; x < w; x++)
+            for (var y = 0; y < h; y++)
+                colors[y * w + x] = (x / 8 % 2 == 0) ? Color.red : Color.white;
+
+            texture.SetPixels(colors);
+            texture.Apply();
+            texture.filterMode = FilterMode.Point;
+
+            var torchMat = PrefabManager.Instance.GetPrefab("Torch")
+                .GetComponentInChildren<MeshRenderer>().material;
+            return new Material(torchMat) { mainTexture = texture, color = Color.white };
         }
     }
 }
