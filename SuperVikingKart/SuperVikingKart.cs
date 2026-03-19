@@ -737,10 +737,10 @@ namespace SuperVikingKart
                 labelGo.transform.localScale    = Vector3.one;
 
                 var tmp = labelGo.AddComponent<TextMeshPro>();
-                tmp.font             = PrefabManager.Cache.GetPrefab<TMP_FontAsset>("Valheim-AveriaSansLibre");
+                tmp.font             = PrefabManager.Cache.GetPrefab<TMP_FontAsset>("Valheim-Norse");
                 tmp.alignment        = TextAlignmentOptions.Center;
                 tmp.fontSize         = 1.2f;
-                tmp.color            = Color.white;
+                tmp.color            = Color.black;
                 tmp.textWrappingMode = TextWrappingModes.Normal;
                 tmp.overflowMode     = TextOverflowModes.Overflow;
                 tmp.rectTransform.sizeDelta          = new Vector2(6f, 1.5f);
@@ -754,7 +754,7 @@ namespace SuperVikingKart
                 banner.name = "Banner";
                 banner.transform.SetParent(prefab.transform, false);
                 banner.transform.localPosition = new Vector3(0f, 3f, 0f);
-                banner.transform.localScale    = new Vector3(6f, 0.4f, 0f);
+                banner.transform.localScale    = new Vector3(6f, 0.4f, 0.01f);
                 //DestroyImmediate(banner.GetComponent<MeshCollider>());
                 banner.GetComponent<MeshRenderer>().material = CreateBannerMaterial();
                 
@@ -762,9 +762,12 @@ namespace SuperVikingKart
                 var raceLine = prefab.AddComponent<RaceLineComponent>();
                 raceLine.Label = tmp;
 
-                // Trigger relay trigger child
+                // Trigger relay component
                 var relay = triggerGo.AddComponent<RaceLineTrigger>();
                 relay.Line = raceLine;
+                
+                // Global scale
+                prefab.transform.localScale = new Vector3(1.2f, 1.2f, 1f);
 
                 // Register
                 var icon = RenderManager.Instance.Render(prefab, RenderManager.IsometricRotation);
@@ -772,7 +775,7 @@ namespace SuperVikingKart
                 PieceManager.Instance.AddPiece(new CustomPiece(prefab, false, new PieceConfig
                 {
                     Name        = "Race Line",
-                    Description = "Start, finish or round course line for a race. Place the arrow facing the direction of travel.",
+                    Description = "Start and/or finish line for a race. Place the arrow facing the direction of travel.",
                     PieceTable  = PieceTables.Hammer,
                     Category    = PieceCategories.Misc,
                     Icon        = icon,
