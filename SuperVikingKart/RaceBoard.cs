@@ -403,7 +403,7 @@ namespace SuperVikingKart
             // Destroy any leftover panel from previous scene
             if (_panel)
             {
-                UnityEngine.Object.Destroy(_panel);
+                UnityEngine.Object.DestroyImmediate(_panel);
                 _panel = null;
             }
 

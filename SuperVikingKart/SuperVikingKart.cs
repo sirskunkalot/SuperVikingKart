@@ -538,6 +538,7 @@ namespace SuperVikingKart
                 board.ResetButton    = WireButton(resetButtonGo,    RaceBoardButtonType.Reset,    board);
                 board.AdminButton    = WireButton(adminButtonGo,    RaceBoardButtonType.Admin,    board);
 
+                // Register
                 var icon = RenderManager.Instance.Render(prefab, RenderManager.IsometricRotation);
 
                 PieceManager.Instance.AddPiece(new CustomPiece(prefab, false, new PieceConfig
@@ -668,7 +669,7 @@ namespace SuperVikingKart
         {
             try
             {
-                // ---- Root -------------------------------------------------------
+                // Root
                 var prefab = new GameObject(RaceLinePrefabName);
                 prefab.layer = LayerMask.NameToLayer("piece");
                 prefab.SetActive(false);
@@ -679,20 +680,17 @@ namespace SuperVikingKart
                 var piece = prefab.AddComponent<Piece>();
                 piece.m_canBeRemoved = true;
 
-                // Solid root collider for placement snapping
-                var rootCollider        = prefab.AddComponent<BoxCollider>();
-                rootCollider.center     = new Vector3(0f, 1.5f, 0f);
-                rootCollider.size       = new Vector3(6f, 3f, 0.2f);
+                // Place collider for placement
+                var placeGo = new GameObject("PlaceCollider");
+                placeGo.transform.SetParent(prefab.transform, false);
+                var snapCol        = placeGo.AddComponent<BoxCollider>();
+                snapCol.center     = new Vector3(3f, 0f, 0f);
+                snapCol.size       = new Vector3(6f, 0.001f, 0.001f);
 
-                // RaceLineComponent lives on the root
-                prefab.AddComponent<RaceLineComponent>();
-
-                // ---- Trigger volume child ---------------------------------------
-                var triggerGo = new GameObject("TriggerVolume");
+                // Trigger Collider
+                var triggerGo = new GameObject("TriggerCollider");
                 triggerGo.transform.SetParent(prefab.transform, false);
-                triggerGo.transform.localPosition = new Vector3(0f, 1.5f, 0f);
-                // Use piece_nonsolid so the trigger fires but doesn't block movement
-                triggerGo.layer = LayerMask.NameToLayer("piece_nonsolid");
+                triggerGo.transform.localPosition = new Vector3(0f, 0f, 0f);
 
                 // Kinematic Rigidbody required for trigger callbacks
                 var rb           = triggerGo.AddComponent<Rigidbody>();
@@ -702,17 +700,12 @@ namespace SuperVikingKart
                 var triggerCol      = triggerGo.AddComponent<BoxCollider>();
                 triggerCol.isTrigger = true;
                 triggerCol.size      = new Vector3(6f, 3f, 1f); // wide, tall, thin
-
-                var relay = triggerGo.AddComponent<RaceLineTrigger>();
-                // Relay is wired to the RaceLineComponent after Awake, set in Awake
-                // We store the reference after AddComponent on the root
-                relay.Line = prefab.GetComponent<RaceLineComponent>();
-
-                // ---- Gate posts -------------------------------------------------
+                
+                // Gate posts
                 CreatePost("PostLeft",  prefab.transform, new Vector3(-3f, 1.5f, 0f));
                 CreatePost("PostRight", prefab.transform, new Vector3( 3f, 1.5f, 0f));
 
-                // ---- Ground quad (chequered) ------------------------------------
+                // Ground quad (chequered)
                 var groundQuad = GameObject.CreatePrimitive(PrimitiveType.Quad);
                 groundQuad.name = "GroundQuad";
                 groundQuad.transform.SetParent(prefab.transform, false);
@@ -720,9 +713,14 @@ namespace SuperVikingKart
                 groundQuad.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
                 groundQuad.transform.localScale    = new Vector3(6f, 1f, 1f);
                 DestroyImmediate(groundQuad.GetComponent<MeshCollider>());
-                groundQuad.GetComponent<MeshRenderer>().material = CreateChequeredMaterial();
+                var groundMat = CreateChequeredMaterial();
+                groundMat.mainTextureScale = new Vector2(
+                    groundQuad.transform.localScale.x / groundQuad.transform.localScale.z,
+                    1f
+                );
+                groundQuad.GetComponent<MeshRenderer>().material = groundMat;
 
-                // ---- Direction arrow --------------------------------------------
+                // Direction arrow
                 var arrowQuad = GameObject.CreatePrimitive(PrimitiveType.Quad);
                 arrowQuad.name = "DirectionArrow";
                 arrowQuad.transform.SetParent(prefab.transform, false);
@@ -732,10 +730,10 @@ namespace SuperVikingKart
                 DestroyImmediate(arrowQuad.GetComponent<MeshCollider>());
                 arrowQuad.GetComponent<MeshRenderer>().material = CreateArrowMaterial();
 
-                // ---- World-space label ------------------------------------------
+                // World-space label
                 var labelGo = new GameObject("Label");
                 labelGo.transform.SetParent(prefab.transform, false);
-                labelGo.transform.localPosition = new Vector3(0f, 3.4f, -0.05f);
+                labelGo.transform.localPosition = Vector3.zero;
                 labelGo.transform.localScale    = Vector3.one;
 
                 var tmp = labelGo.AddComponent<TextMeshPro>();
@@ -749,24 +747,32 @@ namespace SuperVikingKart
                 tmp.rectTransform.pivot              = new Vector2(0.5f, 0.5f);
                 tmp.rectTransform.anchorMin          = new Vector2(0.5f, 0.5f);
                 tmp.rectTransform.anchorMax          = new Vector2(0.5f, 0.5f);
-                tmp.rectTransform.anchoredPosition3D = Vector3.zero;
+                tmp.rectTransform.anchoredPosition3D = new Vector3(0f, 3f, -0.05f);
 
-                // ---- Banner between posts ---------------------------------------
-                var banner = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                // Banner between posts
+                var banner = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 banner.name = "Banner";
                 banner.transform.SetParent(prefab.transform, false);
                 banner.transform.localPosition = new Vector3(0f, 3f, 0f);
-                banner.transform.localScale    = new Vector3(6f, 0.4f, 1f);
-                DestroyImmediate(banner.GetComponent<MeshCollider>());
+                banner.transform.localScale    = new Vector3(6f, 0.4f, 0f);
+                //DestroyImmediate(banner.GetComponent<MeshCollider>());
                 banner.GetComponent<MeshRenderer>().material = CreateBannerMaterial();
+                
+                // RaceLineComponent on root
+                var raceLine = prefab.AddComponent<RaceLineComponent>();
+                raceLine.Label = tmp;
 
-                // ---- Register ---------------------------------------------------
+                // Trigger relay trigger child
+                var relay = triggerGo.AddComponent<RaceLineTrigger>();
+                relay.Line = raceLine;
+
+                // Register
                 var icon = RenderManager.Instance.Render(prefab, RenderManager.IsometricRotation);
 
                 PieceManager.Instance.AddPiece(new CustomPiece(prefab, false, new PieceConfig
                 {
                     Name        = "Race Line",
-                    Description = "Start, finish or checkpoint line for a race. Place the arrow facing the direction of travel.",
+                    Description = "Start, finish or round course line for a race. Place the arrow facing the direction of travel.",
                     PieceTable  = PieceTables.Hammer,
                     Category    = PieceCategories.Misc,
                     Icon        = icon,
@@ -798,7 +804,7 @@ namespace SuperVikingKart
             post.transform.SetParent(parent, false);
             post.transform.localPosition = localPos;
             post.transform.localScale    = new Vector3(0.15f, 1.5f, 0.15f); // height = 3 units total
-            DestroyImmediate(post.GetComponent<CapsuleCollider>());
+            //DestroyImmediate(post.GetComponent<CapsuleCollider>());
             post.GetComponent<MeshRenderer>().material = CreatePostMaterial();
         }
 

@@ -14,19 +14,6 @@ namespace SuperVikingKart
     }
 
     /// <summary>
-    /// Trigger relay — lives on the trigger child GameObject
-    /// </summary>
-    internal class RaceLineTrigger : MonoBehaviour
-    {
-        public RaceLineComponent Line;
-
-        private void OnTriggerEnter(Collider other)
-        {
-            Line?.OnKartEnter(other);
-        }
-    }
-
-    /// <summary>
     /// Root component
     /// </summary>
     internal class RaceLineComponent : MonoBehaviour, Hoverable, Interactable
@@ -38,37 +25,14 @@ namespace SuperVikingKart
         // --- Cooldown ---
         private const float CooldownSeconds = 3f;
         private readonly Dictionary<ZDOID, float> _cooldowns = new();
+        
+        // --- References set by SuperVikingKart.cs during prefab setup ---
+        public TextMeshPro Label;
 
-        // --- Internal refs ---
-        private ZNetView    _netView;
-        private TextMeshPro _label;
+        // --- Private ---
+        private ZNetView _netView;
 
-        // Exposed for RaceLineAdminGui.OnConfirm
-        internal ZNetView NetView => _netView;
-
-        // ── ZDO-backed properties ──────────────────────────────────
-
-        public string RaceId
-        {
-            get => _netView?.GetZDO()?.GetString(ZdoKeyRaceId) ?? "";
-            set
-            {
-                _netView?.GetZDO()?.Set(ZdoKeyRaceId, value);
-                UpdateLabel();
-            }
-        }
-
-        public RaceLineRole Role
-        {
-            get => (RaceLineRole)(_netView?.GetZDO()?.GetInt(ZdoKeyRole) ?? 0);
-            set
-            {
-                _netView?.GetZDO()?.Set(ZdoKeyRole, (int)value);
-                UpdateLabel();
-            }
-        }
-
-        // ── Lifecycle ─────────────────────────────────────────────
+        // --- Lifecycle ---
 
         private void Awake()
         {
@@ -80,19 +44,15 @@ namespace SuperVikingKart
                 return;
             }
 
-            var labelGo = transform.Find("Label");
-            if (labelGo)
-                _label = labelGo.GetComponent<TextMeshPro>();
-
             UpdateLabel();
             SuperVikingKart.DebugLog(
-                $"RaceLine Awake - ZDO: {_netView.GetZDO().m_uid}, Role: {Role}, RaceId: {RaceId}");
+                $"RaceLine Awake - ZDO: {_netView.GetZDO().m_uid}, Role: {GetRole()}, RaceId: {GetRaceId()}");
         }
 
         private void Update()
         {
             // Purge expired cooldown entries
-            var now      = Time.time;
+            var now = Time.time;
             var toRemove = new List<ZDOID>();
             foreach (var kvp in _cooldowns)
                 if (kvp.Value < now)
@@ -101,10 +61,12 @@ namespace SuperVikingKart
                 _cooldowns.Remove(id);
         }
 
-        // ── Trigger entry (forwarded from RaceLineTrigger child) ──
+        // --- Trigger entry (forwarded from RaceLineTrigger child)---
 
-        public void OnKartEnter(Collider other)
+        public void OnRaceLineTriggerEnter(Collider other)
         {
+            SuperVikingKart.DebugLog($"RaceLine trigger entered by: {other.name} (parent: {other.transform.root.name})");
+
             // 1. Match the collider's root against the Instances list
             var kart = FindKart(other);
             if (kart == null)
@@ -120,7 +82,7 @@ namespace SuperVikingKart
                 return;
 
             // 4. Race must exist and be in Racing state
-            var raceId = RaceId;
+            var raceId = GetRaceId();
             if (string.IsNullOrEmpty(raceId))
                 return;
 
@@ -151,13 +113,13 @@ namespace SuperVikingKart
             // All guards passed — stamp cooldown and branch on role
             _cooldowns[playerId] = Time.time + CooldownSeconds;
 
-            switch (Role)
+            switch (GetRole())
             {
                 case RaceLineRole.StartFinish:
                 case RaceLineRole.Start:
                     if (!contestant.CrossedStart)
                         RaceManager.SendCrossedStart(raceId, playerId);
-                    else if (Role == RaceLineRole.StartFinish)
+                    else if (GetRole() == RaceLineRole.StartFinish)
                         RaceManager.SendLap(raceId, playerId);
                     break;
 
@@ -168,12 +130,50 @@ namespace SuperVikingKart
             }
         }
 
-        // ── Hoverable / Interactable ───────────────────────────────
+        // --- Configure (called by RaceLineAdminGui on confirm) ---
+
+        public void Configure(string raceId, RaceLineRole role)
+        {
+            // Claim ZDO ownership and persist config locally
+            _netView.ClaimOwnership();
+            _netView.GetZDO().Set(ZdoKeyRaceId, raceId);
+            _netView.GetZDO().Set(ZdoKeyRole, (int)role);
+            
+            UpdateLabel();
+
+            SuperVikingKart.DebugLog($"RaceLine - Configured [{raceId}] {role}");
+        }
+
+        // --- Label ---
+
+        public void UpdateLabel()
+        {
+            if (!Label) return;
+            var id = GetRaceId();
+            Label.text = string.IsNullOrEmpty(id)
+                ? $"<color=grey>{GetRole()}\nNot configured</color>"
+                : $"{GetRole()}\n{id}";
+        }
+
+        // --- ZDO Accessors ---
+
+        public string GetRaceId()
+        {
+            return _netView?.GetZDO()?.GetString(ZdoKeyRaceId) ?? "";
+        }
+
+        public RaceLineRole GetRole()
+        {
+            var roleInt = _netView?.GetZDO()?.GetInt(ZdoKeyRole) ?? 0;
+            return (RaceLineRole)roleInt;
+        }
+
+        // --- Hoverable / Interactable ---
 
         public string GetHoverText()
         {
-            var configured = !string.IsNullOrEmpty(RaceId);
-            var info = configured ? $"{Role} — {RaceId}" : "Not configured";
+            var configured = !string.IsNullOrEmpty(GetRaceId());
+            var info = configured ? $"{GetRole()} — {GetRaceId()}" : "Not configured";
 
             if (!SynchronizationManager.Instance.PlayerIsAdmin)
                 return $"Race Line\n<color=grey>{info}</color>";
@@ -205,18 +205,7 @@ namespace SuperVikingKart
 
         public bool UseItem(Humanoid user, ItemDrop.ItemData item) => false;
 
-        // ── Label ─────────────────────────────────────────────────
-
-        public void UpdateLabel()
-        {
-            if (!_label) return;
-            var id = RaceId;
-            _label.text = string.IsNullOrEmpty(id)
-                ? $"<color=grey>{Role}\nNot configured</color>"
-                : $"{Role}\n{id}";
-        }
-
-        // ── Helpers ───────────────────────────────────────────────
+        // --- Helpers ---
 
         private static SuperVikingKartComponent FindKart(Collider other)
         {
@@ -228,9 +217,25 @@ namespace SuperVikingKart
         }
     }
 
-    // ─────────────────────────────────────────────────────────────
-    //  Admin GUI — mirrors RaceBoardAdminGui pattern exactly
-    // ─────────────────────────────────────────────────────────────
+    /// <summary>
+    /// Trigger relay — lives on the trigger child GameObject
+    /// </summary>
+    internal class RaceLineTrigger : MonoBehaviour
+    {
+        public RaceLineComponent Line;
+
+        private void OnTriggerEnter(Collider other)
+        {
+            Line?.OnRaceLineTriggerEnter(other);
+        }
+    }
+
+    /// <summary>
+    /// Shared static admin GUI for all RaceLine instances.
+    /// Only one panel exists at a time, parented to GUIManager.CustomGUIFront.
+    /// Rebuilt on each scene change via GUIManager.OnCustomGUIAvailable.
+    /// Populated from the interacted line's ZDO on open.
+    /// </summary>
     internal static class RaceLineAdminGui
     {
         private static GameObject        _panel;
@@ -238,7 +243,7 @@ namespace SuperVikingKart
         private static InputField        _raceIdField;
         private static Dropdown          _roleDropdown;
 
-        // ── Init ──────────────────────────────────────────────────
+        // --- Init ---
 
         /// <summary>
         /// Rebuilds the panel on every scene change.
@@ -251,7 +256,7 @@ namespace SuperVikingKart
 
             if (_panel)
             {
-                UnityEngine.Object.Destroy(_panel);
+                UnityEngine.Object.DestroyImmediate(_panel);
                 _panel = null;
             }
 
@@ -289,17 +294,17 @@ namespace SuperVikingKart
                 InputField.ContentType.Standard, "meadows_gp");
 
             // Role row
-            var row = new GameObject("RoleRow",
+            var dropdownRow = new GameObject("RoleRow",
                 typeof(RectTransform), typeof(HorizontalLayoutGroup));
-            row.transform.SetParent(_panel.transform, false);
-            var rl = row.GetComponent<HorizontalLayoutGroup>();
+            dropdownRow.transform.SetParent(_panel.transform, false);
+            var rl = dropdownRow.GetComponent<HorizontalLayoutGroup>();
             rl.spacing               = 10f;
             rl.childForceExpandWidth  = false;
             rl.childForceExpandHeight = true;
             rl.childAlignment         = TextAnchor.MiddleLeft;
 
             var labelGo = GUIManager.Instance.CreateText(
-                "Role", row.transform,
+                "Role", dropdownRow.transform,
                 new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero,
                 GUIManager.Instance.AveriaSerifBold, 16,
                 Color.white, true, Color.black,
@@ -307,7 +312,7 @@ namespace SuperVikingKart
             labelGo.AddComponent<LayoutElement>().preferredWidth = 90f;
 
             var dropdownGo = GUIManager.Instance.CreateDropDown(
-                row.transform,
+                dropdownRow.transform,
                 new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero,
                 16,
                 width: 260f, height: 30f);
@@ -347,7 +352,7 @@ namespace SuperVikingKart
             SuperVikingKart.DebugLog("RaceLineAdminGui - Panel built");
         }
 
-        // ── Open / Close ──────────────────────────────────────────
+        // --- Open / Close ---
 
         public static void Open(RaceLineComponent line)
         {
@@ -358,9 +363,9 @@ namespace SuperVikingKart
             }
 
             _currentLine      = line;
-            _raceIdField.text = line.RaceId;
+            _raceIdField.text = line.GetRaceId();
 
-            _roleDropdown.value = (int)line.Role;
+            _roleDropdown.value = (int)line.GetRole();
             _roleDropdown.RefreshShownValue();
 
             _panel.SetActive(true);
@@ -377,7 +382,7 @@ namespace SuperVikingKart
             SuperVikingKart.DebugLog("RaceLineAdminGui - Closed");
         }
 
-        // ── Confirm ───────────────────────────────────────────────
+        // --- Confirm ---
 
         private static void OnConfirm()
         {
@@ -391,17 +396,17 @@ namespace SuperVikingKart
             }
 
             var role = (RaceLineRole)_roleDropdown.value;
-
-            _currentLine.NetView.ClaimOwnership();
-            _currentLine.RaceId = raceId;
-            _currentLine.Role   = role;
-
+            _currentLine.Configure(raceId, role);
+            
             SuperVikingKart.DebugLog($"RaceLineAdminGui - Configured [{raceId}] Role: {role}");
             Close();
         }
 
-        // ── Helpers ───────────────────────────────────────────────
+        // --- Helpers ---
 
+        /// <summary>
+        /// Creates a label + input field row inside the panel's vertical layout.
+        /// </summary>
         private static void AddLabeledField(string label, out InputField field,
             InputField.ContentType contentType, string placeholder)
         {
