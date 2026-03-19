@@ -133,7 +133,7 @@ namespace SuperVikingKart
                 return false;
 
             contestant.CurrentLap++;
-            return contestant.CurrentLap >= TotalLaps;
+            return contestant.CurrentLap > TotalLaps;
         }
 
         /// <summary>
@@ -616,11 +616,8 @@ namespace SuperVikingKart
             if (contestant == null || contestant.Finished) return;
 
             contestant.CrossedStart = true;
+            contestant.CurrentLap++;
             SuperVikingKart.DebugLog($"Race [{raceId}] - {contestant.PlayerName} crossed start line");
-
-            var localPlayer = Player.m_localPlayer;
-            if (localPlayer && localPlayer.GetZDOID() == playerId)
-                localPlayer.Message(MessageHud.MessageType.Center, "Go!");
         }
 
         /// <summary>
@@ -637,7 +634,7 @@ namespace SuperVikingKart
             if (contestant == null || contestant.Finished)
                 return;
 
-            var finished    = race.RecordLap(playerId);
+            var finished = race.RecordLap(playerId);
             var localPlayer = Player.m_localPlayer;
 
             if (finished)
@@ -700,7 +697,7 @@ namespace SuperVikingKart
 
             var localPlayer = Player.m_localPlayer;
             if (localPlayer)
-                localPlayer.Message(MessageHud.MessageType.Center, $"{raceId} reset");
+                localPlayer.Message(MessageHud.MessageType.Center, $"{race.Name} reset");
         }
     }
 }
