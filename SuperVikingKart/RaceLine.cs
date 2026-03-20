@@ -138,7 +138,7 @@ namespace SuperVikingKart
 
             // All guards passed — stamp cooldown and branch on role
             _cooldowns[playerId] = Time.time + CooldownSeconds;
-
+            
             switch (GetRole())
             {
                 case RaceLineRole.StartFinish:
