@@ -13,12 +13,12 @@ namespace SuperVikingKart
     /// </summary>
     internal class SuperVikingKartComponent : MonoBehaviour, Hoverable, Interactable
     {
-        public static readonly List<SuperVikingKartComponent> Instances = new ();
+        public static readonly List<SuperVikingKartComponent> Instances = new();
 
         public string Name = "SuperVikingKartAttach";
         public float UseDistance = 2f;
         public Transform AttachPoint;
-        
+
         private const string ZdoKeyAttachedPlayer = "SuperVikingKart_AttachedPlayer";
         private ZNetView _netView;
         private Vagon _vagon;
@@ -39,9 +39,9 @@ namespace SuperVikingKart
         /// Disables itself if no valid ZNetView/ZDO exists (placement ghost).
         /// </summary>
         public void Awake()
-        {    
+        {
             Instances.Add(this);
-            
+
             _netView = gameObject.GetComponentInParent<ZNetView>();
             if (!_netView || _netView.GetZDO() == null)
             {
@@ -70,7 +70,7 @@ namespace SuperVikingKart
                     }
                 }
             }
-            
+
             // Cache vagon component and make the kart a bit lighter
             _vagon = GetComponentInParent<Vagon>();
             _vagon.m_baseMass = 10f;
@@ -95,7 +95,8 @@ namespace SuperVikingKart
 
             if (ZInput.GetButtonDown("Jump") || _attachedPlayerLocal.IsDead())
             {
-                SuperVikingKart.DebugLog($"Kart Update - Detaching (Jump: {ZInput.GetButtonDown("Jump")}, Dead: {_attachedPlayerLocal.IsDead()})");
+                SuperVikingKart.DebugLog(
+                    $"Kart Update - Detaching (Jump: {ZInput.GetButtonDown("Jump")}, Dead: {_attachedPlayerLocal.IsDead()})");
                 Detach();
                 return;
             }
@@ -107,7 +108,7 @@ namespace SuperVikingKart
         /// Removes this instance from the static list and detaches the player.
         /// </summary>
         private void OnDestroy()
-        {    
+        {
             Instances.Remove(this);
             SuperVikingKart.DebugLog("Kart OnDestroy");
             Detach();
@@ -122,7 +123,7 @@ namespace SuperVikingKart
         private void Attach(Player player)
         {
             SuperVikingKart.DebugLog($"Kart Attach - Player: {player.GetPlayerName()}, ZDOID: {player.GetZDOID()}");
-            
+
             _attachedPlayerLocal = player;
             if (_netView && _netView.GetZDO() != null)
                 _netView.InvokeRPC("SuperVikingKart_RPC_Attach", player.GetZDOID());
@@ -145,7 +146,8 @@ namespace SuperVikingKart
         /// </summary>
         private void RPC_Attach(long sender, ZDOID playerId)
         {
-            SuperVikingKart.DebugLog($"Kart RPC_Attach - sender: {sender}, playerId: {playerId}, IsOwner: {_netView.IsOwner()}");
+            SuperVikingKart.DebugLog(
+                $"Kart RPC_Attach - sender: {sender}, playerId: {playerId}, IsOwner: {_netView.IsOwner()}");
             var zdo = _netView.GetZDO();
             if (zdo == null)
                 return;
@@ -165,7 +167,7 @@ namespace SuperVikingKart
             if (_netView.IsOwner())
                 zdo.Set(ZdoKeyAttachedPlayer, ZDOID.None);
         }
-        
+
         // --- State ---
 
         /// <summary>
@@ -181,27 +183,33 @@ namespace SuperVikingKart
         /// </summary>
         public Player GetPuller()
         {
-            if (!_vagon) 
+            if (!_vagon)
                 return null;
             foreach (var player in Player.GetAllPlayers())
             {
                 if (_vagon.IsAttached(player))
                     return player;
             }
+
             return null;
         }
 
         /// <summary>
+        /// Returns the attached player ZDOID from the NetView or
+        /// ZDIOD.None if none attached. Works on any client since
+        /// ZDOs are replicated.
+        /// </summary>
+        public ZDOID GetRiderZDOID() 
+            => _netView?.GetZDO()?.GetZDOID(ZdoKeyAttachedPlayer) ?? ZDOID.None;
+
+        /// <summary>
         /// Resolves the attached player from ZDO. Works on any client since
-        /// ZDOs are replicated. Used for cross-client checks like damage prevention
-        /// and buff application.
+        /// ZDOs are replicated. Used for cross-client checks like damage prevention,
+        /// buff application and lap recording.
         /// </summary>
         public Player GetRider()
         {
-            var zdo = _netView.GetZDO();
-            if (zdo == null)
-                return null;
-            var attachedId = zdo.GetZDOID(ZdoKeyAttachedPlayer);
+            var attachedId = GetRiderZDOID();
             if (attachedId == ZDOID.None)
                 return null;
             var playerObject = ZNetScene.instance.FindInstance(attachedId);
@@ -214,13 +222,7 @@ namespace SuperVikingKart
         /// Quick check if anyone is riding this kart. Uses ZDO so it works
         /// on any client, not just the rider's.
         /// </summary>
-        private bool IsInUse()
-        {
-            var zdo = _netView.GetZDO();
-            if (zdo == null)
-                return false;
-            return zdo.GetZDOID(ZdoKeyAttachedPlayer) != ZDOID.None;
-        }
+        private bool IsInUse() => GetRiderZDOID() != ZDOID.None;
 
         // --- Interaction ---
 
@@ -401,14 +403,14 @@ namespace SuperVikingKart
             var yRotation = Quaternion.Euler(0f, __instance.transform.eulerAngles.y, 0f);
 
             SuperVikingKart.DebugLog($"KartRespawn - Kart destroyed at {position}, spawning timer, scheduling respawn");
-            
+
             // Spawn visible countdown timer
             var timerGo = new GameObject("KartRespawnComponent");
             timerGo.transform.position = position + Vector3.up * 0.5f;
             timerGo.layer = LayerMask.NameToLayer("character");
             var timer = timerGo.AddComponent<KartRespawnComponent>();
             timer.Setup(SuperVikingKart.CartRespawnTimeConfig.Value);
-            
+
             // Schedule the actual respawn
             SuperVikingKart.Instance.StartCoroutine(RespawnKart(position, yRotation));
         }
@@ -476,7 +478,7 @@ namespace SuperVikingKart
             return attacker != kart.GetRider();
         }
     }
-    
+
     /// <summary>
     /// Allows the rider to hit targets through their own kart by temporarily
     /// disabling the kart's colliders during melee attack raycasts.
@@ -519,6 +521,7 @@ namespace SuperVikingKart
                         __state.Add(collider);
                     }
                 }
+
                 return;
             }
         }
@@ -537,7 +540,7 @@ namespace SuperVikingKart
             }
         }
     }
-    
+
     /// <summary>
     /// Fixes a vanilla bug where the pulling player's death leaves a dangling
     /// joint reference on the Vagon. LateUpdate accesses the joint's connected

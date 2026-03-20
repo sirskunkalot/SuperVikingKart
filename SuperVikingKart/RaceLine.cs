@@ -9,8 +9,8 @@ namespace SuperVikingKart
     internal enum RaceLineRole
     {
         StartFinish = 0,
-        Start       = 1,
-        Finish      = 2
+        Start = 1,
+        Finish = 2
     }
 
     /// <summary>
@@ -20,12 +20,12 @@ namespace SuperVikingKart
     {
         // --- ZDO Keys ---
         private const string ZdoKeyRaceId = "SuperVikingKart_RaceLine_RaceId";
-        private const string ZdoKeyRole   = "SuperVikingKart_RaceLine_Role";
+        private const string ZdoKeyRole = "SuperVikingKart_RaceLine_Role";
 
         // --- Cooldown ---
         private const float CooldownSeconds = 3f;
         private readonly Dictionary<ZDOID, float> _cooldowns = new();
-        
+
         // --- References set by SuperVikingKart.cs during prefab setup ---
         public TextMeshPro Label;
 
@@ -58,11 +58,11 @@ namespace SuperVikingKart
                     toRemove.Add(kvp.Key);
             foreach (var id in toRemove)
                 _cooldowns.Remove(id);
-            
+
             // Update label
             UpdateLabel();
         }
-        
+
         private void UpdateLabel()
         {
             if (!Label)
@@ -84,14 +84,15 @@ namespace SuperVikingKart
 
             Label.text = $"{race.Name} ({GetRole()})";
         }
-        
+
         /// <summary>
         /// Called by RaceLineTrigger when a collider enters.
         /// Only the puller's client initiates collection to prevent duplicates.
         /// </summary>
         public void OnRaceLineTriggerEnter(Collider other)
         {
-            SuperVikingKart.DebugLog($"RaceLine trigger entered by: {other.name} (parent: {other.transform.root.name})");
+            SuperVikingKart.DebugLog(
+                $"RaceLine trigger entered by: {other.name} (parent: {other.transform.root.name})");
 
             // 1. Find the Kart component
             var kart = other.GetComponentInParent<SuperVikingKartComponent>();
@@ -99,12 +100,12 @@ namespace SuperVikingKart
                 return;
 
             // 2. Resolve puller from vagon via Player.AllPlayers
-            var player = kart.GetPuller();
-            if (player == null)
+            var puller = kart.GetPuller();
+            if (puller == null)
                 return;
 
             // 3. Only the puller's own client sends RPCs
-            if (player != Player.m_localPlayer)
+            if (puller != Player.m_localPlayer)
                 return;
 
             // 4. Race must exist and be in Racing state
@@ -117,17 +118,17 @@ namespace SuperVikingKart
                 return;
 
             // 5. Contestant must be registered
-            var playerId = player.GetZDOID();
-            var contestant = race.GetContestant(playerId);
+            var pullerId = puller.GetZDOID();
+            var contestant = race.GetContestant(pullerId);
             if (contestant == null)
                 return;
 
             // 6. Per-player cooldown
-            if (_cooldowns.TryGetValue(playerId, out var cooldownUntil) &&
+            if (_cooldowns.TryGetValue(pullerId, out var cooldownUntil) &&
                 Time.time < cooldownUntil)
                 return;
 
-            // 7. Direction guard — must be moving in the line's +Z direction
+            // 7. Direction guard - must be moving in the line's +Z direction
             var rb = kart.GetComponentInParent<Rigidbody>();
             if (rb != null && rb.linearVelocity.sqrMagnitude > 0.01f)
             {
@@ -136,24 +137,59 @@ namespace SuperVikingKart
                     return;
             }
 
-            // All guards passed — stamp cooldown and branch on role
-            _cooldowns[playerId] = Time.time + CooldownSeconds;
-            
+            // All guards passed - stamp cooldown and branch on role
+            _cooldowns[pullerId] = Time.time + CooldownSeconds;
+
             switch (GetRole())
             {
                 case RaceLineRole.StartFinish:
                     if (!contestant.CrossedStart)
-                        RaceManager.SendCrossedStart(raceId, playerId);
+                        RaceManager.SendCrossedStart(raceId, pullerId);
                     else
-                        RaceManager.SendLap(raceId, playerId);
+                        RaceManager.SendLap(raceId, pullerId);
                     break;
                 case RaceLineRole.Start:
                     if (!contestant.CrossedStart)
-                        RaceManager.SendCrossedStart(raceId, playerId);
+                        RaceManager.SendCrossedStart(raceId, pullerId);
                     break;
                 case RaceLineRole.Finish:
                     if (contestant.CrossedStart)
-                        RaceManager.SendLap(raceId, playerId);
+                        RaceManager.SendLap(raceId, pullerId);
+                    break;
+            }
+
+            // Resolve the rider from the kart ZDO
+            var riderId = kart.GetRiderZDOID();
+            if (riderId == ZDOID.None) return;
+
+            // Check contestant
+            contestant = race.GetContestant(riderId);
+            if (contestant == null)
+                return;
+
+            // Check cooldown
+            if (_cooldowns.TryGetValue(riderId, out cooldownUntil) &&
+                Time.time < cooldownUntil)
+                return;
+
+            // All guards passed - stamp cooldown and branch on role
+            _cooldowns[riderId] = Time.time + CooldownSeconds;
+
+            switch (GetRole())
+            {
+                case RaceLineRole.StartFinish:
+                    if (!contestant.CrossedStart)
+                        RaceManager.SendCrossedStart(raceId, riderId);
+                    else
+                        RaceManager.SendLap(raceId, riderId);
+                    break;
+                case RaceLineRole.Start:
+                    if (!contestant.CrossedStart)
+                        RaceManager.SendCrossedStart(raceId, riderId);
+                    break;
+                case RaceLineRole.Finish:
+                    if (contestant.CrossedStart)
+                        RaceManager.SendLap(raceId, riderId);
                     break;
             }
         }
@@ -166,7 +202,7 @@ namespace SuperVikingKart
             _netView.ClaimOwnership();
             _netView.GetZDO().Set(ZdoKeyRaceId, raceId);
             _netView.GetZDO().Set(ZdoKeyRole, (int)role);
-            
+
             SuperVikingKart.DebugLog($"RaceLine - Configured [{raceId}] {role}");
         }
 
@@ -226,7 +262,6 @@ namespace SuperVikingKart
         }
 
         public bool UseItem(Humanoid user, ItemDrop.ItemData item) => false;
-
     }
 
     /// <summary>
@@ -250,10 +285,10 @@ namespace SuperVikingKart
     /// </summary>
     internal static class RaceLineAdminGui
     {
-        private static GameObject        _panel;
+        private static GameObject _panel;
         private static RaceLineComponent _currentLine;
-        private static InputField        _raceIdField;
-        private static Dropdown          _roleDropdown;
+        private static InputField _raceIdField;
+        private static Dropdown _roleDropdown;
 
         // --- Init ---
 
@@ -277,18 +312,18 @@ namespace SuperVikingKart
                 GUIManager.CustomGUIFront.transform,
                 anchorMin: new Vector2(0.5f, 0.5f),
                 anchorMax: new Vector2(0.5f, 0.5f),
-                position:  Vector2.zero,
-                width:     420f,
-                height:    210f,
+                position: Vector2.zero,
+                width: 420f,
+                height: 210f,
                 draggable: true);
             _panel.SetActive(false);
 
             var layout = _panel.AddComponent<VerticalLayoutGroup>();
-            layout.padding               = new RectOffset(20, 20, 20, 20);
-            layout.spacing               = 10f;
-            layout.childForceExpandWidth  = true;
+            layout.padding = new RectOffset(20, 20, 20, 20);
+            layout.spacing = 10f;
+            layout.childForceExpandWidth = true;
             layout.childForceExpandHeight = false;
-            layout.childAlignment         = TextAnchor.UpperLeft;
+            layout.childAlignment = TextAnchor.UpperLeft;
 
             // Title
             var title = GUIManager.Instance.CreateText(
@@ -310,10 +345,10 @@ namespace SuperVikingKart
                 typeof(RectTransform), typeof(HorizontalLayoutGroup));
             dropdownRow.transform.SetParent(_panel.transform, false);
             var rl = dropdownRow.GetComponent<HorizontalLayoutGroup>();
-            rl.spacing               = 10f;
-            rl.childForceExpandWidth  = false;
+            rl.spacing = 10f;
+            rl.childForceExpandWidth = false;
             rl.childForceExpandHeight = true;
-            rl.childAlignment         = TextAnchor.MiddleLeft;
+            rl.childAlignment = TextAnchor.MiddleLeft;
 
             var labelGo = GUIManager.Instance.CreateText(
                 "Role", dropdownRow.transform,
@@ -344,10 +379,10 @@ namespace SuperVikingKart
                 typeof(RectTransform), typeof(HorizontalLayoutGroup));
             buttonRow.transform.SetParent(_panel.transform, false);
             var bl = buttonRow.GetComponent<HorizontalLayoutGroup>();
-            bl.spacing               = 10f;
-            bl.childForceExpandWidth  = true;
+            bl.spacing = 10f;
+            bl.childForceExpandWidth = true;
             bl.childForceExpandHeight = true;
-            bl.childAlignment         = TextAnchor.MiddleCenter;
+            bl.childAlignment = TextAnchor.MiddleCenter;
 
             var confirmGo = GUIManager.Instance.CreateButton(
                 "Confirm", buttonRow.transform,
@@ -374,7 +409,7 @@ namespace SuperVikingKart
                 return;
             }
 
-            _currentLine      = line;
+            _currentLine = line;
             _raceIdField.text = line.GetRaceId();
 
             _roleDropdown.value = (int)line.GetRole();
@@ -398,7 +433,11 @@ namespace SuperVikingKart
 
         private static void OnConfirm()
         {
-            if (_currentLine == null) { Close(); return; }
+            if (_currentLine == null)
+            {
+                Close();
+                return;
+            }
 
             var raceId = _raceIdField.text.Trim();
             if (string.IsNullOrEmpty(raceId))
@@ -409,7 +448,7 @@ namespace SuperVikingKart
 
             var role = (RaceLineRole)_roleDropdown.value;
             _currentLine.Configure(raceId, role);
-            
+
             SuperVikingKart.DebugLog($"RaceLineAdminGui - Configured [{raceId}] Role: {role}");
             Close();
         }
@@ -426,10 +465,10 @@ namespace SuperVikingKart
                 typeof(RectTransform), typeof(HorizontalLayoutGroup));
             row.transform.SetParent(_panel.transform, false);
             var rl = row.GetComponent<HorizontalLayoutGroup>();
-            rl.spacing               = 10f;
-            rl.childForceExpandWidth  = false;
+            rl.spacing = 10f;
+            rl.childForceExpandWidth = false;
             rl.childForceExpandHeight = true;
-            rl.childAlignment         = TextAnchor.MiddleLeft;
+            rl.childAlignment = TextAnchor.MiddleLeft;
 
             var labelGo = GUIManager.Instance.CreateText(
                 label, row.transform,
@@ -448,6 +487,5 @@ namespace SuperVikingKart
 
             field = inputGo.GetComponent<InputField>();
         }
-
     }
 }
