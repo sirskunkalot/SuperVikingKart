@@ -514,6 +514,8 @@ namespace SuperVikingKart
             // Preserve facing direction but reset tilt/roll
             var position = __instance.transform.position;
             var yRotation = Quaternion.Euler(0f, __instance.transform.eulerAngles.y, 0f);
+            // Preserve color
+            var color = kart.GetCurrentColor();
 
             SuperVikingKart.DebugLog($"KartRespawn - Kart destroyed at {position}, spawning timer, scheduling respawn");
 
@@ -525,10 +527,14 @@ namespace SuperVikingKart
             timer.Setup(SuperVikingKart.CartRespawnTimeConfig.Value);
 
             // Schedule the actual respawn
-            SuperVikingKart.Instance.StartCoroutine(RespawnKart(position, yRotation));
+            SuperVikingKart.Instance.StartCoroutine(RespawnKart(position, yRotation, color));
         }
 
-        private static IEnumerator RespawnKart(Vector3 position, Quaternion rotation)
+        /// <summary>
+        /// Respawn the Kart prefab after the configured time at the
+        /// last position and rotation. Also reset the last color.
+        /// </summary>
+        private static IEnumerator RespawnKart(Vector3 position, Quaternion rotation, Color color)
         {
             yield return new WaitForSeconds(SuperVikingKart.CartRespawnTimeConfig.Value);
             var prefab = PrefabManager.Instance.GetPrefab(SuperVikingKart.KartPrefabName);
@@ -538,7 +544,9 @@ namespace SuperVikingKart
                 yield break;
             }
             SuperVikingKart.DebugLog($"KartRespawn - Spawning kart at {position}");
-            Object.Instantiate(prefab, position, rotation);
+            var instance = Object.Instantiate(prefab, position, rotation);
+            var kart = instance.GetComponentInChildren<SuperVikingKartComponent>();
+            kart.SetColor(color);
         }
     }
 
