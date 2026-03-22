@@ -99,7 +99,7 @@ namespace SuperVikingKart
             if (kart == null)
                 return;
 
-            // 2. Resolve puller from vagon via Player.AllPlayers
+            // 2. Resolve puller from kart via Player.AllPlayers
             var puller = kart.GetPuller();
             if (puller == null)
                 return;
@@ -112,23 +112,11 @@ namespace SuperVikingKart
             var raceId = GetRaceId();
             if (string.IsNullOrEmpty(raceId))
                 return;
-
             var race = RaceManager.GetRace(raceId);
             if (race == null || race.State != RaceState.Racing)
                 return;
 
-            // 5. Contestant must be registered
-            var pullerId = puller.GetZDOID();
-            var contestant = race.GetContestant(pullerId);
-            if (contestant == null)
-                return;
-
-            // 6. Per-player cooldown
-            if (_cooldowns.TryGetValue(pullerId, out var cooldownUntil) &&
-                Time.time < cooldownUntil)
-                return;
-
-            // 7. Direction guard - must be moving in the line's +Z direction
+            // 5. Direction guard - must be moving in the line's +Z direction
             var rb = kart.GetComponentInParent<Rigidbody>();
             if (rb != null && rb.linearVelocity.sqrMagnitude > 0.01f)
             {
@@ -137,59 +125,48 @@ namespace SuperVikingKart
                     return;
             }
 
-            // All guards passed - stamp cooldown and branch on role
-            _cooldowns[pullerId] = Time.time + CooldownSeconds;
-
-            switch (GetRole())
-            {
-                case RaceLineRole.StartFinish:
-                    if (!contestant.CrossedStart)
-                        RaceManager.SendCrossedStart(raceId, pullerId);
-                    else
-                        RaceManager.SendLap(raceId, pullerId);
-                    break;
-                case RaceLineRole.Start:
-                    if (!contestant.CrossedStart)
-                        RaceManager.SendCrossedStart(raceId, pullerId);
-                    break;
-                case RaceLineRole.Finish:
-                    if (contestant.CrossedStart)
-                        RaceManager.SendLap(raceId, pullerId);
-                    break;
-            }
-
-            // Resolve the rider from the kart ZDO
+            // 6. Process the puller and rider as a pair so they always cross together.
+            //    The rider ID may be None if the kart is unoccupied.
+            var pullerId = puller.GetZDOID();
             var riderId = kart.GetRiderZDOID();
-            if (riderId == ZDOID.None) return;
 
-            // Check contestant
-            contestant = race.GetContestant(riderId);
+            ProcessCrossing(race, raceId, pullerId);
+
+            if (riderId != ZDOID.None)
+                ProcessCrossing(race, raceId, riderId);
+        }
+
+        /// <summary>
+        /// Applies cooldown and sends the appropriate crossing RPC for a single contestant.
+        /// Separated from OnRaceLineTriggerEnter so the puller and rider go through
+        /// identical logic without duplicating guards.
+        /// </summary>
+        private void ProcessCrossing(Race race, string raceId, ZDOID playerId)
+        {
+            var contestant = race.GetContestant(playerId);
             if (contestant == null)
                 return;
 
-            // Check cooldown
-            if (_cooldowns.TryGetValue(riderId, out cooldownUntil) &&
-                Time.time < cooldownUntil)
+            if (_cooldowns.TryGetValue(playerId, out var cooldownUntil) && Time.time < cooldownUntil)
                 return;
 
-            // All guards passed - stamp cooldown and branch on role
-            _cooldowns[riderId] = Time.time + CooldownSeconds;
+            _cooldowns[playerId] = Time.time + CooldownSeconds;
 
             switch (GetRole())
             {
                 case RaceLineRole.StartFinish:
                     if (!contestant.CrossedStart)
-                        RaceManager.SendCrossedStart(raceId, riderId);
+                        RaceManager.SendCrossedStart(raceId, playerId);
                     else
-                        RaceManager.SendLap(raceId, riderId);
+                        RaceManager.SendLap(raceId, playerId);
                     break;
                 case RaceLineRole.Start:
                     if (!contestant.CrossedStart)
-                        RaceManager.SendCrossedStart(raceId, riderId);
+                        RaceManager.SendCrossedStart(raceId, playerId);
                     break;
                 case RaceLineRole.Finish:
                     if (contestant.CrossedStart)
-                        RaceManager.SendLap(raceId, riderId);
+                        RaceManager.SendLap(raceId, playerId);
                     break;
             }
         }
