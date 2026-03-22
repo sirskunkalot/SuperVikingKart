@@ -564,6 +564,12 @@ namespace SuperVikingKart
 
             contestant.CrossedStart = true;
             contestant.CurrentLap++;
+            
+            var localPlayer = Player.m_localPlayer;
+            if (localPlayer && localPlayer.GetZDOID() == playerId && race.TotalLaps > 1)
+                localPlayer.Message(MessageHud.MessageType.Center,
+                    $"Lap {contestant.CurrentLap}/{race.TotalLaps}");
+            
             SuperVikingKart.DebugLog($"Race [{raceId}] - {contestant.PlayerName} crossed start line");
         }
 
@@ -605,9 +611,6 @@ namespace SuperVikingKart
                 if (localPlayer && localPlayer.GetZDOID() == playerId)
                     localPlayer.Message(MessageHud.MessageType.Center,
                         $"Lap {contestant.CurrentLap}/{race.TotalLaps}");
-                else if (localPlayer && race.IsRegistered(localPlayer.GetZDOID()))
-                    localPlayer.Message(MessageHud.MessageType.Center,
-                        $"{contestant.PlayerName} - Lap {contestant.CurrentLap}/{race.TotalLaps}");
             }
         }
 
