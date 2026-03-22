@@ -8,40 +8,46 @@ namespace SuperVikingKart
 {
     /// <summary>
     /// Core component for the racing kart. Handles rider attachment, detachment,
-    /// and position pinning. Placed on the Container child of the cloned Cart prefab.
+    /// position pinning, and kart color synchronization across clients.
+    /// Placed on the Container child of the cloned Cart prefab.
     /// Tracks all instances for efficient lookup by patches and status effects.
     /// </summary>
     internal class SuperVikingKartComponent : MonoBehaviour, Hoverable, Interactable
     {
         public static readonly List<SuperVikingKartComponent> Instances = new();
-
         public string Name = "SuperVikingKartAttach";
         public float UseDistance = 2f;
         public Transform AttachPoint;
 
+        // --- ZDO Keys ---
         private const string ZdoKeyAttachedPlayer = "SuperVikingKart_AttachedPlayer";
+        private const string ZdoKeyColorR = "SuperVikingKart_ColorR";
+        private const string ZdoKeyColorG = "SuperVikingKart_ColorG";
+        private const string ZdoKeyColorB = "SuperVikingKart_ColorB";
+
         private ZNetView _netView;
         private Vagon _vagon;
+        private Renderer[] _kartRenderers;
         private float _lastSitTime;
 
         /// <summary>
         /// Local-only reference to the attached player. Only set on the rider's own client.
-        /// Used for fast position pinning in Update. For cross-client queries use GetAttachedPlayer().
+        /// Used for fast position pinning in Update. For cross-client queries use GetRider().
         /// </summary>
         private Player _attachedPlayerLocal;
 
         // --- Lifecycle ---
 
         /// <summary>
-        /// Initializes the kart component. Sets up networking RPCs for rider attachment,
-        /// registers in the global instances list, clears stale attachments from ZDO,
-        /// and configures the kart mass from server-synced config.
-        /// Disables itself if no valid ZNetView/ZDO exists (placement ghost).
+        /// Initializes the kart component. Sets up networking RPCs for rider attachment
+        /// and color sync, registers in the global instances list, clears stale attachments
+        /// from ZDO, applies the stored color, and configures the kart mass from
+        /// server-synced config. Disables itself if no valid ZNetView/ZDO exists
+        /// (placement ghost).
         /// </summary>
         public void Awake()
         {
             Instances.Add(this);
-
             _netView = gameObject.GetComponentInParent<ZNetView>();
             if (!_netView || _netView.GetZDO() == null)
             {
@@ -52,8 +58,10 @@ namespace SuperVikingKart
 
             SuperVikingKart.DebugLog($"Kart Awake - ZDO: {_netView.GetZDO().m_uid}, Owner: {_netView.IsOwner()}");
 
+            // RPCs
             _netView.Register<ZDOID>("SuperVikingKart_RPC_Attach", RPC_Attach);
             _netView.Register("SuperVikingKart_RPC_Detach", RPC_Detach);
+            _netView.Register<float, float, float>("SuperVikingKart_RPC_SetColor", RPC_SetColor);
 
             if (_netView.IsOwner())
             {
@@ -75,6 +83,12 @@ namespace SuperVikingKart
             _vagon = GetComponentInParent<Vagon>();
             _vagon.m_baseMass = 10f;
             _vagon.SetMass(_vagon.m_baseMass);
+
+            // Cache renderers and apply whatever color is stored in the ZDO.
+            // ZDO is guaranteed valid at this point — the game handles replication
+            // before Awake fires, so this correctly restores color for late-joiners too.
+            _kartRenderers = transform.root.GetComponentsInChildren<Renderer>();
+            ApplyColor(GetCurrentColor());
         }
 
         /// <summary>
@@ -123,7 +137,6 @@ namespace SuperVikingKart
         private void Attach(Player player)
         {
             SuperVikingKart.DebugLog($"Kart Attach - Player: {player.GetPlayerName()}, ZDOID: {player.GetZDOID()}");
-
             _attachedPlayerLocal = player;
             if (_netView && _netView.GetZDO() != null)
                 _netView.InvokeRPC("SuperVikingKart_RPC_Attach", player.GetZDOID());
@@ -149,8 +162,7 @@ namespace SuperVikingKart
             SuperVikingKart.DebugLog(
                 $"Kart RPC_Attach - sender: {sender}, playerId: {playerId}, IsOwner: {_netView.IsOwner()}");
             var zdo = _netView.GetZDO();
-            if (zdo == null)
-                return;
+            if (zdo == null) return;
             if (_netView.IsOwner())
                 zdo.Set(ZdoKeyAttachedPlayer, playerId);
         }
@@ -162,59 +174,121 @@ namespace SuperVikingKart
         {
             SuperVikingKart.DebugLog($"Kart RPC_Detach - sender: {sender}, IsOwner: {_netView.IsOwner()}");
             var zdo = _netView.GetZDO();
-            if (zdo == null)
-                return;
+            if (zdo == null) return;
             if (_netView.IsOwner())
                 zdo.Set(ZdoKeyAttachedPlayer, ZDOID.None);
+        }
+
+        // --- Color ---
+
+        /// <summary>
+        /// Reads the current kart color from the ZDO.
+        /// Falls back to white if no color has been set yet.
+        /// </summary>
+        public Color GetCurrentColor()
+        {
+            var zdo = _netView?.GetZDO();
+            if (zdo == null) return Color.white;
+            return new Color(
+                zdo.GetFloat(ZdoKeyColorR, 1f),
+                zdo.GetFloat(ZdoKeyColorG, 1f),
+                zdo.GetFloat(ZdoKeyColorB, 1f)
+            );
+        }
+
+        /// <summary>
+        /// Sets material color on all cached renderers using a MaterialPropertyBlock
+        /// to avoid creating per-instance materials (prevents memory leaks and
+        /// preserves GPU batching).
+        /// </summary>
+        internal void ApplyColor(Color color)
+        {
+            if (_kartRenderers == null) return;
+            var block = new MaterialPropertyBlock();
+            foreach (var rend in _kartRenderers)
+            {
+                if (!rend) continue;
+                rend.GetPropertyBlock(block);
+                block.SetColor("_Color", color);
+                rend.SetPropertyBlock(block);
+            }
+        }
+
+        /// <summary>
+        /// Broadcasts a new color to all clients via RPC.
+        /// Called by KartColorPickerUI on final selection.
+        /// </summary>
+        public void SetColor(Color color)
+        {
+            SuperVikingKart.DebugLog($"Kart SetColor - {color}");
+            _netView.InvokeRPC(ZNetView.Everybody, "SuperVikingKart_RPC_SetColor",
+                color.r, color.g, color.b);
+        }
+
+        /// <summary>
+        /// Received on ALL clients (sent to ZNetView.Everybody).
+        /// Owner persists to ZDO so the color survives session restarts and
+        /// is available to future late-joiners via ApplyColorFromZDO in Awake.
+        /// All clients apply the color immediately for a responsive feel.
+        /// </summary>
+        private void RPC_SetColor(long sender, float r, float g, float b)
+        {
+            SuperVikingKart.DebugLog($"Kart RPC_SetColor - sender: {sender}, rgb: ({r},{g},{b})");
+            var color = new Color(r, g, b);
+
+            if (_netView.IsOwner())
+            {
+                var zdo = _netView.GetZDO();
+                if (zdo != null)
+                {
+                    zdo.Set(ZdoKeyColorR, r);
+                    zdo.Set(ZdoKeyColorG, g);
+                    zdo.Set(ZdoKeyColorB, b);
+                }
+            }
+
+            ApplyColor(color);
         }
 
         // --- State ---
 
         /// <summary>
-        /// Gets the cached Vagon component of this Kart.
+        /// Gets the cached Vagon component of this kart.
         /// </summary>
-        public Vagon GetVagon()
-        {
-            return _vagon;
-        }
+        public Vagon GetVagon() => _vagon;
 
         /// <summary>
         /// Finds the player currently pulling this Vagon by checking all players.
         /// </summary>
         public Player GetPuller()
         {
-            if (!_vagon)
-                return null;
+            if (!_vagon) return null;
             foreach (var player in Player.GetAllPlayers())
             {
                 if (_vagon.IsAttached(player))
                     return player;
             }
-
             return null;
         }
 
         /// <summary>
-        /// Returns the attached player ZDOID from the NetView or
-        /// ZDIOD.None if none attached. Works on any client since
-        /// ZDOs are replicated.
+        /// Returns the attached player ZDOID from the ZDO, or ZDOID.None if none attached.
+        /// Works on any client since ZDOs are replicated.
         /// </summary>
-        public ZDOID GetRiderZDOID() 
+        public ZDOID GetRiderZDOID()
             => _netView?.GetZDO()?.GetZDOID(ZdoKeyAttachedPlayer) ?? ZDOID.None;
 
         /// <summary>
-        /// Resolves the attached player from ZDO. Works on any client since
+        /// Resolves the attached player from the ZDO. Works on any client since
         /// ZDOs are replicated. Used for cross-client checks like damage prevention,
-        /// buff application and lap recording.
+        /// buff application, and lap recording.
         /// </summary>
         public Player GetRider()
         {
             var attachedId = GetRiderZDOID();
-            if (attachedId == ZDOID.None)
-                return null;
+            if (attachedId == ZDOID.None) return null;
             var playerObject = ZNetScene.instance.FindInstance(attachedId);
-            if (!playerObject)
-                return null;
+            if (!playerObject) return null;
             return playerObject.GetComponent<Player>();
         }
 
@@ -226,23 +300,28 @@ namespace SuperVikingKart
 
         // --- Interaction ---
 
+        /// <summary>
+        /// Primary interaction: sit/stand. Alt interaction: open color picker.
+        /// Color picker is restricted to the ZDO owner or current rider to prevent griefing.
+        /// </summary>
         public bool Interact(Humanoid human, bool hold, bool alt)
         {
-            if (hold)
-                return false;
-
+            if (hold) return false;
             var player = human as Player;
-            if (!player)
-                return false;
+            if (!player) return false;
+            if (!AttachPoint) return false;
+            if (!InUseDistance(player)) return false;
+            if (Time.time - _lastSitTime < 2f) return false;
 
-            if (!AttachPoint)
+            if (alt)
+            {
+                if (_netView.IsOwner() || GetRider() == player)
+                {
+                    KartColorPickerUI.Open(this);
+                    return true;
+                }
                 return false;
-
-            if (!InUseDistance(player))
-                return false;
-
-            if (Time.time - _lastSitTime < 2f)
-                return false;
+            }
 
             if (_attachedPlayerLocal && player == _attachedPlayerLocal)
             {
@@ -264,45 +343,94 @@ namespace SuperVikingKart
             return true;
         }
 
-        public bool UseItem(Humanoid user, ItemDrop.ItemData item)
-        {
-            return false;
-        }
+        public bool UseItem(Humanoid user, ItemDrop.ItemData item) => false;
 
         // --- Hover ---
 
         public string GetHoverText()
         {
-            if (Time.time - _lastSitTime < 2f)
-                return "";
-
+            if (Time.time - _lastSitTime < 2f) return "";
             var localPlayer = Player.m_localPlayer;
-            if (!localPlayer)
-                return "";
-
+            if (!localPlayer) return "";
             if (!InUseDistance(localPlayer))
                 return Localization.instance.Localize("<color=grey>$piece_toofar</color>");
-
-            // Show "in use" when another player is riding (ZDO says occupied
-            // but local reference is null since we're not the rider)
             if (!_attachedPlayerLocal && IsInUse())
                 return Localization.instance.Localize("<color=grey>In use</color>");
 
-            return Localization.instance.Localize(Name + "\n[<color=yellow><b>$KEY_Use</b></color>] $piece_use");
+            return Localization.instance.Localize(
+                Name +
+                "\n[<color=yellow><b>$KEY_Use</b></color>] $piece_use" +
+                "\n[<color=yellow><b>L-Shift + $KEY_Use</b></color>] Change color");
         }
 
-        public string GetHoverName()
-        {
-            return Name;
-        }
+        public string GetHoverName() => Name;
 
         // --- Utility ---
 
         private bool InUseDistance(Humanoid human)
         {
-            if (!human || !AttachPoint)
-                return false;
+            if (!human || !AttachPoint) return false;
             return Vector3.Distance(human.transform.position, AttachPoint.position) < UseDistance;
+        }
+    }
+
+    /// <summary>
+    /// Thin wrapper that opens Jötunn's GUIManager color picker for a specific kart.
+    /// Handles live preview via onColorChanged and commit/revert via onColorSelected.
+    /// Jötunn enforces that only one picker is open at a time.
+    /// Cancel is handled automatically — Jötunn passes back the original color on cancel,
+    /// so OnColorSelected reverts all clients by broadcasting it as a final SetColor call.
+    /// </summary>
+    internal static class KartColorPickerUI
+    {
+        private static SuperVikingKartComponent _targetKart;
+
+        public static void Open(SuperVikingKartComponent kart)
+        {
+            if (kart == null) return;
+            _targetKart = kart;
+
+            GUIManager.Instance.CreateColorPicker(
+                anchorMin:       new Vector2(0.5f, 0.5f),
+                anchorMax:       new Vector2(0.5f, 0.5f),
+                position:        new Vector2(0f, 0f),
+                original:        kart.GetCurrentColor(),
+                message:         "Kart Color",
+                onColorChanged:  OnColorChanged,
+                onColorSelected: OnColorSelected,
+                useAlpha:        false
+            );
+            
+            GUIManager.BlockInput(true);
+        }
+
+        /// <summary>
+        /// Fired continuously while the user drags sliders.
+        /// Only applies color change locally.
+        /// </summary>
+        private static void OnColorChanged(Color color)
+        {
+            if (_targetKart == null) return;
+            _targetKart.ApplyColor(color);
+        }
+
+        /// <summary>
+        /// Fired when Done or Cancel is pressed.
+        /// Jötunn passes back the original color on cancel,
+        /// so we just revert locally when the color still matches.
+        /// </summary>
+        private static void OnColorSelected(Color color)
+        {
+            if (_targetKart == null) return;
+            
+            var zdoColor = _targetKart.GetCurrentColor();
+            if (color == zdoColor)
+                _targetKart.ApplyColor(zdoColor);
+            else
+                _targetKart.SetColor(color);
+            
+            _targetKart = null;
+            GUIManager.BlockInput(false);
         }
     }
 
@@ -320,11 +448,9 @@ namespace SuperVikingKart
         public void Setup(float duration)
         {
             _timeRemaining = duration;
-
             var textGo = new GameObject("TimerText");
             textGo.transform.SetParent(transform, false);
             textGo.transform.localPosition = Vector3.up * 2f;
-
             _text = textGo.AddComponent<TextMesh>();
             _text.alignment = TextAlignment.Center;
             _text.anchor = TextAnchor.MiddleCenter;
@@ -341,7 +467,6 @@ namespace SuperVikingKart
         private void Update()
         {
             _timeRemaining -= Time.deltaTime;
-
             if (_timeRemaining <= 0f)
             {
                 Destroy(gameObject);
@@ -353,20 +478,13 @@ namespace SuperVikingKart
             if (!_camera)
                 _camera = Camera.main;
 
-            // Billboard - text always faces the camera
+            // Billboard — text always faces the camera
             if (_camera)
                 _text.transform.rotation = _camera.transform.rotation;
         }
 
-        public string GetHoverText()
-        {
-            return $"Kart respawning in {Mathf.CeilToInt(_timeRemaining)}s";
-        }
-
-        public string GetHoverName()
-        {
-            return "Kart Respawn";
-        }
+        public string GetHoverText() => $"Kart respawning in {Mathf.CeilToInt(_timeRemaining)}s";
+        public string GetHoverName() => "Kart Respawn";
     }
 
     /// <summary>
@@ -387,16 +505,11 @@ namespace SuperVikingKart
 
         private static void Prefix(WearNTear __instance)
         {
-            if (IsBeingRemoved)
-                return;
-
+            if (IsBeingRemoved) return;
             var kart = __instance.GetComponentInChildren<SuperVikingKartComponent>();
-            if (!kart)
-                return;
-
+            if (!kart) return;
             var netView = __instance.GetComponent<ZNetView>();
-            if (!netView || !netView.IsOwner())
-                return;
+            if (!netView || !netView.IsOwner()) return;
 
             // Preserve facing direction but reset tilt/roll
             var position = __instance.transform.position;
@@ -418,14 +531,12 @@ namespace SuperVikingKart
         private static IEnumerator RespawnKart(Vector3 position, Quaternion rotation)
         {
             yield return new WaitForSeconds(SuperVikingKart.CartRespawnTimeConfig.Value);
-
             var prefab = PrefabManager.Instance.GetPrefab(SuperVikingKart.KartPrefabName);
             if (!prefab)
             {
                 Jotunn.Logger.LogWarning("KartRespawn - SuperVikingKart prefab not found");
                 yield break;
             }
-
             SuperVikingKart.DebugLog($"KartRespawn - Spawning kart at {position}");
             Object.Instantiate(prefab, position, rotation);
         }
@@ -439,15 +550,8 @@ namespace SuperVikingKart
     [HarmonyPatch(typeof(WearNTear), nameof(WearNTear.Remove))]
     internal class KartRemovePatch
     {
-        private static void Prefix()
-        {
-            KartRespawnPatch.IsBeingRemoved = true;
-        }
-
-        private static void Postfix()
-        {
-            KartRespawnPatch.IsBeingRemoved = false;
-        }
+        private static void Prefix() => KartRespawnPatch.IsBeingRemoved = true;
+        private static void Postfix() => KartRespawnPatch.IsBeingRemoved = false;
     }
 
     /// <summary>
@@ -462,19 +566,12 @@ namespace SuperVikingKart
         {
             if (!__instance.m_nview || __instance.m_nview.GetZDO() == null)
                 return true;
-
             if (__instance.m_nview.GetZDO().m_prefab != SuperVikingKart.KartPrefabHash)
                 return true;
-
             var attacker = hit.GetAttacker();
-            if (!attacker)
-                return true;
-
+            if (!attacker) return true;
             var kart = __instance.GetComponentInChildren<SuperVikingKartComponent>();
-            if (!kart)
-                return true;
-
-            // Block damage if the attacker is the rider
+            if (!kart) return true;
             return attacker != kart.GetRider();
         }
     }
@@ -496,22 +593,15 @@ namespace SuperVikingKart
         private static void Prefix(Attack __instance, out List<Collider> __state)
         {
             __state = null;
-
-            // Only care about local player attacks
             var player = __instance.m_character as Player;
-            if (player == null || player != Player.m_localPlayer)
-                return;
+            if (player == null || player != Player.m_localPlayer) return;
 
-            // Find if this player is riding a kart
             foreach (var kart in SuperVikingKartComponent.Instances)
             {
-                if (kart.GetRider() != player)
-                    continue;
-
+                if (kart.GetRider() != player) continue;
                 var vagon = kart.GetVagon();
                 if (!vagon) continue;
 
-                // Disable all kart colliders so raycasts pass through
                 __state = new List<Collider>();
                 foreach (var collider in vagon.GetComponentsInChildren<Collider>())
                 {
@@ -521,7 +611,6 @@ namespace SuperVikingKart
                         __state.Add(collider);
                     }
                 }
-
                 return;
             }
         }
@@ -532,7 +621,6 @@ namespace SuperVikingKart
         private static void Postfix(List<Collider> __state)
         {
             if (__state == null) return;
-
             foreach (var collider in __state)
             {
                 if (collider)
@@ -552,13 +640,11 @@ namespace SuperVikingKart
     {
         private static bool Prefix(Vagon __instance)
         {
-            // Joint exists but the connected player was destroyed
             if (__instance.m_attachJoin != null && __instance.m_attachJoin.connectedBody == null)
             {
                 __instance.Detach();
                 return false;
             }
-
             return true;
         }
     }
