@@ -271,6 +271,12 @@ namespace SuperVikingKart
 
             return null;
         }
+        
+        /// <summary>
+        /// Returns the local cached Player instance instead looking up the Player
+        /// from ZNetScene. Fast path for comparison with Player.m_localPlayer.
+        /// </summary>
+        public Player GetRiderLocal() => _attachedPlayerLocal;
 
         /// <summary>
         /// Returns the attached player ZDOID from the ZDO, or ZDOID.None if none attached.
@@ -622,7 +628,7 @@ namespace SuperVikingKart
 
             foreach (var kart in SuperVikingKartComponent.Instances)
             {
-                if (kart.GetRider() != player) continue;
+                if (kart.GetRiderLocal() != player) continue;
                 var vagon = kart.GetVagon();
                 if (!vagon) continue;
 
