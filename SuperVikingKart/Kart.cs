@@ -514,41 +514,27 @@ namespace SuperVikingKart
 
             var netView = __instance.GetComponent<ZNetView>();
             if (!netView) return;
-
-            // Determine whether the local player is the owner, rider, or puller.
-            // Timer is purely local — each client decides for itself.
-            var localPlayer = Player.m_localPlayer;
-            var rider = kart.GetRider();
-            var puller = kart.GetPuller();
-            bool isOwner = netView.IsOwner();
-            bool isRiderClient = localPlayer != null && localPlayer == rider;
-            bool isPullerClient = localPlayer != null && localPlayer == puller;
+            
+            var position = __instance.transform.position;
 
             // Only schedule the actual respawn once — on the ZDO owner.
-            if (isOwner)
+            if (netView.IsOwner())
             {
-                var position = __instance.transform.position;
                 var yRotation = Quaternion.Euler(0f, __instance.transform.eulerAngles.y, 0f);
                 var color = kart.GetCurrentColor();
 
                 SuperVikingKart.DebugLog($"KartRespawn - Kart destroyed at {position}, scheduling respawn");
                 SuperVikingKart.Instance.StartCoroutine(RespawnKart(position, yRotation, color));
             }
-
-            // Spawn the countdown timer locally for owner, rider, and puller only.
-            if (isOwner || isRiderClient || isPullerClient)
-            {
-                var position = __instance.transform.position;
-
-                SuperVikingKart.DebugLog(
-                    $"KartRespawn - Spawning timer for local client (owner={isOwner}, rider={isRiderClient}, puller={isPullerClient})");
-
-                var timerGo = new GameObject("KartRespawnComponent");
-                timerGo.transform.position = position + Vector3.up * 0.5f;
-                timerGo.layer = LayerMask.NameToLayer("character");
-                var timer = timerGo.AddComponent<KartRespawnComponent>();
-                timer.Setup(SuperVikingKart.CartRespawnTimeConfig.Value);
-            }
+            
+            // Spawn the timer GO on every client
+            SuperVikingKart.DebugLog(
+                $"KartRespawn - Spawning timer for local client");
+            var timerGo = new GameObject("KartRespawnComponent");
+            timerGo.transform.position = position + Vector3.up * 0.5f;
+            timerGo.layer = LayerMask.NameToLayer("character");
+            var timer = timerGo.AddComponent<KartRespawnComponent>();
+            timer.Setup(SuperVikingKart.CartRespawnTimeConfig.Value);
         }
 
         /// <summary>
