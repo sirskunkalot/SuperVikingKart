@@ -13,6 +13,10 @@ namespace SuperVikingKart
         Finished
     }
 
+    /// <summary>
+    /// Represents a single player's participation in a race.
+    /// Mutated in-place by Race methods; never replaced once added.
+    /// </summary>
     internal class RaceContestant
     {
         public string PlayerName;
@@ -67,7 +71,7 @@ namespace SuperVikingKart
         {
             if (State != RaceState.Idle) return false;
             if (IsRegistered(playerId)) return false;
-            
+
             Contestants.Add(new RaceContestant(playerName, playerId));
             SuperVikingKart.DebugLog($"Race [{RaceId}] - Registered {playerName}");
             return true;
@@ -101,10 +105,6 @@ namespace SuperVikingKart
             SuperVikingKart.DebugLog($"Race [{RaceId}] - Countdown started");
         }
 
-        /// <param name="startTime">
-        /// Time.time captured on the client that triggered the Go RPC,
-        /// broadcast so every peer stores an identical RaceStartTime.
-        /// </param>
         public void StartRace(float startTime)
         {
             State = RaceState.Racing;
@@ -113,9 +113,6 @@ namespace SuperVikingKart
             SuperVikingKart.DebugLog($"Race [{RaceId}] - Race started (t={startTime:F3})");
         }
 
-        /// <summary>
-        /// Records a lap crossing. Returns true when all laps are complete.
-        /// </summary>
         public bool RecordLap(ZDOID playerId)
         {
             if (State != RaceState.Racing) return false;
@@ -128,13 +125,10 @@ namespace SuperVikingKart
         public void RecordDnf(ZDOID playerId)
         {
             if (State != RaceState.Racing) return;
-
             var contestant = GetContestant(playerId);
             if (contestant == null || contestant.Finished) return;
-
             contestant.IsDnf = true;
             contestant.Finished = true;
-
             SuperVikingKart.DebugLog($"Race [{RaceId}] - {contestant.PlayerName} DNF");
 
             if (AllFinished())
@@ -144,23 +138,17 @@ namespace SuperVikingKart
             }
         }
 
-        /// <summary>
-        /// Records a finish. Shared positions are granted when two contestants
-        /// arrive with an identical finishTime
-        /// </summary>
         public void RecordFinish(ZDOID playerId, float finishTime)
         {
             if (State != RaceState.Racing) return;
-
             var contestant = GetContestant(playerId);
             if (contestant == null || contestant.Finished) return;
-
             contestant.Finished = true;
             contestant.FinishTime = finishTime;
 
             // Check whether anyone already finished with the same time.
-            var tiedContestant = Contestants.FirstOrDefault(c => c.Finished && !c.IsDnf && c.Position > 0
-                                                                 && c.FinishTime == finishTime);
+            var tiedContestant = Contestants.FirstOrDefault(c =>
+                c.Finished && !c.IsDnf && c.Position > 0 && c.FinishTime == finishTime);
 
             if (tiedContestant != null)
             {
@@ -209,8 +197,10 @@ namespace SuperVikingKart
                 var time = group.First().FinishTime;
                 text += $"  P{group.Key} {names} - {time:F1}s\n";
             }
+
             foreach (var c in dnf)
                 text += $"  DNF {c.PlayerName} (Lap {c.CurrentLap}/{TotalLaps})\n";
+
             foreach (var c in stillRacing)
                 text += $"  ??? {c.PlayerName} (Lap {c.CurrentLap}/{TotalLaps})\n";
 
@@ -220,12 +210,22 @@ namespace SuperVikingKart
 
     /// <summary>
     /// Manages all active races and handles global RPCs for race state changes.
+    /// Acts as the single source of truth on the server; clients receive and apply
+    /// state deltas via the registered RPC handlers. All public entry points are
+    /// the Send* methods — direct mutation of Race objects should only happen
+    /// inside RPC handlers so every peer stays in sync.
     /// </summary>
     internal static class RaceManager
     {
         private static readonly Dictionary<string, Race> Races = new();
 
         // --- Init ---
+
+        /// <summary>
+        /// Registers all RPC handlers and, if running as a client, requests a full
+        /// state snapshot from the server to catch up on any races already in progress.
+        /// Must be called once after ZRoutedRpc is available.
+        /// </summary>
         public static void Init()
         {
             ZRoutedRpc.instance.Register("SuperVikingKart_Race_RequestSync", RPC_RequestSync);
@@ -239,9 +239,9 @@ namespace SuperVikingKart
             ZRoutedRpc.instance.Register<string, ZDOID>("SuperVikingKart_Race_Unregister", RPC_Unregister);
             ZRoutedRpc.instance.Register<string>("SuperVikingKart_Race_StartCountdown", RPC_StartCountdown);
             ZRoutedRpc.instance.Register<string, int>("SuperVikingKart_Race_CountdownTick", RPC_CountdownTick);
-            ZRoutedRpc.instance.Register<string, float>("SuperVikingKart_Race_Go", RPC_Go); // +float
+            ZRoutedRpc.instance.Register<string, float>("SuperVikingKart_Race_Go", RPC_Go);
             ZRoutedRpc.instance.Register<string, ZDOID>("SuperVikingKart_Race_CrossedStart", RPC_CrossedStart);
-            ZRoutedRpc.instance.Register<string, ZDOID, float>("SuperVikingKart_Race_Lap", RPC_Lap); // +float
+            ZRoutedRpc.instance.Register<string, ZDOID, float>("SuperVikingKart_Race_Lap", RPC_Lap);
             ZRoutedRpc.instance.Register<string, ZDOID>("SuperVikingKart_Race_Dnf", RPC_Dnf);
             ZRoutedRpc.instance.Register<string>("SuperVikingKart_Race_Reset", RPC_Reset);
 
@@ -321,12 +321,18 @@ namespace SuperVikingKart
 
         // --- RPC Handlers ---
 
+        /// <summary>
+        /// Server-only. Serialises the full Races dictionary into a ZPackage
+        /// and sends it directly to the requesting peer for initial catch-up.
+        /// </summary>
         private static void RPC_RequestSync(long sender)
         {
             if (!ZNet.instance.IsServer()) return;
+
             SuperVikingKart.DebugLog($"RaceManager - Syncing state to {sender}");
             var pkg = new ZPackage();
             pkg.Write(Races.Count);
+
             foreach (var race in Races.Values)
             {
                 pkg.Write(race.RaceId);
@@ -336,6 +342,7 @@ namespace SuperVikingKart
                 pkg.Write(race.RaceStartTime);
                 pkg.Write(race.NextPosition);
                 pkg.Write(race.Contestants.Count);
+
                 foreach (var c in race.Contestants)
                 {
                     pkg.Write(c.PlayerName);
@@ -352,10 +359,13 @@ namespace SuperVikingKart
             ZRoutedRpc.instance.InvokeRoutedRPC(sender, "SuperVikingKart_Race_SyncState", pkg);
         }
 
+        /// <summary>
+        /// Replaces the local Races dictionary with the full snapshot sent by the server.
+        /// Read order must match the write order in <see cref="RPC_RequestSync"/> exactly.
+        /// </summary>
         private static void RPC_SyncState(long sender, ZPackage pkg)
         {
             SuperVikingKart.DebugLog("RaceManager - Received state sync");
-
             Races.Clear();
 
             var raceCount = pkg.ReadInt();
@@ -391,6 +401,10 @@ namespace SuperVikingKart
             }
         }
 
+        /// <summary>
+        /// Runs on all peers. Creates a new Race entry if one does not already exist for
+        /// the given ID, ensuring idempotent handling of any duplicate broadcasts.
+        /// </summary>
         private static void RPC_CreateRace(long sender, string raceId, string name, int laps)
         {
             if (Races.ContainsKey(raceId)) return;
@@ -398,12 +412,18 @@ namespace SuperVikingKart
             SuperVikingKart.DebugLog($"RaceManager - Created race [{raceId}] \"{name}\" ({laps} laps)");
         }
 
+        /// <summary>
+        /// Runs on all peers. Removes the race entry entirely regardless of its current state.
+        /// </summary>
         private static void RPC_RemoveRace(long sender, string raceId)
         {
             Races.Remove(raceId);
             SuperVikingKart.DebugLog($"RaceManager - Removed race [{raceId}]");
         }
 
+        /// <summary>
+        /// Runs on all peers. Updates the display name of an existing race.
+        /// </summary>
         private static void RPC_SetName(long sender, string raceId, string name)
         {
             var race = GetRace(raceId);
@@ -412,6 +432,10 @@ namespace SuperVikingKart
             SuperVikingKart.DebugLog($"RaceManager - Race [{raceId}] renamed to \"{name}\"");
         }
 
+        /// <summary>
+        /// Runs on all peers. Updates the total lap count of an existing race.
+        /// Only meaningful before the race starts.
+        /// </summary>
         private static void RPC_SetLaps(long sender, string raceId, int laps)
         {
             var race = GetRace(raceId);
@@ -420,6 +444,11 @@ namespace SuperVikingKart
             SuperVikingKart.DebugLog($"RaceManager - Laps set to {laps} for [{raceId}]");
         }
 
+        /// <summary>
+        /// Runs on all peers. Directly overwrites the race state enum.
+        /// Intended for administrative corrections; normal flow uses the
+        /// dedicated Start/Go/Reset RPCs instead.
+        /// </summary>
         private static void RPC_SetState(long sender, string raceId, int state)
         {
             var race = GetRace(raceId);
@@ -428,13 +457,15 @@ namespace SuperVikingKart
             SuperVikingKart.DebugLog($"RaceManager - State set to {(RaceState)state} for [{raceId}]");
         }
 
+        /// <summary>
+        /// Runs on all peers. Attempts to add the player to the contestant list
+        /// and shows a contextual confirmation or rejection message to that player.
+        /// </summary>
         private static void RPC_Register(long sender, string raceId, string playerName, ZDOID playerId)
         {
             var race = GetRace(raceId);
             if (race == null) return;
-
             var added = race.AddContestant(playerName, playerId);
-
             var localPlayer = Player.m_localPlayer;
             if (localPlayer && localPlayer.GetZDOID() == playerId)
             {
@@ -446,16 +477,19 @@ namespace SuperVikingKart
             }
         }
 
+        /// <summary>
+        /// Runs on all peers. Removes a contestant, issuing a DNF if the race is in progress.
+        /// Notifies the leaving player and any remaining registered contestants.
+        /// </summary>
         private static void RPC_Unregister(long sender, string raceId, ZDOID playerId)
         {
             var race = GetRace(raceId);
             if (race == null) return;
-
             var contestant = race.GetContestant(playerId);
             if (contestant == null) return;
-
             race.RemoveContestant(playerId);
 
+            // Capture wasRacing before RemoveContestant potentially changes State via RecordDnf.
             var wasRacing = race.State == RaceState.Racing;
             var localPlayer = Player.m_localPlayer;
             if (localPlayer && localPlayer.GetZDOID() == playerId)
@@ -471,17 +505,25 @@ namespace SuperVikingKart
             }
         }
 
+        /// <summary>
+        /// Runs on all peers. Transitions the race to Countdown state.
+        /// Only the peer whose session ID matches the sender starts the countdown
+        /// coroutine, preventing duplicate tick broadcasts.
+        /// </summary>
         private static void RPC_StartCountdown(long sender, string raceId)
         {
             var race = GetRace(raceId);
             if (race == null) return;
-
             race.StartCountdown();
-
             if (sender == ZDOMan.GetSessionID())
                 SuperVikingKart.Instance.StartCoroutine(CountdownCoroutine(raceId));
         }
 
+        /// <summary>
+        /// Broadcasts a countdown tick each second from 3 to 1, then sends
+        /// the final 0 tick and the Go RPC to start the race.
+        /// Runs only on the peer that initiated the countdown.
+        /// </summary>
         private static IEnumerator CountdownCoroutine(string raceId)
         {
             for (var i = 3; i > 0; i--)
@@ -494,28 +536,40 @@ namespace SuperVikingKart
             SendGo(raceId);
         }
 
+        /// <summary>
+        /// Runs on all peers. Displays the countdown number to registered contestants,
+        /// showing "GO!" when number is 0.
+        /// </summary>
         private static void RPC_CountdownTick(long sender, string raceId, int number)
         {
             var race = GetRace(raceId);
             if (race == null) return;
-
             var localPlayer = Player.m_localPlayer;
             if (localPlayer && race.IsRegistered(localPlayer.GetZDOID()))
                 localPlayer.Message(MessageHud.MessageType.Center, number > 0 ? number.ToString() : "GO!");
         }
 
-        /// <param name="clientTime">Time.time from the client that sent Go.</param>
+        /// <summary>
+        /// Runs on all peers. Transitions the race to Racing state using the sender's
+        /// Time.time as the shared start timestamp. Only the server starts the disconnect
+        /// watchdog to avoid duplicate DNF broadcasts.
+        /// </summary>
         private static void RPC_Go(long sender, string raceId, float clientTime)
         {
             var race = GetRace(raceId);
             if (race == null) return;
-
             race.StartRace(clientTime);
 
+            // Only the server runs the watchdog so DNF broadcasts aren't duplicated.
             if (ZNet.instance.IsServer())
                 SuperVikingKart.Instance.StartCoroutine(DisconnectWatchdog(raceId));
         }
 
+        /// <summary>
+        /// Polls connected peers every 5 seconds and issues a DNF for any contestant
+        /// whose peer is no longer present. Runs only on the server to avoid duplicate
+        /// DNF broadcasts. Stops automatically once the race leaves Racing state.
+        /// </summary>
         private static IEnumerator DisconnectWatchdog(string raceId)
         {
             SuperVikingKart.DebugLog($"RaceManager - Watchdog started for [{raceId}]");
@@ -534,8 +588,9 @@ namespace SuperVikingKart
                 foreach (var contestant in race.Contestants.ToList())
                 {
                     if (contestant.Finished) continue;
-
                     var stillConnected = peers.Any(p => p.m_characterID == contestant.PlayerId);
+
+                    // The server's own local player won't appear in the peer list.
                     var localPlayer = Player.m_localPlayer;
                     if (!stillConnected && localPlayer && localPlayer.GetZDOID() == contestant.PlayerId)
                         stillConnected = true;
@@ -551,46 +606,46 @@ namespace SuperVikingKart
         }
 
         /// <summary>
-        /// Sets CrossedStart = true for the contestant on all clients.
+        /// Runs on all peers. Marks the contestant as having crossed the start line,
+        /// credits their first lap, and shows a lap indicator to that player.
         /// Called when a kart crosses a Start or StartFinish line for the first time.
         /// </summary>
         private static void RPC_CrossedStart(long sender, string raceId, ZDOID playerId)
         {
             var race = GetRace(raceId);
             if (race == null || race.State != RaceState.Racing) return;
-
             var contestant = race.GetContestant(playerId);
             if (contestant == null || contestant.Finished) return;
-
             contestant.CrossedStart = true;
             contestant.CurrentLap++;
-            
+
             var localPlayer = Player.m_localPlayer;
             if (localPlayer && localPlayer.GetZDOID() == playerId && race.TotalLaps > 1)
                 localPlayer.Message(MessageHud.MessageType.Center,
                     $"Lap {contestant.CurrentLap}/{race.TotalLaps}");
-            
+
             SuperVikingKart.DebugLog($"Race [{raceId}] - {contestant.PlayerName} crossed start line");
         }
 
         /// <summary>
-        /// Runs on all clients. Increments lap count for the contestant.
-        /// Records finish if all laps completed. Shows messages to all contestants.
+        /// Runs on all clients. Increments the contestant's lap count each time they
+        /// cross the finish line. On the final lap, records the finish and assigns a
+        /// position. Shows finish or lap progress messages to all registered contestants.
+        /// If this was the last contestant to finish, displays the full results to all.
         /// </summary>
         /// <param name="clientTime">Time.time from the client whose kart crossed the line.</param>
         private static void RPC_Lap(long sender, string raceId, ZDOID playerId, float clientTime)
         {
             var race = GetRace(raceId);
             if (race == null || race.State != RaceState.Racing) return;
-
             var contestant = race.GetContestant(playerId);
             if (contestant == null || contestant.Finished) return;
-
             var finished = race.RecordLap(playerId);
             var localPlayer = Player.m_localPlayer;
 
             if (finished)
             {
+                // Elapsed time is relative to the shared RaceStartTime so all peers compute the same value.
                 var finishTime = clientTime - race.RaceStartTime;
                 race.RecordFinish(playerId, finishTime);
 
@@ -614,14 +669,17 @@ namespace SuperVikingKart
             }
         }
 
+        /// <summary>
+        /// Runs on all peers. Marks the contestant as DNF and notifies all registered
+        /// contestants. If this was the last unfinished contestant, displays the full
+        /// results to all.
+        /// </summary>
         private static void RPC_Dnf(long sender, string raceId, ZDOID playerId)
         {
             var race = GetRace(raceId);
             if (race == null) return;
-
             var contestant = race.GetContestant(playerId);
             if (contestant == null) return;
-
             race.RecordDnf(playerId);
 
             var localPlayer = Player.m_localPlayer;
@@ -635,13 +693,15 @@ namespace SuperVikingKart
                         "Race finished!\n" + race.GetResultsText());
         }
 
+        /// <summary>
+        /// Runs on all peers. Clears all contestants and resets the race to Idle state,
+        /// notifying the local player regardless of whether they were registered.
+        /// </summary>
         private static void RPC_Reset(long sender, string raceId)
         {
             var race = GetRace(raceId);
             if (race == null) return;
-
             race.Reset();
-
             var localPlayer = Player.m_localPlayer;
             if (localPlayer)
                 localPlayer.Message(MessageHud.MessageType.Center, $"{race.Name} reset");
