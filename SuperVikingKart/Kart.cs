@@ -87,7 +87,7 @@ namespace SuperVikingKart
             // Cache renderers and apply whatever color is stored in the ZDO.
             // ZDO is guaranteed valid at this point — the game handles replication
             // before Awake fires, so this correctly restores color for late-joiners too.
-            _kartRenderers = transform.root.GetComponentsInChildren<Renderer>();
+            _kartRenderers = _vagon.GetComponentsInChildren<Renderer>();
             ApplyColor(GetCurrentColor());
         }
 
