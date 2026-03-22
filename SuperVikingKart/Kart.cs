@@ -268,6 +268,7 @@ namespace SuperVikingKart
                 if (_vagon.IsAttached(player))
                     return player;
             }
+
             return null;
         }
 
@@ -320,6 +321,7 @@ namespace SuperVikingKart
                     KartColorPickerUI.Open(this);
                     return true;
                 }
+
                 return false;
             }
 
@@ -391,16 +393,16 @@ namespace SuperVikingKart
             _targetKart = kart;
 
             GUIManager.Instance.CreateColorPicker(
-                anchorMin:       new Vector2(0.5f, 0.5f),
-                anchorMax:       new Vector2(0.5f, 0.5f),
-                position:        new Vector2(0f, 0f),
-                original:        kart.GetCurrentColor(),
-                message:         "Kart Color",
-                onColorChanged:  OnColorChanged,
+                anchorMin: new Vector2(0.5f, 0.5f),
+                anchorMax: new Vector2(0.5f, 0.5f),
+                position: new Vector2(0f, 0f),
+                original: kart.GetCurrentColor(),
+                message: "Kart Color",
+                onColorChanged: OnColorChanged,
                 onColorSelected: OnColorSelected,
-                useAlpha:        false
+                useAlpha: false
             );
-            
+
             GUIManager.BlockInput(true);
         }
 
@@ -422,13 +424,13 @@ namespace SuperVikingKart
         private static void OnColorSelected(Color color)
         {
             if (_targetKart == null) return;
-            
+
             var zdoColor = _targetKart.GetCurrentColor();
             if (color == zdoColor)
                 _targetKart.ApplyColor(zdoColor);
             else
                 _targetKart.SetColor(color);
-            
+
             _targetKart = null;
             GUIManager.BlockInput(false);
         }
@@ -496,11 +498,6 @@ namespace SuperVikingKart
     [HarmonyPatch(typeof(WearNTear), nameof(WearNTear.Destroy))]
     internal class KartRespawnPatch
     {
-        /// <summary>
-        /// Set by KartRemovePatch to distinguish hammer removal from destruction.
-        /// Static flag could race if a kart gets destroyed while another gets
-        /// removed in the same frame. Negligible in practice.
-        /// </summary>
         internal static bool IsBeingRemoved;
 
         private static void Prefix(WearNTear __instance)
@@ -508,26 +505,44 @@ namespace SuperVikingKart
             if (IsBeingRemoved) return;
             var kart = __instance.GetComponentInChildren<SuperVikingKartComponent>();
             if (!kart) return;
+
             var netView = __instance.GetComponent<ZNetView>();
-            if (!netView || !netView.IsOwner()) return;
+            if (!netView) return;
 
-            // Preserve facing direction but reset tilt/roll
-            var position = __instance.transform.position;
-            var yRotation = Quaternion.Euler(0f, __instance.transform.eulerAngles.y, 0f);
-            // Preserve color
-            var color = kart.GetCurrentColor();
+            // Determine whether the local player is the owner, rider, or puller.
+            // Timer is purely local — each client decides for itself.
+            var localPlayer = Player.m_localPlayer;
+            var rider = kart.GetRider();
+            var puller = kart.GetPuller();
+            bool isOwner = netView.IsOwner();
+            bool isRiderClient = localPlayer != null && localPlayer == rider;
+            bool isPullerClient = localPlayer != null && localPlayer == puller;
 
-            SuperVikingKart.DebugLog($"KartRespawn - Kart destroyed at {position}, spawning timer, scheduling respawn");
+            // Only schedule the actual respawn once — on the ZDO owner.
+            if (isOwner)
+            {
+                var position = __instance.transform.position;
+                var yRotation = Quaternion.Euler(0f, __instance.transform.eulerAngles.y, 0f);
+                var color = kart.GetCurrentColor();
 
-            // Spawn visible countdown timer
-            var timerGo = new GameObject("KartRespawnComponent");
-            timerGo.transform.position = position + Vector3.up * 0.5f;
-            timerGo.layer = LayerMask.NameToLayer("character");
-            var timer = timerGo.AddComponent<KartRespawnComponent>();
-            timer.Setup(SuperVikingKart.CartRespawnTimeConfig.Value);
+                SuperVikingKart.DebugLog($"KartRespawn - Kart destroyed at {position}, scheduling respawn");
+                SuperVikingKart.Instance.StartCoroutine(RespawnKart(position, yRotation, color));
+            }
 
-            // Schedule the actual respawn
-            SuperVikingKart.Instance.StartCoroutine(RespawnKart(position, yRotation, color));
+            // Spawn the countdown timer locally for owner, rider, and puller only.
+            if (isOwner || isRiderClient || isPullerClient)
+            {
+                var position = __instance.transform.position;
+
+                SuperVikingKart.DebugLog(
+                    $"KartRespawn - Spawning timer for local client (owner={isOwner}, rider={isRiderClient}, puller={isPullerClient})");
+
+                var timerGo = new GameObject("KartRespawnComponent");
+                timerGo.transform.position = position + Vector3.up * 0.5f;
+                timerGo.layer = LayerMask.NameToLayer("character");
+                var timer = timerGo.AddComponent<KartRespawnComponent>();
+                timer.Setup(SuperVikingKart.CartRespawnTimeConfig.Value);
+            }
         }
 
         /// <summary>
@@ -543,10 +558,11 @@ namespace SuperVikingKart
                 Jotunn.Logger.LogWarning("KartRespawn - SuperVikingKart prefab not found");
                 yield break;
             }
+
             SuperVikingKart.DebugLog($"KartRespawn - Spawning kart at {position}");
             var instance = Object.Instantiate(prefab, position, rotation);
-            var kart = instance.GetComponentInChildren<SuperVikingKartComponent>();
-            kart.SetColor(color);
+            var newKart = instance.GetComponentInChildren<SuperVikingKartComponent>();
+            newKart.SetColor(color);
         }
     }
 
@@ -619,6 +635,7 @@ namespace SuperVikingKart
                         __state.Add(collider);
                     }
                 }
+
                 return;
             }
         }
@@ -653,6 +670,7 @@ namespace SuperVikingKart
                 __instance.Detach();
                 return false;
             }
+
             return true;
         }
     }
