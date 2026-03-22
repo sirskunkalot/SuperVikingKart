@@ -368,7 +368,7 @@ namespace SuperVikingKart
             return Localization.instance.Localize(
                 Name +
                 "\n[<color=yellow><b>$KEY_Use</b></color>] $piece_use" +
-                "\n[<color=yellow><b>L-Shift + $KEY_Use</b></color>] Change color");
+                "\n[<color=yellow><b>$KEY_AltPlace + $KEY_Use</b></color>] Change color");
         }
 
         public string GetHoverName() => Name;

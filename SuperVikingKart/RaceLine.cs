@@ -236,8 +236,9 @@ namespace SuperVikingKart
             if (!SynchronizationManager.Instance.PlayerIsAdmin)
                 return $"Race Line\n<color=grey>{info}</color>";
 
-            return $"Race Line\n{info}" +
-                   "\n[<color=yellow><b>$KEY_Use</b></color>] Configure";
+            return Localization.instance.Localize(
+                $"Race Line\n{info}" +
+                "\n[<color=yellow><b>$KEY_Use</b></color>] Configure");
         }
 
         public string GetHoverName() => "Race Line";

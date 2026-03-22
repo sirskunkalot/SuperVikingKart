@@ -58,14 +58,15 @@ namespace SuperVikingKart
 
             var race = RaceManager.GetRace(Board.GetRaceId());
 
-            return ButtonType switch
-            {
-                RaceBoardButtonType.Register => GetRegisterHoverText(race),
-                RaceBoardButtonType.Start    => GetStartHoverText(race),
-                RaceBoardButtonType.Reset    => GetResetHoverText(race),
-                RaceBoardButtonType.Admin    => "[<color=yellow><b>$KEY_Use</b></color>] Configure Board",
-                _                            => ""
-            };
+            return Localization.instance.Localize(
+                ButtonType switch
+                {
+                    RaceBoardButtonType.Register => GetRegisterHoverText(race),
+                    RaceBoardButtonType.Start    => GetStartHoverText(race),
+                    RaceBoardButtonType.Reset    => GetResetHoverText(race),
+                    RaceBoardButtonType.Admin    => "[<color=yellow><b>$KEY_Use</b></color>] Configure Board",
+                    _                            => ""
+                });
         }
 
         public string GetHoverName() => ButtonType switch
