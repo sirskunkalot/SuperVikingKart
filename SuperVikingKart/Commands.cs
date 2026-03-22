@@ -25,6 +25,7 @@ namespace SuperVikingKart
         public override string Name => "svk_buff";
         public override string Help => "Force a specific buff. Usage: svk_buff <name> or svk_buff list";
         public override bool IsCheat => true;
+        public override bool IsNetwork => true;
 
         public override List<string> CommandOptionList()
         {
@@ -95,6 +96,7 @@ namespace SuperVikingKart
     {
         public override string Name => "svk_race";
         public override string Help => "Race participation. Usage: svk_race <subcommand> [args]";
+        public override bool IsNetwork => true;
 
         public override List<string> CommandOptionList()
         {
@@ -291,6 +293,7 @@ namespace SuperVikingKart
         public override string Name => "svk_race_admin";
         public override string Help => "Admin race management. Usage: svk_race_admin <subcommand> [args]";
         public override bool IsCheat => true;
+        public override bool IsNetwork => true;
 
         public override List<string> CommandOptionList()
         {
