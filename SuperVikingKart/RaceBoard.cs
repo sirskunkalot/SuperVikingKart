@@ -227,8 +227,10 @@ namespace SuperVikingKart
                     {
                         if (c.Finished && c.IsDnf)
                             sb.AppendLine($"  <color=red>DNF</color>  {c.PlayerName}");
-                        else if (c.Finished)
+                        else if (c.Finished && c.Position > 0)
                             sb.AppendLine($"  <color=yellow>P{c.Position}</color>  {c.PlayerName} - {c.FinishTime:F1}s");
+                        else if (c.Finished)
+                            sb.AppendLine($"  <color=yellow>Finished</color>  {c.PlayerName} - {c.FinishTime:F1}s");
                         else
                             sb.AppendLine($"  Lap {c.CurrentLap}/{race.TotalLaps}  {c.PlayerName}");
                     }

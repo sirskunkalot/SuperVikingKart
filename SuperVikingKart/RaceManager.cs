@@ -52,7 +52,6 @@ namespace SuperVikingKart
         public RaceState State = RaceState.Idle;
         public List<RaceContestant> Contestants = new();
         public float RaceStartTime;
-        public int NextPosition = 1;
 
         public Race(string raceId, string name = null, int laps = 1)
         {
@@ -105,14 +104,21 @@ namespace SuperVikingKart
             SuperVikingKart.DebugLog($"Race [{RaceId}] - Countdown started");
         }
 
+        /// <param name="startTime">
+        /// Time.time captured on the client that triggered the Go RPC,
+        /// broadcast so every peer stores an identical RaceStartTime.
+        /// </param>
         public void StartRace(float startTime)
         {
             State = RaceState.Racing;
             RaceStartTime = startTime;
-            NextPosition = 1;
             SuperVikingKart.DebugLog($"Race [{RaceId}] - Race started (t={startTime:F3})");
         }
 
+        /// <summary>
+        /// Increments the contestant's lap counter and returns true when all laps are complete.
+        /// The caller is responsible for subsequently calling <see cref="RecordFinish"/> on a true return.
+        /// </summary>
         public bool RecordLap(ZDOID playerId)
         {
             if (State != RaceState.Racing) return false;
@@ -138,6 +144,10 @@ namespace SuperVikingKart
             }
         }
 
+        /// <summary>
+        /// Records the contestant's finish time.
+        /// Position is assigned authoritatively by the server via RPC_AssignPosition.
+        /// </summary>
         public void RecordFinish(ZDOID playerId, float finishTime)
         {
             if (State != RaceState.Racing) return;
@@ -146,29 +156,29 @@ namespace SuperVikingKart
             contestant.Finished = true;
             contestant.FinishTime = finishTime;
 
-            // Check whether anyone already finished with the same time.
-            var tiedContestant = Contestants.FirstOrDefault(c =>
-                c.Finished && !c.IsDnf && c.Position > 0 && c.FinishTime == finishTime);
-
-            if (tiedContestant != null)
-            {
-                // Share the position already assigned to the tied group.
-                contestant.Position = tiedContestant.Position;
-            }
-            else
-            {
-                contestant.Position = NextPosition++;
-            }
-
             SuperVikingKart.DebugLog(
-                $"Race [{RaceId}] - {contestant.PlayerName} finished " +
-                $"P{contestant.Position} in {contestant.FinishTime:F1}s");
+                $"Race [{RaceId}] - {contestant.PlayerName} finished in {finishTime:F1}s");
 
             if (AllFinished())
             {
                 State = RaceState.Finished;
                 SuperVikingKart.DebugLog($"Race [{RaceId}] - All finished");
             }
+        }
+
+        /// <summary>
+        /// Applies an authoritatively assigned position to a contestant.
+        /// Called on all peers via RPC_AssignPosition after the server determines
+        /// the correct position, including dense ranking for ties (P1/P1 → P2).
+        /// </summary>
+        public void AssignPosition(ZDOID playerId, int position)
+        {
+            var contestant = GetContestant(playerId);
+            if (contestant == null) return;
+            contestant.Position = position;
+
+            SuperVikingKart.DebugLog(
+                $"Race [{RaceId}] - {contestant.PlayerName} assigned P{position}");
         }
 
         public bool AllFinished()
@@ -178,7 +188,6 @@ namespace SuperVikingKart
         {
             State = RaceState.Idle;
             Contestants.Clear();
-            NextPosition = 1;
             SuperVikingKart.DebugLog($"Race [{RaceId}] - Reset");
         }
 
@@ -243,6 +252,7 @@ namespace SuperVikingKart
             ZRoutedRpc.instance.Register<string, ZDOID>("SuperVikingKart_Race_CrossedStart", RPC_CrossedStart);
             ZRoutedRpc.instance.Register<string, ZDOID, float>("SuperVikingKart_Race_Lap", RPC_Lap);
             ZRoutedRpc.instance.Register<string, ZDOID>("SuperVikingKart_Race_Dnf", RPC_Dnf);
+            ZRoutedRpc.instance.Register<string, ZDOID, int>("SuperVikingKart_Race_AssignPosition", RPC_AssignPosition);
             ZRoutedRpc.instance.Register<string>("SuperVikingKart_Race_Reset", RPC_Reset);
 
             if (!ZNet.instance.IsServer())
@@ -315,6 +325,10 @@ namespace SuperVikingKart
             => ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
                 "SuperVikingKart_Race_Dnf", raceId, playerId);
 
+        public static void SendAssignPosition(string raceId, ZDOID playerId, int position)
+            => ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
+                "SuperVikingKart_Race_AssignPosition", raceId, playerId, position);
+
         public static void SendReset(string raceId)
             => ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
                 "SuperVikingKart_Race_Reset", raceId);
@@ -340,7 +354,6 @@ namespace SuperVikingKart
                 pkg.Write(race.TotalLaps);
                 pkg.Write((int)race.State);
                 pkg.Write(race.RaceStartTime);
-                pkg.Write(race.NextPosition);
                 pkg.Write(race.Contestants.Count);
 
                 foreach (var c in race.Contestants)
@@ -376,7 +389,6 @@ namespace SuperVikingKart
                     TotalLaps = pkg.ReadInt(),
                     State = (RaceState)pkg.ReadInt(),
                     RaceStartTime = pkg.ReadSingle(),
-                    NextPosition = pkg.ReadInt()
                 };
 
                 var contestantCount = pkg.ReadInt();
@@ -628,12 +640,11 @@ namespace SuperVikingKart
         }
 
         /// <summary>
-        /// Runs on all clients. Increments the contestant's lap count each time they
-        /// cross the finish line. On the final lap, records the finish and assigns a
-        /// position. Shows finish or lap progress messages to all registered contestants.
-        /// If this was the last contestant to finish, displays the full results to all.
+        /// Runs on all peers. Increments the contestant's lap count each time they cross
+        /// the finish line. On the final lap, records the finish time. The server then
+        /// determines and broadcasts the authoritative position via RPC_AssignPosition.
+        /// Shows lap progress messages to the finishing player on intermediate laps.
         /// </summary>
-        /// <param name="clientTime">Time.time from the client whose kart crossed the line.</param>
         private static void RPC_Lap(long sender, string raceId, ZDOID playerId, float clientTime)
         {
             var race = GetRace(raceId);
@@ -649,17 +660,31 @@ namespace SuperVikingKart
                 var finishTime = clientTime - race.RaceStartTime;
                 race.RecordFinish(playerId, finishTime);
 
-                if (localPlayer && localPlayer.GetZDOID() == playerId)
-                    localPlayer.Message(MessageHud.MessageType.Center,
-                        $"P{contestant.Position}! Time: {contestant.FinishTime:F1}s");
-                else if (localPlayer && race.IsRegistered(localPlayer.GetZDOID()))
-                    localPlayer.Message(MessageHud.MessageType.Center,
-                        $"{contestant.PlayerName} finished P{contestant.Position}!");
+                if (ZNet.instance.IsServer())
+                {
+                    // Check for a genuine tie — another finisher with an identical time.
+                    var tied = race.Contestants.FirstOrDefault(c =>
+                        c.Finished && !c.IsDnf && c.Position > 0 && c.FinishTime == contestant.FinishTime);
 
-                if (race.State == RaceState.Finished)
-                    if (localPlayer && race.IsRegistered(localPlayer.GetZDOID()))
-                        localPlayer.Message(MessageHud.MessageType.Center,
-                            "Race finished!\n" + race.GetResultsText());
+                    int position;
+                    if (tied != null)
+                    {
+                        // Share the tied group's position.
+                        position = tied.Position;
+                    }
+                    else
+                    {
+                        // Dense ranking: next position is the number of distinct positions
+                        // already assigned plus one, so ties don't create gaps.
+                        position = race.Contestants
+                            .Where(c => c.Finished && !c.IsDnf && c.Position > 0)
+                            .Select(c => c.Position)
+                            .Distinct()
+                            .Count() + 1;
+                    }
+
+                    SendAssignPosition(raceId, playerId, position);
+                }
             }
             else
             {
@@ -667,6 +692,33 @@ namespace SuperVikingKart
                     localPlayer.Message(MessageHud.MessageType.Center,
                         $"Lap {contestant.CurrentLap}/{race.TotalLaps}");
             }
+        }
+
+        /// <summary>
+        /// Runs on all peers. Applies the server-assigned finishing position to the contestant
+        /// and shows finish messages to all registered contestants. If this was the last
+        /// contestant to finish, displays the full results to all.
+        /// </summary>
+        private static void RPC_AssignPosition(long sender, string raceId, ZDOID playerId, int position)
+        {
+            var race = GetRace(raceId);
+            if (race == null) return;
+            race.AssignPosition(playerId, position);
+            var contestant = race.GetContestant(playerId);
+            if (contestant == null) return;
+
+            var localPlayer = Player.m_localPlayer;
+            if (localPlayer && localPlayer.GetZDOID() == playerId)
+                localPlayer.Message(MessageHud.MessageType.Center,
+                    $"P{contestant.Position}! Time: {contestant.FinishTime:F1}s");
+            else if (localPlayer && race.IsRegistered(localPlayer.GetZDOID()))
+                localPlayer.Message(MessageHud.MessageType.Center,
+                    $"{contestant.PlayerName} finished P{contestant.Position}!");
+
+            if (race.State == RaceState.Finished)
+                if (localPlayer && race.IsRegistered(localPlayer.GetZDOID()))
+                    localPlayer.Message(MessageHud.MessageType.Center,
+                        "Race finished!\n" + race.GetResultsText());
         }
 
         /// <summary>
