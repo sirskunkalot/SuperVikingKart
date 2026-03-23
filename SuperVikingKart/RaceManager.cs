@@ -25,7 +25,7 @@ namespace SuperVikingKart
         public int CurrentLap;
         public bool Finished;
         public int Position;
-        public float FinishTime;
+        public double FinishTime;
         public bool IsDnf;
 
         public RaceContestant(string playerName, ZDOID playerId)
@@ -36,7 +36,7 @@ namespace SuperVikingKart
             CurrentLap = 0;
             Finished = false;
             Position = -1;
-            FinishTime = -1f;
+            FinishTime = -1d;
         }
     }
 
@@ -51,7 +51,7 @@ namespace SuperVikingKart
         public int TotalLaps;
         public RaceState State = RaceState.Idle;
         public List<RaceContestant> Contestants = new();
-        public float RaceStartTime;
+        public double RaceStartTime;
 
         public Race(string raceId, string name = null, int laps = 1)
         {
@@ -104,11 +104,7 @@ namespace SuperVikingKart
             SuperVikingKart.DebugLog($"Race [{RaceId}] - Countdown started");
         }
 
-        /// <param name="startTime">
-        /// Time.time captured on the client that triggered the Go RPC,
-        /// broadcast so every peer stores an identical RaceStartTime.
-        /// </param>
-        public void StartRace(float startTime)
+        public void StartRace(double startTime)
         {
             State = RaceState.Racing;
             RaceStartTime = startTime;
@@ -148,7 +144,7 @@ namespace SuperVikingKart
         /// Records the contestant's finish time.
         /// Position is assigned authoritatively by the server via RPC_AssignPosition.
         /// </summary>
-        public void RecordFinish(ZDOID playerId, float finishTime)
+        public void RecordFinish(ZDOID playerId, double finishTime)
         {
             if (State != RaceState.Racing) return;
             var contestant = GetContestant(playerId);
@@ -248,9 +244,9 @@ namespace SuperVikingKart
             ZRoutedRpc.instance.Register<string, ZDOID>("SuperVikingKart_Race_Unregister", RPC_Unregister);
             ZRoutedRpc.instance.Register<string>("SuperVikingKart_Race_StartCountdown", RPC_StartCountdown);
             ZRoutedRpc.instance.Register<string, int>("SuperVikingKart_Race_CountdownTick", RPC_CountdownTick);
-            ZRoutedRpc.instance.Register<string, float>("SuperVikingKart_Race_Go", RPC_Go);
+            ZRoutedRpc.instance.Register<string, double>("SuperVikingKart_Race_Go", RPC_Go);
             ZRoutedRpc.instance.Register<string, ZDOID>("SuperVikingKart_Race_CrossedStart", RPC_CrossedStart);
-            ZRoutedRpc.instance.Register<string, ZDOID, float>("SuperVikingKart_Race_Lap", RPC_Lap);
+            ZRoutedRpc.instance.Register<string, ZDOID, double>("SuperVikingKart_Race_Lap", RPC_Lap);
             ZRoutedRpc.instance.Register<string, ZDOID>("SuperVikingKart_Race_Dnf", RPC_Dnf);
             ZRoutedRpc.instance.Register<string, ZDOID, int>("SuperVikingKart_Race_AssignPosition", RPC_AssignPosition);
             ZRoutedRpc.instance.Register<string>("SuperVikingKart_Race_Reset", RPC_Reset);
@@ -311,7 +307,7 @@ namespace SuperVikingKart
 
         public static void SendGo(string raceId)
             => ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
-                "SuperVikingKart_Race_Go", raceId, Time.time);
+                "SuperVikingKart_Race_Go", raceId, ZNet.instance.m_netTime);
 
         public static void SendCrossedStart(string raceId, ZDOID playerId)
             => ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
@@ -319,7 +315,7 @@ namespace SuperVikingKart
 
         public static void SendLap(string raceId, ZDOID playerId)
             => ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
-                "SuperVikingKart_Race_Lap", raceId, playerId, Time.time);
+                "SuperVikingKart_Race_Lap", raceId, playerId, ZNet.instance.m_netTime);
 
         public static void SendDnf(string raceId, ZDOID playerId)
             => ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
@@ -388,7 +384,7 @@ namespace SuperVikingKart
                 {
                     TotalLaps = pkg.ReadInt(),
                     State = (RaceState)pkg.ReadInt(),
-                    RaceStartTime = pkg.ReadSingle(),
+                    RaceStartTime = pkg.ReadDouble(),
                 };
 
                 var contestantCount = pkg.ReadInt();
@@ -400,7 +396,7 @@ namespace SuperVikingKart
                         CurrentLap = pkg.ReadInt(),
                         Finished = pkg.ReadBool(),
                         Position = pkg.ReadInt(),
-                        FinishTime = pkg.ReadSingle(),
+                        FinishTime = pkg.ReadDouble(),
                         IsDnf = pkg.ReadBool(),
                     };
                     race.Contestants.Add(contestant);
@@ -563,14 +559,14 @@ namespace SuperVikingKart
 
         /// <summary>
         /// Runs on all peers. Transitions the race to Racing state using the sender's
-        /// Time.time as the shared start timestamp. Only the server starts the disconnect
+        /// ZNet.instance.m_netTime as the shared start timestamp. Only the server starts the disconnect
         /// watchdog to avoid duplicate DNF broadcasts.
         /// </summary>
-        private static void RPC_Go(long sender, string raceId, float clientTime)
+        private static void RPC_Go(long sender, string raceId, double startTime)
         {
             var race = GetRace(raceId);
             if (race == null) return;
-            race.StartRace(clientTime);
+            race.StartRace(startTime);
 
             // Only the server runs the watchdog so DNF broadcasts aren't duplicated.
             if (ZNet.instance.IsServer())
@@ -645,7 +641,7 @@ namespace SuperVikingKart
         /// determines and broadcasts the authoritative position via RPC_AssignPosition.
         /// Shows lap progress messages to the finishing player on intermediate laps.
         /// </summary>
-        private static void RPC_Lap(long sender, string raceId, ZDOID playerId, float clientTime)
+        private static void RPC_Lap(long sender, string raceId, ZDOID playerId, double currentTime)
         {
             var race = GetRace(raceId);
             if (race == null || race.State != RaceState.Racing) return;
@@ -657,7 +653,7 @@ namespace SuperVikingKart
             if (finished)
             {
                 // Elapsed time is relative to the shared RaceStartTime so all peers compute the same value.
-                var finishTime = clientTime - race.RaceStartTime;
+                var finishTime = currentTime - race.RaceStartTime;
                 race.RecordFinish(playerId, finishTime);
 
                 if (ZNet.instance.IsServer())
