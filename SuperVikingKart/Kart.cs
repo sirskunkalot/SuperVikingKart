@@ -322,13 +322,8 @@ namespace SuperVikingKart
 
             if (alt)
             {
-                if (_netView.IsOwner() || GetRider() == player)
-                {
-                    KartColorPickerUI.Open(this);
-                    return true;
-                }
-
-                return false;
+                KartColorPickerUI.Open(this);
+                return true;
             }
 
             if (_attachedPlayerLocal && player == _attachedPlayerLocal)
