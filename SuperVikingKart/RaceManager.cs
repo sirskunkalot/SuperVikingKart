@@ -495,10 +495,9 @@ namespace SuperVikingKart
             if (race == null) return;
             var contestant = race.GetContestant(playerId);
             if (contestant == null) return;
+            var wasRacing = race.State == RaceState.Racing;
             race.RemoveContestant(playerId);
 
-            // Capture wasRacing before RemoveContestant potentially changes State via RecordDnf.
-            var wasRacing = race.State == RaceState.Racing;
             var localPlayer = Player.m_localPlayer;
             if (localPlayer && localPlayer.GetZDOID() == playerId)
             {
