@@ -62,20 +62,20 @@ namespace SuperVikingKart
                 ButtonType switch
                 {
                     RaceBoardButtonType.Register => GetRegisterHoverText(race),
-                    RaceBoardButtonType.Start    => GetStartHoverText(race),
-                    RaceBoardButtonType.Reset    => GetResetHoverText(race),
-                    RaceBoardButtonType.Admin    => "[<color=yellow><b>$KEY_Use</b></color>] Configure Board",
-                    _                            => ""
+                    RaceBoardButtonType.Start => GetStartHoverText(race),
+                    RaceBoardButtonType.Reset => GetResetHoverText(race),
+                    RaceBoardButtonType.Admin => "[<color=yellow><b>$KEY_Use</b></color>] Configure Board",
+                    _ => ""
                 });
         }
 
         public string GetHoverName() => ButtonType switch
         {
             RaceBoardButtonType.Register => "Register",
-            RaceBoardButtonType.Start    => "Start Race",
-            RaceBoardButtonType.Reset    => "Reset Race",
-            RaceBoardButtonType.Admin    => "Configure Board",
-            _                            => ""
+            RaceBoardButtonType.Start => "Start Race",
+            RaceBoardButtonType.Reset => "Reset Race",
+            RaceBoardButtonType.Admin => "Configure Board",
+            _ => ""
         };
 
         private string GetRegisterHoverText(Race race)
@@ -128,8 +128,8 @@ namespace SuperVikingKart
         // --- ZDO Keys ---
 
         private const string ZdoKeyRaceId = "SuperVikingKart_RaceBoard_RaceId";
-        private const string ZdoKeyName   = "SuperVikingKart_RaceBoard_Name";
-        private const string ZdoKeyLaps   = "SuperVikingKart_RaceBoard_Laps";
+        private const string ZdoKeyName = "SuperVikingKart_RaceBoard_Name";
+        private const string ZdoKeyLaps = "SuperVikingKart_RaceBoard_Laps";
 
         // --- References set by SuperVikingKart.cs during prefab setup ---
 
@@ -228,12 +228,14 @@ namespace SuperVikingKart
                         if (c.Finished && c.IsDnf)
                             sb.AppendLine($"  <color=red>DNF</color>  {c.PlayerName}");
                         else if (c.Finished && c.Position > 0)
-                            sb.AppendLine($"  <color=yellow>P{c.Position}</color>  {c.PlayerName} - {c.FinishTime:F1}s");
+                            sb.AppendLine(
+                                $"  <color=yellow>P{c.Position}</color>  {c.PlayerName} - {c.FinishTime:F1}s");
                         else if (c.Finished)
                             sb.AppendLine($"  <color=yellow>Finished</color>  {c.PlayerName} - {c.FinishTime:F1}s");
                         else
                             sb.AppendLine($"  Lap {c.CurrentLap}/{race.TotalLaps}  {c.PlayerName}");
                     }
+
                     break;
 
                 case RaceState.Finished:
@@ -327,8 +329,8 @@ namespace SuperVikingKart
             // Claim ZDO ownership and persist config locally
             _netView.ClaimOwnership();
             _netView.GetZDO().Set(ZdoKeyRaceId, raceId);
-            _netView.GetZDO().Set(ZdoKeyName,   name);
-            _netView.GetZDO().Set(ZdoKeyLaps,   laps);
+            _netView.GetZDO().Set(ZdoKeyName, name);
+            _netView.GetZDO().Set(ZdoKeyLaps, laps);
 
             // Drive RaceManager state via RPCs
             var existing = RaceManager.GetRace(raceId);
@@ -492,8 +494,8 @@ namespace SuperVikingKart
 
             // Populate from current ZDO values
             _raceIdField.text = board.GetRaceId();
-            _nameField.text   = board.GetRaceName();
-            _lapsField.text   = board.GetLaps().ToString();
+            _nameField.text = board.GetRaceName();
+            _lapsField.text = board.GetLaps().ToString();
 
             _panel.SetActive(true);
             GUIManager.BlockInput(true);
@@ -523,7 +525,7 @@ namespace SuperVikingKart
             }
 
             var raceId = _raceIdField.text.Trim();
-            var name   = _nameField.text.Trim();
+            var name = _nameField.text.Trim();
 
             if (string.IsNullOrEmpty(raceId))
             {

@@ -17,7 +17,7 @@ namespace SuperVikingKart
         public override void Setup(Character character)
         {
             base.Setup(character);
-            
+
             var player = character as Player;
             if (!player)
                 return;
@@ -30,7 +30,7 @@ namespace SuperVikingKart
             player.GetInventory().AddItem(prefab, 5);
         }
     }
-    
+
     /// <summary>
     /// Status effect that gives a player full stamina once
     /// </summary>
@@ -49,7 +49,7 @@ namespace SuperVikingKart
             SuperVikingKart.DebugLog($"SE_StaminaBurst - Refilled stamina for {character.m_name}");
         }
     }
-    
+
     /// <summary>
     /// Status effect that deals poison damage over time - low damage, long duration
     /// </summary>
@@ -242,7 +242,7 @@ namespace SuperVikingKart
             base.Stop();
         }
     }
-    
+
     /// <summary>
     /// Status effect that staggers the player on impact
     /// </summary>
@@ -300,7 +300,7 @@ namespace SuperVikingKart
             base.Stop();
         }
     }
-    
+
     /// <summary>
     /// Status effect that blinds the player with a screen overlay
     /// </summary>
@@ -360,7 +360,7 @@ namespace SuperVikingKart
             base.Stop();
         }
     }
-    
+
     /// <summary>
     /// Status effect that launches the cart upward
     /// </summary>
@@ -391,7 +391,7 @@ namespace SuperVikingKart
             }
         }
     }
-    
+
     /// <summary>
     /// Status effect that gives the rider fire arrows
     /// </summary>
@@ -504,19 +504,21 @@ namespace SuperVikingKart
             var rightItem = player.GetRightItem();
             if (rightItem != null)
             {
-                SuperVikingKart.DebugLog($"SE_KartDisarm - Dropping {rightItem.m_shared.m_name} from {player.GetPlayerName()}");
+                SuperVikingKart.DebugLog(
+                    $"SE_KartDisarm - Dropping {rightItem.m_shared.m_name} from {player.GetPlayerName()}");
                 player.DropItem(player.GetInventory(), rightItem, 1);
             }
 
             var leftItem = player.GetLeftItem();
             if (leftItem != null)
             {
-                SuperVikingKart.DebugLog($"SE_KartDisarm - Dropping {leftItem.m_shared.m_name} from {player.GetPlayerName()}");
+                SuperVikingKart.DebugLog(
+                    $"SE_KartDisarm - Dropping {leftItem.m_shared.m_name} from {player.GetPlayerName()}");
                 player.DropItem(player.GetInventory(), leftItem, 1);
             }
         }
     }
-    
+
     /// <summary>
     /// Status effect that gives a short speed boost
     /// </summary>

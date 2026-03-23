@@ -31,10 +31,10 @@ namespace SuperVikingKart
 
         public const string MysteryBlockPrefabName = "MysteryBlock";
         public static readonly int MysteryBlockPrefabHash = MysteryBlockPrefabName.GetStableHashCode();
-        
+
         public const string RaceBoardPrefabName = "RaceBoard";
         public static readonly int RaceBoardPrefabHash = RaceBoardPrefabName.GetStableHashCode();
-  
+
         public const string RaceLinePrefabName = "RaceLine";
         public static readonly int RaceLinePrefabHash = RaceLinePrefabName.GetStableHashCode();
 
@@ -60,7 +60,7 @@ namespace SuperVikingKart
                 new ConfigDescription("Time in seconds before a collected buff block reappears. Server synced value.",
                     new AcceptableValueRange<int>(2, 20),
                     new ConfigurationManagerAttributes { IsAdminOnly = true }));
-            
+
             _harmony = new Harmony(PluginGUID);
             _harmony.PatchAll();
 
@@ -72,7 +72,7 @@ namespace SuperVikingKart
             PrefabManager.OnVanillaPrefabsAvailable += RegisterCustomStatusEffects;
             PrefabManager.OnVanillaPrefabsAvailable += CreateRaceBoard;
             PrefabManager.OnVanillaPrefabsAvailable += CreateRaceLine;
-            
+
             // (Re-)Initialize the RaceManager on every connect to a server / start of a local game
             MinimapManager.OnVanillaMapDataLoaded += RaceManager.Init;
 
@@ -112,9 +112,9 @@ namespace SuperVikingKart
                         new RequirementConfig("Wood", 1)
                     }
                 });
-                
+
                 //TODO: with or without station?
-                cart.Piece.m_craftingStation = null; 
+                cart.Piece.m_craftingStation = null;
                 cart.Piece.m_canBeRemoved = true;
                 PieceManager.Instance.AddPiece(cart);
 
@@ -196,7 +196,8 @@ namespace SuperVikingKart
             }
         }
 
-        private void CreateBlock(string prefabName, string displayName, string description, Material material, BlockType blockType)
+        private void CreateBlock(string prefabName, string displayName, string description, Material material,
+            BlockType blockType)
         {
             var prefab = new GameObject(prefabName);
             prefab.layer = LayerMask.NameToLayer("piece_nonsolid");
@@ -242,7 +243,7 @@ namespace SuperVikingKart
 
             var triggerRelay = visual.AddComponent<BuffBlockTrigger>();
             triggerRelay.BuffBlock = buffBlock;
-            
+
             var icon = RenderManager.Instance.Render(prefab, RenderManager.IsometricRotation);
 
             var customPiece = new CustomPiece(prefab, false, new PieceConfig
@@ -279,7 +280,7 @@ namespace SuperVikingKart
                 new Color(0.5f, 0.2f, 0.8f),
                 new Color(0.3f, 0.1f, 0.5f),
                 new Color(0.15f, 0.05f, 0.3f));
-        
+
         private Material CreateBlockMaterial(Color bgColor, Color borderColor, Color markColor)
         {
             var texture = new Texture2D(64, 64);
@@ -331,7 +332,7 @@ namespace SuperVikingKart
 
             var staminaBurst = ScriptableObject.CreateInstance<SE_StaminaBurst>();
             ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(staminaBurst, fixReference: false));
-            
+
             var kartPoison = ScriptableObject.CreateInstance<SE_KartPoison>();
             ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartPoison, fixReference: false));
 
@@ -340,22 +341,22 @@ namespace SuperVikingKart
 
             var kartFrost = ScriptableObject.CreateInstance<SE_KartFrost>();
             ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartFrost, fixReference: false));
-            
+
             var kartShock = ScriptableObject.CreateInstance<SE_KartShock>();
             ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartShock, fixReference: false));
-            
+
             var kartStagger = ScriptableObject.CreateInstance<SE_KartStagger>();
             ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartStagger, fixReference: false));
 
             var kartTarred = ScriptableObject.CreateInstance<SE_KartTarred>();
             ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartTarred, fixReference: false));
-            
+
             var kartBlind = ScriptableObject.CreateInstance<SE_KartBlind>();
             ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartBlind, fixReference: false));
-            
+
             var kartBounce = ScriptableObject.CreateInstance<SE_KartBounce>();
             ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartBounce, fixReference: false));
-            
+
             var fireArrows = ScriptableObject.CreateInstance<SE_FireArrows>();
             ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(fireArrows, fixReference: false));
 
@@ -367,15 +368,15 @@ namespace SuperVikingKart
 
             var kartDisarm = ScriptableObject.CreateInstance<SE_KartDisarm>();
             ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartDisarm, fixReference: false));
-            
+
             var speedBoost = ScriptableObject.CreateInstance<SE_KartSpeedBoost>();
             ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(speedBoost, fixReference: false));
-            
+
             DebugLog("Custom status effects registered");
 
             PrefabManager.OnVanillaPrefabsAvailable -= RegisterCustomStatusEffects;
         }
-        
+
         /*private void CreateRaceBoard()
         {
             try
@@ -400,9 +401,9 @@ namespace SuperVikingKart
                 board.StartButton    = WireButton(prefab, "StartButton",    RaceBoardButtonType.Start,    board);
                 board.ResetButton    = WireButton(prefab, "ResetButton",    RaceBoardButtonType.Reset,    board);
                 board.AdminButton    = WireButton(prefab, "AdminButton",    RaceBoardButtonType.Admin,    board);
-                
+
                 // Rgister into KitbashManeger to apply the kitbash
-                KitbashManager.Instance.AddKitbash(prefab, new KitbashConfig { 
+                KitbashManager.Instance.AddKitbash(prefab, new KitbashConfig {
                     Layer = "piece",
                     KitbashSources = new List<KitbashSourceConfig>
                     {
@@ -434,7 +435,7 @@ namespace SuperVikingKart
                             Scale = new Vector3(0.41221f, 0.41221f, 0.41221f)
                         }
                     }
-                }); 
+                });
 
                 var icon = RenderManager.Instance.Render(prefab, RenderManager.IsometricRotation);
 
@@ -464,7 +465,7 @@ namespace SuperVikingKart
             {
                 PrefabManager.OnVanillaPrefabsAvailable -= CreateRaceBoard;
             }
-            
+
             RaceBoardButton WireButton(GameObject prefab, string childName,
                 RaceBoardButtonType type, RaceBoardComponent board)
             {
@@ -475,7 +476,7 @@ namespace SuperVikingKart
                 return button;
             }
         }*/
-        
+
         private void CreateRaceBoard()
         {
             try
@@ -495,7 +496,7 @@ namespace SuperVikingKart
                 boardVisual.name = "BoardVisual";
                 boardVisual.transform.SetParent(prefab.transform, false);
                 boardVisual.transform.localPosition = new Vector3(0f, 2.6f, 0f);
-                boardVisual.transform.localScale    = new Vector3(2.4f, 2.8f, 0.1f);
+                boardVisual.transform.localScale = new Vector3(2.4f, 2.8f, 0.1f);
                 DestroyImmediate(boardVisual.GetComponent<BoxCollider>());
                 boardVisual.GetComponent<MeshRenderer>().material = CreateRaceBoardMaterial();
 
@@ -503,51 +504,55 @@ namespace SuperVikingKart
                 var displayGo = new GameObject("StatusDisplay");
                 displayGo.transform.SetParent(prefab.transform, false);
                 displayGo.transform.localRotation = Quaternion.identity;
-                displayGo.transform.localScale    = Vector3.one;
+                displayGo.transform.localScale = Vector3.one;
 
                 var tmp = displayGo.AddComponent<TMPro.TextMeshPro>();
-                tmp.font               = PrefabManager.Cache.GetPrefab<TMP_FontAsset>("Valheim-AveriaSansLibre");
-                tmp.alignment          = TMPro.TextAlignmentOptions.TopLeft;
-                tmp.fontSize           = 1f;
-                tmp.color              = Color.white;
-                tmp.textWrappingMode   = TextWrappingModes.Normal;
-                tmp.overflowMode       = TMPro.TextOverflowModes.Overflow;
+                tmp.font = PrefabManager.Cache.GetPrefab<TMP_FontAsset>("Valheim-AveriaSansLibre");
+                tmp.alignment = TMPro.TextAlignmentOptions.TopLeft;
+                tmp.fontSize = 1f;
+                tmp.color = Color.white;
+                tmp.textWrappingMode = TextWrappingModes.Normal;
+                tmp.overflowMode = TMPro.TextOverflowModes.Overflow;
 
-                tmp.rectTransform.pivot              = new Vector2(0.5f, 0.5f);
-                tmp.rectTransform.anchorMin          = new Vector2(0.5f, 0.5f);
-                tmp.rectTransform.anchorMax          = new Vector2(0.5f, 0.5f);
-                tmp.rectTransform.sizeDelta          = new Vector2(2.1f, 2.7f);
+                tmp.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+                tmp.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+                tmp.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+                tmp.rectTransform.sizeDelta = new Vector2(2.1f, 2.7f);
                 tmp.rectTransform.anchoredPosition3D = new Vector3(0.05f, 2.4f, -0.06f);
 
                 // Buttons
-                var registerButtonGo = CreateButtonObject("RegisterButton", prefab.transform, new Vector3(-0.9f,  1.25f, -0.06f), "Register");
-                var startButtonGo    = CreateButtonObject("StartButton",    prefab.transform, new Vector3(-0.3f,  1.25f, -0.06f), "Start");
-                var resetButtonGo    = CreateButtonObject("ResetButton",    prefab.transform, new Vector3( 0.3f,  1.25f, -0.06f), "Reset");
-                var adminButtonGo    = CreateButtonObject("AdminButton",    prefab.transform, new Vector3( 0.9f,  1.25f, -0.06f), "Admin");
+                var registerButtonGo = CreateButtonObject("RegisterButton", prefab.transform,
+                    new Vector3(-0.9f, 1.25f, -0.06f), "Register");
+                var startButtonGo = CreateButtonObject("StartButton", prefab.transform,
+                    new Vector3(-0.3f, 1.25f, -0.06f), "Start");
+                var resetButtonGo = CreateButtonObject("ResetButton", prefab.transform,
+                    new Vector3(0.3f, 1.25f, -0.06f), "Reset");
+                var adminButtonGo = CreateButtonObject("AdminButton", prefab.transform,
+                    new Vector3(0.9f, 1.25f, -0.06f), "Admin");
 
                 // Collider
-                var rootCollider    = prefab.AddComponent<BoxCollider>();
+                var rootCollider = prefab.AddComponent<BoxCollider>();
                 rootCollider.center = new Vector3(0f, 2f, 0f);
-                rootCollider.size   = new Vector3(2.5f, 4f, 0.2f);
+                rootCollider.size = new Vector3(2.5f, 4f, 0.2f);
 
                 // RaceBoardComponent
-                var board            = prefab.AddComponent<RaceBoardComponent>();
-                board.StatusDisplay  = tmp;
+                var board = prefab.AddComponent<RaceBoardComponent>();
+                board.StatusDisplay = tmp;
                 board.RegisterButton = WireButton(registerButtonGo, RaceBoardButtonType.Register, board);
-                board.StartButton    = WireButton(startButtonGo,    RaceBoardButtonType.Start,    board);
-                board.ResetButton    = WireButton(resetButtonGo,    RaceBoardButtonType.Reset,    board);
-                board.AdminButton    = WireButton(adminButtonGo,    RaceBoardButtonType.Admin,    board);
+                board.StartButton = WireButton(startButtonGo, RaceBoardButtonType.Start, board);
+                board.ResetButton = WireButton(resetButtonGo, RaceBoardButtonType.Reset, board);
+                board.AdminButton = WireButton(adminButtonGo, RaceBoardButtonType.Admin, board);
 
                 // Register
                 var icon = RenderManager.Instance.Render(prefab, RenderManager.IsometricRotation);
 
                 PieceManager.Instance.AddPiece(new CustomPiece(prefab, false, new PieceConfig
                 {
-                    Name         = "Race Board",
-                    Description  = "Place to configure and manage a race. Shows you race statistics in real time.",
-                    PieceTable   = PieceTables.Hammer,
-                    Category     = PieceCategories.Misc,
-                    Icon         = icon,
+                    Name = "Race Board",
+                    Description = "Place to configure and manage a race. Shows you race statistics in real time.",
+                    PieceTable = PieceTables.Hammer,
+                    Category = PieceCategories.Misc,
+                    Icon = icon,
                     Requirements = new[]
                     {
                         new RequirementConfig("Wood", 4),
@@ -571,9 +576,9 @@ namespace SuperVikingKart
         private Material CreateRaceBoardMaterial()
         {
             var texture = new Texture2D(64, 64);
-            var colors  = new Color[64 * 64];
-            var bg      = new Color(0.15f, 0.1f, 0.05f);
-            var border  = new Color(0.6f,  0.4f, 0.1f);
+            var colors = new Color[64 * 64];
+            var bg = new Color(0.15f, 0.1f, 0.05f);
+            var border = new Color(0.6f, 0.4f, 0.1f);
 
             for (var i = 0; i < colors.Length; i++)
                 colors[i] = bg;
@@ -598,7 +603,7 @@ namespace SuperVikingKart
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
             go.transform.localPosition = localPos;
-            go.transform.localScale    = Vector3.one;
+            go.transform.localScale = Vector3.one;
 
             var visual = GameObject.CreatePrimitive(PrimitiveType.Cube);
             visual.name = "Visual";
@@ -607,26 +612,26 @@ namespace SuperVikingKart
             DestroyImmediate(visual.GetComponent<BoxCollider>());
             visual.GetComponent<MeshRenderer>().material = CreateButtonMaterial();
 
-            var collider  = go.AddComponent<BoxCollider>();
+            var collider = go.AddComponent<BoxCollider>();
             collider.size = new Vector3(0.48f, 0.18f, 0.12f);
 
             // Label parented to root (no inherited scale from visual cube)
             var labelGo = new GameObject("Label");
             labelGo.transform.SetParent(go.transform, false);
             labelGo.transform.localPosition = new Vector3(0f, 0f, -0.04f);
-            labelGo.transform.localScale    = Vector3.one;
+            labelGo.transform.localScale = Vector3.one;
 
             var labelTmp = labelGo.AddComponent<TMPro.TextMeshPro>();
-            labelTmp.font               = PrefabManager.Cache.GetPrefab<TMP_FontAsset>("Valheim-AveriaSansLibre");
-            labelTmp.text               = label;
-            labelTmp.alignment          = TMPro.TextAlignmentOptions.Center;
-            labelTmp.fontSize           = 1f;
-            labelTmp.color              = Color.white;
-            labelTmp.textWrappingMode   = TextWrappingModes.Normal;
-            labelTmp.rectTransform.sizeDelta       = new Vector2(0.44f, 0.16f);
-            labelTmp.rectTransform.pivot           = new Vector2(0.5f, 0.5f);
-            labelTmp.rectTransform.anchorMin       = new Vector2(0.5f, 0.5f);
-            labelTmp.rectTransform.anchorMax       = new Vector2(0.5f, 0.5f);
+            labelTmp.font = PrefabManager.Cache.GetPrefab<TMP_FontAsset>("Valheim-AveriaSansLibre");
+            labelTmp.text = label;
+            labelTmp.alignment = TMPro.TextAlignmentOptions.Center;
+            labelTmp.fontSize = 1f;
+            labelTmp.color = Color.white;
+            labelTmp.textWrappingMode = TextWrappingModes.Normal;
+            labelTmp.rectTransform.sizeDelta = new Vector2(0.44f, 0.16f);
+            labelTmp.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            labelTmp.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            labelTmp.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
             labelTmp.rectTransform.anchoredPosition = Vector2.zero;
 
             return go;
@@ -635,9 +640,9 @@ namespace SuperVikingKart
         private Material CreateButtonMaterial()
         {
             var texture = new Texture2D(32, 16);
-            var colors  = new Color[32 * 16];
-            var bg      = new Color(0.20f, 0.12f, 0.04f);
-            var border  = new Color(0.55f, 0.35f, 0.08f);
+            var colors = new Color[32 * 16];
+            var bg = new Color(0.20f, 0.12f, 0.04f);
+            var border = new Color(0.55f, 0.35f, 0.08f);
 
             for (var i = 0; i < colors.Length; i++)
                 colors[i] = bg;
@@ -661,10 +666,10 @@ namespace SuperVikingKart
         {
             var btn = go.AddComponent<RaceBoardButton>();
             btn.ButtonType = type;
-            btn.Board      = board;
+            btn.Board = board;
             return btn;
         }
-    
+
         private void CreateRaceLine()
         {
             try
@@ -683,9 +688,9 @@ namespace SuperVikingKart
                 // Place collider for placement
                 var placeGo = new GameObject("PlaceCollider");
                 placeGo.transform.SetParent(prefab.transform, false);
-                var snapCol        = placeGo.AddComponent<BoxCollider>();
-                snapCol.center     = new Vector3(3f, 0f, 0f);
-                snapCol.size       = new Vector3(6f, 0.001f, 0.001f);
+                var snapCol = placeGo.AddComponent<BoxCollider>();
+                snapCol.center = new Vector3(3f, 0f, 0f);
+                snapCol.size = new Vector3(6f, 0.001f, 0.001f);
 
                 // Trigger Collider
                 var triggerGo = new GameObject("TriggerCollider");
@@ -693,17 +698,17 @@ namespace SuperVikingKart
                 triggerGo.transform.localPosition = new Vector3(0f, 0f, 0f);
 
                 // Kinematic Rigidbody required for trigger callbacks
-                var rb           = triggerGo.AddComponent<Rigidbody>();
-                rb.isKinematic   = true;
-                rb.useGravity    = false;
+                var rb = triggerGo.AddComponent<Rigidbody>();
+                rb.isKinematic = true;
+                rb.useGravity = false;
 
-                var triggerCol      = triggerGo.AddComponent<BoxCollider>();
+                var triggerCol = triggerGo.AddComponent<BoxCollider>();
                 triggerCol.isTrigger = true;
-                triggerCol.size      = new Vector3(6f, 3f, 1f); // wide, tall, thin
-                
+                triggerCol.size = new Vector3(6f, 3f, 1f); // wide, tall, thin
+
                 // Gate posts
-                CreatePost("PostLeft",  prefab.transform, new Vector3(-3f, 1.5f, 0f));
-                CreatePost("PostRight", prefab.transform, new Vector3( 3f, 1.5f, 0f));
+                CreatePost("PostLeft", prefab.transform, new Vector3(-3f, 1.5f, 0f));
+                CreatePost("PostRight", prefab.transform, new Vector3(3f, 1.5f, 0f));
 
                 // Ground quad (chequered)
                 var groundQuad = GameObject.CreatePrimitive(PrimitiveType.Quad);
@@ -711,7 +716,7 @@ namespace SuperVikingKart
                 groundQuad.transform.SetParent(prefab.transform, false);
                 groundQuad.transform.localPosition = new Vector3(0f, 0.02f, 0f);
                 groundQuad.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-                groundQuad.transform.localScale    = new Vector3(6f, 1f, 1f);
+                groundQuad.transform.localScale = new Vector3(6f, 1f, 1f);
                 DestroyImmediate(groundQuad.GetComponent<MeshCollider>());
                 var groundMat = CreateChequeredMaterial();
                 groundMat.mainTextureScale = new Vector2(
@@ -726,7 +731,7 @@ namespace SuperVikingKart
                 arrowQuad.transform.SetParent(prefab.transform, false);
                 arrowQuad.transform.localPosition = new Vector3(0f, 0.03f, 0.6f); // slightly in front of line
                 arrowQuad.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-                arrowQuad.transform.localScale    = new Vector3(1f, 1f, 1f);
+                arrowQuad.transform.localScale = new Vector3(1f, 1f, 1f);
                 DestroyImmediate(arrowQuad.GetComponent<MeshCollider>());
                 arrowQuad.GetComponent<MeshRenderer>().material = CreateArrowMaterial();
 
@@ -734,20 +739,20 @@ namespace SuperVikingKart
                 var labelGo = new GameObject("Label");
                 labelGo.transform.SetParent(prefab.transform, false);
                 labelGo.transform.localPosition = Vector3.zero;
-                labelGo.transform.localScale    = Vector3.one;
+                labelGo.transform.localScale = Vector3.one;
 
                 var tmp = labelGo.AddComponent<TextMeshPro>();
-                tmp.font             = PrefabManager.Cache.GetPrefab<TMP_FontAsset>("Valheim-Norse");
-                tmp.alignment        = TextAlignmentOptions.Center;
-                tmp.fontSize         = 3f;
-                tmp.color            = Color.black;
-                tmp.fontStyle        = FontStyles.Bold;
+                tmp.font = PrefabManager.Cache.GetPrefab<TMP_FontAsset>("Valheim-Norse");
+                tmp.alignment = TextAlignmentOptions.Center;
+                tmp.fontSize = 3f;
+                tmp.color = Color.black;
+                tmp.fontStyle = FontStyles.Bold;
                 tmp.textWrappingMode = TextWrappingModes.Normal;
-                tmp.overflowMode     = TextOverflowModes.Overflow;
-                tmp.rectTransform.sizeDelta          = new Vector2(6f, 1.5f);
-                tmp.rectTransform.pivot              = new Vector2(0.5f, 0.5f);
-                tmp.rectTransform.anchorMin          = new Vector2(0.5f, 0.5f);
-                tmp.rectTransform.anchorMax          = new Vector2(0.5f, 0.5f);
+                tmp.overflowMode = TextOverflowModes.Overflow;
+                tmp.rectTransform.sizeDelta = new Vector2(6f, 1.5f);
+                tmp.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+                tmp.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+                tmp.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
                 tmp.rectTransform.anchoredPosition3D = new Vector3(0f, 3f, -0.05f);
 
                 // Banner between posts
@@ -755,9 +760,9 @@ namespace SuperVikingKart
                 banner.name = "Banner";
                 banner.transform.SetParent(prefab.transform, false);
                 banner.transform.localPosition = new Vector3(0f, 3f, 0f);
-                banner.transform.localScale    = new Vector3(6f, 0.4f, 0.01f);
+                banner.transform.localScale = new Vector3(6f, 0.4f, 0.01f);
                 banner.GetComponent<MeshRenderer>().material = CreateBannerMaterial();
-                
+
                 // RaceLineComponent on root
                 var raceLine = prefab.AddComponent<RaceLineComponent>();
                 raceLine.Label = tmp;
@@ -765,7 +770,7 @@ namespace SuperVikingKart
                 // Trigger relay component
                 var relay = triggerGo.AddComponent<RaceLineTrigger>();
                 relay.Line = raceLine;
-                
+
                 // Global scale
                 prefab.transform.localScale = new Vector3(1.2f, 1.2f, 1f);
 
@@ -774,11 +779,12 @@ namespace SuperVikingKart
 
                 PieceManager.Instance.AddPiece(new CustomPiece(prefab, false, new PieceConfig
                 {
-                    Name        = "Race Line",
-                    Description = "Start and/or finish line for a race. Place the arrow facing the direction of travel.",
-                    PieceTable  = PieceTables.Hammer,
-                    Category    = PieceCategories.Misc,
-                    Icon        = icon,
+                    Name = "Race Line",
+                    Description =
+                        "Start and/or finish line for a race. Place the arrow facing the direction of travel.",
+                    PieceTable = PieceTables.Hammer,
+                    Category = PieceCategories.Misc,
+                    Icon = icon,
                     Requirements = new[]
                     {
                         new RequirementConfig("Wood", 2)
@@ -806,7 +812,7 @@ namespace SuperVikingKart
             post.name = name;
             post.transform.SetParent(parent, false);
             post.transform.localPosition = localPos;
-            post.transform.localScale    = new Vector3(0.15f, 1.5f, 0.15f); // height = 3 units total
+            post.transform.localScale = new Vector3(0.15f, 1.5f, 0.15f); // height = 3 units total
             //DestroyImmediate(post.GetComponent<CapsuleCollider>());
             post.GetComponent<MeshRenderer>().material = CreatePostMaterial();
         }
@@ -815,7 +821,7 @@ namespace SuperVikingKart
         {
             const int size = 64;
             var texture = new Texture2D(size, size);
-            var colors  = new Color[size * size];
+            var colors = new Color[size * size];
 
             for (var x = 0; x < size; x++)
             for (var y = 0; y < size; y++)
@@ -839,7 +845,7 @@ namespace SuperVikingKart
         {
             const int size = 32;
             var texture = new Texture2D(size, size);
-            var colors  = new Color[size * size];
+            var colors = new Color[size * size];
 
             // Transparent background
             for (var i = 0; i < colors.Length; i++)
@@ -871,7 +877,7 @@ namespace SuperVikingKart
             var mat = new Material(torchMat)
             {
                 mainTexture = texture,
-                color       = Color.white
+                color = Color.white
             };
             return mat;
         }
@@ -879,7 +885,7 @@ namespace SuperVikingKart
         private Material CreatePostMaterial()
         {
             var texture = new Texture2D(4, 4);
-            var colors  = new Color[16];
+            var colors = new Color[16];
             for (var i = 0; i < 16; i++)
                 colors[i] = new Color(0.9f, 0.85f, 0.1f); // bright yellow
             texture.SetPixels(colors);
@@ -894,7 +900,7 @@ namespace SuperVikingKart
         {
             const int w = 64, h = 16;
             var texture = new Texture2D(w, h);
-            var colors  = new Color[w * h];
+            var colors = new Color[w * h];
 
             // Alternating red/white stripes
             for (var x = 0; x < w; x++)

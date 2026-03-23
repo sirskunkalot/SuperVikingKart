@@ -127,23 +127,48 @@ namespace SuperVikingKart
                     ListRaces();
                     break;
                 case "register":
-                    if (args.Length < 2) { Console.instance.Print("Usage: svk_race register <raceId>"); return; }
+                    if (args.Length < 2)
+                    {
+                        Console.instance.Print("Usage: svk_race register <raceId>");
+                        return;
+                    }
+
                     RegisterPlayer(player, args[1]);
                     break;
                 case "leave":
-                    if (args.Length < 2) { Console.instance.Print("Usage: svk_race leave <raceId>"); return; }
+                    if (args.Length < 2)
+                    {
+                        Console.instance.Print("Usage: svk_race leave <raceId>");
+                        return;
+                    }
+
                     LeaveRace(player, args[1]);
                     break;
                 case "start":
-                    if (args.Length < 2) { Console.instance.Print("Usage: svk_race start <raceId>"); return; }
+                    if (args.Length < 2)
+                    {
+                        Console.instance.Print("Usage: svk_race start <raceId>");
+                        return;
+                    }
+
                     StartRace(args[1]);
                     break;
                 case "reset":
-                    if (args.Length < 2) { Console.instance.Print("Usage: svk_race reset <raceId>"); return; }
+                    if (args.Length < 2)
+                    {
+                        Console.instance.Print("Usage: svk_race reset <raceId>");
+                        return;
+                    }
+
                     ResetRace(args[1]);
                     break;
                 case "results":
-                    if (args.Length < 2) { Console.instance.Print("Usage: svk_race results <raceId>"); return; }
+                    if (args.Length < 2)
+                    {
+                        Console.instance.Print("Usage: svk_race results <raceId>");
+                        return;
+                    }
+
                     ShowResults(args[1]);
                     break;
                 default:
@@ -169,9 +194,11 @@ namespace SuperVikingKart
             var count = 0;
             foreach (var race in RaceManager.GetAllRaces())
             {
-                Console.instance.Print($"  [{race.RaceId}] \"{race.Name}\" State: {race.State}, Contestants: {race.Contestants.Count}");
+                Console.instance.Print(
+                    $"  [{race.RaceId}] \"{race.Name}\" State: {race.State}, Contestants: {race.Contestants.Count}");
                 count++;
             }
+
             if (count == 0)
                 Console.instance.Print("No active races");
         }
@@ -184,13 +211,13 @@ namespace SuperVikingKart
                 Console.instance.Print($"Race [{raceId}] not found");
                 return;
             }
-            
+
             if (race.State != RaceState.Idle)
             {
                 Console.instance.Print($"Race [{raceId}] is already underway");
                 return;
             }
-            
+
             if (race.IsRegistered(player.GetZDOID()))
             {
                 Console.instance.Print($"Already registered for [{raceId}]");
@@ -280,6 +307,7 @@ namespace SuperVikingKart
                 Console.instance.Print($"Race [{raceId}] not found");
                 return;
             }
+
             Console.instance.Print(race.GetResultsText());
         }
     }
@@ -316,54 +344,104 @@ namespace SuperVikingKart
             switch (args[0].ToLower())
             {
                 case "create":
-                    if (args.Length < 2) { Console.instance.Print("Usage: svk_race_admin create <raceId> [laps] [name]"); return; }
+                    if (args.Length < 2)
+                    {
+                        Console.instance.Print("Usage: svk_race_admin create <raceId> [laps] [name]");
+                        return;
+                    }
+
                     var createLaps = args.Length > 2 && int.TryParse(args[2], out var l) ? l : 1;
                     var createName = args.Length > 3 ? string.Join(" ", args, 3, args.Length - 3) : null;
                     CreateRace(args[1], createName, createLaps);
                     break;
 
                 case "remove":
-                    if (args.Length < 2) { Console.instance.Print("Usage: svk_race_admin remove <raceId>"); return; }
+                    if (args.Length < 2)
+                    {
+                        Console.instance.Print("Usage: svk_race_admin remove <raceId>");
+                        return;
+                    }
+
                     RemoveRace(args[1]);
                     break;
 
                 case "addplayer":
-                    if (args.Length < 3) { Console.instance.Print("Usage: svk_race_admin addplayer <raceId> <playerName>"); return; }
+                    if (args.Length < 3)
+                    {
+                        Console.instance.Print("Usage: svk_race_admin addplayer <raceId> <playerName>");
+                        return;
+                    }
+
                     AddPlayer(args[1], args[2]);
                     break;
-                
+
                 case "setname":
-                    if (args.Length < 3) { Console.instance.Print("Usage: svk_race_admin setname <raceId> <name>"); return; }
+                    if (args.Length < 3)
+                    {
+                        Console.instance.Print("Usage: svk_race_admin setname <raceId> <name>");
+                        return;
+                    }
+
                     SetName(args[1], string.Join(" ", args, 2, args.Length - 2));
                     break;
-                
+
                 case "setlaps":
-                    if (args.Length < 3) { Console.instance.Print("Usage: svk_race_admin setlaps <raceId> <count>"); return; }
+                    if (args.Length < 3)
+                    {
+                        Console.instance.Print("Usage: svk_race_admin setlaps <raceId> <count>");
+                        return;
+                    }
+
                     SetLaps(args[1], args[2]);
                     break;
 
                 case "forcestart":
-                    if (args.Length < 2) { Console.instance.Print("Usage: svk_race_admin forcestart <raceId>"); return; }
+                    if (args.Length < 2)
+                    {
+                        Console.instance.Print("Usage: svk_race_admin forcestart <raceId>");
+                        return;
+                    }
+
                     ForceStart(args[1]);
                     break;
 
                 case "forcereset":
-                    if (args.Length < 2) { Console.instance.Print("Usage: svk_race_admin forcereset <raceId>"); return; }
+                    if (args.Length < 2)
+                    {
+                        Console.instance.Print("Usage: svk_race_admin forcereset <raceId>");
+                        return;
+                    }
+
                     ForceReset(args[1]);
                     break;
 
                 case "lap":
-                    if (args.Length < 2) { Console.instance.Print("Usage: svk_race_admin lap <raceId> [playerName]"); return; }
+                    if (args.Length < 2)
+                    {
+                        Console.instance.Print("Usage: svk_race_admin lap <raceId> [playerName]");
+                        return;
+                    }
+
                     SimulateLap(args);
                     break;
 
                 case "finish":
-                    if (args.Length < 2) { Console.instance.Print("Usage: svk_race_admin finish <raceId> [playerName]"); return; }
+                    if (args.Length < 2)
+                    {
+                        Console.instance.Print("Usage: svk_race_admin finish <raceId> [playerName]");
+                        return;
+                    }
+
                     SimulateFinish(args);
                     break;
 
                 case "state":
-                    if (args.Length < 2) { Console.instance.Print("Usage: svk_race_admin state <raceId>"); return; }
+                    if (args.Length < 2)
+                    {
+                        Console.instance.Print("Usage: svk_race_admin state <raceId>");
+                        return;
+                    }
+
                     ShowState(args[1]);
                     break;
 
@@ -387,7 +465,7 @@ namespace SuperVikingKart
             Console.instance.Print("  finish <raceId> [playerName]     - Simulate finishing all laps");
             Console.instance.Print("  state <raceId>                   - Show detailed race state");
         }
-        
+
         /// <summary>
         /// Broadcasts race creation to all clients.
         /// </summary>
@@ -469,7 +547,7 @@ namespace SuperVikingKart
             RaceManager.SendSetName(raceId, name);
             Console.instance.Print($"Race [{raceId}] renamed to \"{name}\"");
         }
-        
+
         /// <summary>
         /// Broadcasts a lap change for an existing race to all clients.
         /// </summary>
@@ -669,6 +747,7 @@ namespace SuperVikingKart
                 if (player.GetPlayerName().ToLower().Contains(lowerName))
                     return player;
             }
+
             return null;
         }
     }

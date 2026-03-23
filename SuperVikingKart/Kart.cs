@@ -271,7 +271,7 @@ namespace SuperVikingKart
 
             return null;
         }
-        
+
         /// <summary>
         /// Returns the local cached Player instance instead looking up the Player
         /// from ZNetScene. Fast path for comparison with Player.m_localPlayer.
@@ -514,7 +514,7 @@ namespace SuperVikingKart
 
             var netView = __instance.GetComponent<ZNetView>();
             if (!netView) return;
-            
+
             var position = __instance.transform.position;
 
             // Only schedule the actual respawn once — on the ZDO owner.
@@ -526,7 +526,7 @@ namespace SuperVikingKart
                 SuperVikingKart.DebugLog($"KartRespawn - Kart destroyed at {position}, scheduling respawn");
                 SuperVikingKart.Instance.StartCoroutine(RespawnKart(position, yRotation, color));
             }
-            
+
             // Spawn the timer GO on every client
             SuperVikingKart.DebugLog(
                 $"KartRespawn - Spawning timer for local client");
