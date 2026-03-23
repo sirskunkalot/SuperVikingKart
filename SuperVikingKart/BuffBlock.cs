@@ -62,17 +62,20 @@ namespace SuperVikingKart
         {
             // Puller
             new("Speed Boost", "SuperVikingKart_SpeedBoost", BuffTarget.Puller),
-            new("Stamina Regen", "Potion_stamina_minor", BuffTarget.Puller),
+            new("Stamina Regen", "SuperVikingKart_StaminaRegen", BuffTarget.Puller),
             new("Stamina Burst", "SuperVikingKart_StaminaBurst", BuffTarget.Puller),
             // Rider
-            new("Shield", "GP_Bonemass", BuffTarget.Rider),
-            new("Health Regen", "Potion_healthminor", BuffTarget.Rider),
+            new("Shield", "SuperVikingKart_Shield", BuffTarget.Rider),
+            new("Health Regen", "SuperVikingKart_HealthRegen", BuffTarget.Rider),
+            new("Health Burst", "SuperVikingKart_HealthBurst", BuffTarget.Rider),
             new("Ooze Bombs", "SuperVikingKart_OozeBombs", BuffTarget.Rider),
-            new("Fire Arrows", "SuperVikingKart_FireArrows", BuffTarget.Rider),
             new("Bile Bombs", "SuperVikingKart_BileBombs", BuffTarget.Rider),
+            new("Smoke Bombs", "SuperVikingKart_SmokeBombs", BuffTarget.Rider),
+            new("Fire Arrows", "SuperVikingKart_FireArrows", BuffTarget.Rider),
+            new("Harpoon", "SuperVikingKart_Harpoon", BuffTarget.Rider),
             new("Berserk", "SuperVikingKart_Berserk", BuffTarget.Rider),
             // Both
-            new("Living Dead", "CorpseRun", BuffTarget.Both),
+            new("Living Dead", "SuperVikingKart_LivingDead", BuffTarget.Both),
         };
 
         private static readonly BuffDefinition[] Debuffs =

@@ -327,53 +327,67 @@ namespace SuperVikingKart
 
         private void RegisterCustomStatusEffects()
         {
-            var oozeBombs = ScriptableObject.CreateInstance<SE_OozeBombs>();
-            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(oozeBombs, fixReference: false));
+            // --- Buffs ---
 
-            var staminaBurst = ScriptableObject.CreateInstance<SE_StaminaBurst>();
-            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(staminaBurst, fixReference: false));
+            // Puller
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartSpeedBoost>(), fixReference: false));
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartStaminaRegen>(), fixReference: false));
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartStaminaBurst>(), fixReference: false));
 
-            var kartPoison = ScriptableObject.CreateInstance<SE_KartPoison>();
-            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartPoison, fixReference: false));
+            // Rider
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartShield>(), fixReference: false));
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartHealthRegen>(), fixReference: false));
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartHealthBurst>(), fixReference: false));
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartOozeBombs>(), fixReference: false));
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartBileBombs>(), fixReference: false));
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartSmokeBombs>(), fixReference: false));
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartFireArrows>(), fixReference: false));
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartHarpoon>(), fixReference: false));
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartBerserk>(), fixReference: false));
 
-            var kartBurn = ScriptableObject.CreateInstance<SE_KartBurn>();
-            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartBurn, fixReference: false));
+            // Both
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartLivingDead>(), fixReference: false));
 
-            var kartFrost = ScriptableObject.CreateInstance<SE_KartFrost>();
-            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartFrost, fixReference: false));
+            // --- Debuffs ---
 
-            var kartShock = ScriptableObject.CreateInstance<SE_KartShock>();
-            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartShock, fixReference: false));
+            // Puller
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartFrost>(), fixReference: false));
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartTarred>(), fixReference: false));
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartBounce>(), fixReference: false));
 
-            var kartStagger = ScriptableObject.CreateInstance<SE_KartStagger>();
-            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartStagger, fixReference: false));
+            // Rider
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartPoison>(), fixReference: false));
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartBurn>(), fixReference: false));
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartStagger>(), fixReference: false));
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartDisarm>(), fixReference: false));
 
-            var kartTarred = ScriptableObject.CreateInstance<SE_KartTarred>();
-            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartTarred, fixReference: false));
-
-            var kartBlind = ScriptableObject.CreateInstance<SE_KartBlind>();
-            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartBlind, fixReference: false));
-
-            var kartBounce = ScriptableObject.CreateInstance<SE_KartBounce>();
-            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartBounce, fixReference: false));
-
-            var fireArrows = ScriptableObject.CreateInstance<SE_FireArrows>();
-            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(fireArrows, fixReference: false));
-
-            var bileBombs = ScriptableObject.CreateInstance<SE_BileBombs>();
-            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(bileBombs, fixReference: false));
-
-            var kartBerserk = ScriptableObject.CreateInstance<SE_KartBerserk>();
-            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartBerserk, fixReference: false));
-
-            var kartDisarm = ScriptableObject.CreateInstance<SE_KartDisarm>();
-            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(kartDisarm, fixReference: false));
-
-            var speedBoost = ScriptableObject.CreateInstance<SE_KartSpeedBoost>();
-            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(speedBoost, fixReference: false));
+            // Both
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartBlind>(), fixReference: false));
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartShock>(), fixReference: false));
 
             DebugLog("Custom status effects registered");
-
             PrefabManager.OnVanillaPrefabsAvailable -= RegisterCustomStatusEffects;
         }
 
