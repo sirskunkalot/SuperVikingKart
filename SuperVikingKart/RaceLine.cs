@@ -43,6 +43,9 @@ namespace SuperVikingKart
                 enabled = false;
                 return;
             }
+            
+            // Destroy arrow when not in ghost mode
+            DestroyImmediate(transform.Find("DirectionArrow").gameObject);
 
             SuperVikingKart.DebugLog(
                 $"RaceLine Awake - ZDO: {_netView.GetZDO().m_uid}, Role: {GetRole()}, RaceId: {GetRaceId()}");

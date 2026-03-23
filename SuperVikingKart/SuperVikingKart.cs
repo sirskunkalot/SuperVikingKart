@@ -315,14 +315,13 @@ namespace SuperVikingKart
             texture.Apply();
             texture.filterMode = FilterMode.Point;
 
-            var torchPrefab = PrefabManager.Instance.GetPrefab("Torch");
-            var torchMat = torchPrefab.GetComponentInChildren<MeshRenderer>().material;
-
-            return new Material(torchMat)
+            var shader = PrefabManager.Cache.GetPrefab<Shader>("Custom/Piece");
+            var mat = new Material(shader)
             {
                 mainTexture = texture,
-                color = Color.white
+                color = new Color(0.8f, 0.8f, 0.8f)
             };
+            return mat;
         }
 
         private void RegisterCustomStatusEffects()
@@ -606,10 +605,13 @@ namespace SuperVikingKart
             texture.Apply();
             texture.filterMode = FilterMode.Point;
 
-            var torchMat = PrefabManager.Instance.GetPrefab("Torch")
-                .GetComponentInChildren<MeshRenderer>().material;
-
-            return new Material(torchMat) { mainTexture = texture, color = Color.white };
+            var shader = PrefabManager.Cache.GetPrefab<Shader>("Custom/Piece");
+            var mat = new Material(shader)
+            {
+                mainTexture = texture,
+                color = Color.white
+            };
+            return mat;
         }
 
         private GameObject CreateButtonObject(string name, Transform parent, Vector3 localPos, string label)
@@ -670,10 +672,13 @@ namespace SuperVikingKart
             texture.Apply();
             texture.filterMode = FilterMode.Point;
 
-            var torchMat = PrefabManager.Instance.GetPrefab("Torch")
-                .GetComponentInChildren<MeshRenderer>().material;
-
-            return new Material(torchMat) { mainTexture = texture, color = Color.white };
+            var shader = PrefabManager.Cache.GetPrefab<Shader>("Custom/Piece");
+            var mat = new Material(shader)
+            {
+                mainTexture = texture,
+                color = Color.white
+            };
+            return mat;
         }
 
         private RaceBoardButton WireButton(GameObject go, RaceBoardButtonType type, RaceBoardComponent board)
@@ -744,7 +749,7 @@ namespace SuperVikingKart
                 arrowQuad.name = "DirectionArrow";
                 arrowQuad.transform.SetParent(prefab.transform, false);
                 arrowQuad.transform.localPosition = new Vector3(0f, 0.03f, 0.6f); // slightly in front of line
-                arrowQuad.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                arrowQuad.transform.localRotation = Quaternion.Euler(90f, 270f, 0f);
                 arrowQuad.transform.localScale = new Vector3(1f, 1f, 1f);
                 DestroyImmediate(arrowQuad.GetComponent<MeshCollider>());
                 arrowQuad.GetComponent<MeshRenderer>().material = CreateArrowMaterial();
@@ -850,33 +855,36 @@ namespace SuperVikingKart
             texture.Apply();
             texture.filterMode = FilterMode.Point;
 
-            var torchMat = PrefabManager.Instance.GetPrefab("Torch")
-                .GetComponentInChildren<MeshRenderer>().material;
-            return new Material(torchMat) { mainTexture = texture, color = Color.white };
+            var shader = PrefabManager.Cache.GetPrefab<Shader>("Custom/Piece");
+            var mat = new Material(shader)
+            {
+                mainTexture = texture,
+                color = new Color(0.6f, 0.6f, 0.6f)
+            };
+            return mat;
         }
 
         private Material CreateArrowMaterial()
         {
             const int size = 32;
-            var texture = new Texture2D(size, size);
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
             var colors = new Color[size * size];
 
-            // Transparent background
+            // Fully transparent background
             for (var i = 0; i < colors.Length; i++)
                 colors[i] = new Color(1f, 0.6f, 0f, 0f);
 
-            // Paint a simple right-pointing arrow in orange (pointing toward +Z = forward)
-            // Arrow body
-            for (var x = 4; x < 20; x++)
-            for (var y = 12; y < 20; y++)
+            // Arrow body — centred vertically (rows 12–19)
+            for (var x = 2; x <= 17; x++)
+            for (var y = 12; y <= 19; y++)
                 colors[y * size + x] = new Color(1f, 0.6f, 0f, 1f);
 
-            // Arrow head (triangle pointing right)
-            for (var x = 20; x < 30; x++)
+            // Arrow head — tip at x=29, base at x=18, centre at y=15.5
+            for (var x = 18; x <= 29; x++)
             {
-                var halfWidth = (30 - x);
-                var yMin = 16 - halfWidth;
-                var yMax = 16 + halfWidth;
+                var halfWidth = 29 - x;
+                var yMin = Mathf.RoundToInt(15.5f - halfWidth);
+                var yMax = Mathf.RoundToInt(15.5f + halfWidth);
                 for (var y = yMin; y <= yMax; y++)
                     if (y >= 0 && y < size)
                         colors[y * size + x] = new Color(1f, 0.6f, 0f, 1f);
@@ -885,14 +893,14 @@ namespace SuperVikingKart
             texture.SetPixels(colors);
             texture.Apply();
             texture.filterMode = FilterMode.Point;
-
-            var torchMat = PrefabManager.Instance.GetPrefab("Torch")
-                .GetComponentInChildren<MeshRenderer>().material;
-            var mat = new Material(torchMat)
+            
+            var shader = PrefabManager.Cache.GetPrefab<Shader>("Custom/Piece");
+            var mat = new Material(shader)
             {
                 mainTexture = texture,
-                color = Color.white
+                color = new Color(0.6f, 0.6f, 0.6f)
             };
+            mat.SetFloat("_Cutoff", 0.1f);
             return mat;
         }
 
@@ -905,9 +913,13 @@ namespace SuperVikingKart
             texture.SetPixels(colors);
             texture.Apply();
 
-            var torchMat = PrefabManager.Instance.GetPrefab("Torch")
-                .GetComponentInChildren<MeshRenderer>().material;
-            return new Material(torchMat) { mainTexture = texture, color = Color.white };
+            var shader = PrefabManager.Cache.GetPrefab<Shader>("Custom/Piece");
+            var mat = new Material(shader)
+            {
+                mainTexture = texture,
+                color = new Color(0.6f, 0.6f, 0.6f)
+            };
+            return mat;
         }
 
         private Material CreateBannerMaterial()
@@ -925,9 +937,13 @@ namespace SuperVikingKart
             texture.Apply();
             texture.filterMode = FilterMode.Point;
 
-            var torchMat = PrefabManager.Instance.GetPrefab("Torch")
-                .GetComponentInChildren<MeshRenderer>().material;
-            return new Material(torchMat) { mainTexture = texture, color = Color.white };
+            var shader = PrefabManager.Cache.GetPrefab<Shader>("Custom/Piece");
+            var mat = new Material(shader)
+            {
+                mainTexture = texture,
+                color = new Color(0.6f, 0.6f, 0.6f)
+            };
+            return mat;
         }
     }
 }
