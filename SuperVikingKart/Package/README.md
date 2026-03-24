@@ -10,9 +10,9 @@ For a manual install, load the following required mods according to their respec
 
 Then extract the SuperVikingKart archive into `<Valheim>\BepInEx\plugins\SuperVikingKart`.
 
-## Kart
+## Karts
 
-![Karts Image](https://raw.githubusercontent.com/sirskunkalot/SuperVikingKart/master/SuperVikingKart/resources/karts.png)
+![Karts Image](https://raw.githubusercontent.com/sirskunkalot/SuperVikingKart/refs/heads/master/resources/karts.png)
 
 Adds a buildable **Super Viking Kart** piece to the Hammer under the Misc category.
 
@@ -26,7 +26,7 @@ Destroyed karts respawn after a configurable delay (default: 10 seconds) with a 
 
 ## Buff Blocks
 
-![Buff Blocks Image](https://raw.githubusercontent.com/sirskunkalot/SuperVikingKart/master/SuperVikingKart/resources/buffblocks.png)
+![Buff Blocks Image](https://raw.githubusercontent.com/sirskunkalot/SuperVikingKart/refs/heads/master/resources/buffblocks.png)
 
 Three types of collectible blocks that apply effects when a kart drives through them. The block hides itself and reappears after a configurable delay (default: 10 seconds).
 
@@ -91,7 +91,7 @@ Three types of collectible blocks that apply effects when a kart drives through 
 
 ### Race Board
 
-![Race Board Image](https://raw.githubusercontent.com/sirskunkalot/SuperVikingKart/master/SuperVikingKart/resources/raceboard.png)
+![Race Board Image](https://raw.githubusercontent.com/sirskunkalot/SuperVikingKart/refs/heads/master/resources/raceboard.png)
 
 Build a **Race Board** from the Hammer under the Misc category to configure and manage a race. The board displays live race status including registered players, lap progress, finish times, and final results.
 
@@ -101,7 +101,7 @@ Any player can use the **Register** button to sign up or leave. Any player can p
 
 ### Race Line
 
-![Race Line Images](https://raw.githubusercontent.com/sirskunkalot/SuperVikingKart/master/SuperVikingKart/resources/raceline.png)
+![Race Line Image](https://raw.githubusercontent.com/sirskunkalot/SuperVikingKart/refs/heads/master/resources/raceline.png)
 
 Build a **Race Line** from the Hammer under the Misc category to place start, finish, or combined start/finish lines. An arrow on the ground indicates the valid crossing direction - the line only registers crossings made in that direction.
 
@@ -115,6 +115,9 @@ When a race starts, a 3-second countdown is broadcast to all registered contesta
 Players who disconnect mid-race are automatically assigned a DNF. Players who leave voluntarily during a race are also assigned a DNF. Full results are shown to all remaining contestants once everyone has finished or received a DNF.
 
 ## Building a Race Track
+
+![Race Track Image](https://raw.githubusercontent.com/sirskunkalot/SuperVikingKart/refs/heads/master/resources/racetrack.png)
+
 All race pieces are linked by a shared **Race ID** - a short text string you choose. Every piece with the same Race ID is part of the same race.
 
 ### 1. Choose a Race ID
@@ -205,6 +208,6 @@ Configuration is found in `<Valheim>\BepInEx\configs\de.sirskunkalot.SuperViking
 ## Credits
 Mod created by [Jules](https://github.com/sirskunkalot).
 
-Made with love and [Jotunn](https://github.com/Valheim-Modding/Jotunn).
+Made with Löve and [Jotunn](https://github.com/Valheim-Modding/Jotunn).
 
 Source available on GitHub: [https://github.com/sirskunkalot/SuperVikingKart](https://github.com/sirskunkalot/SuperVikingKart). All contributions welcome!
