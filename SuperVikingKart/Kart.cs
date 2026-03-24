@@ -438,6 +438,21 @@ namespace SuperVikingKart
     }
 
     /// <summary>
+    /// Prevents highlighting through WearNTear since that would remove the custom
+    /// color and postfix re-apply did not work.
+    /// </summary>
+    [HarmonyPatch(typeof(WearNTear), nameof(WearNTear.Highlight))]
+    internal class KartColorHighlightPatch
+    {
+        // TODO: try to do it in Postfix of ResetHighlight, figuring out how to stop MaterialMan late update 
+        private static bool Prefix(WearNTear __instance)
+        {
+            var kart = __instance.GetComponentInChildren<SuperVikingKartComponent>();
+            return !kart;
+        }
+    }
+
+    /// <summary>
     /// Floating countdown timer spawned at the kart's destroy position.
     /// Shows remaining time until respawn as world-space text that faces the camera.
     /// Auto-destroys when the timer expires. Hoverable for precise readout.
