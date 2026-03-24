@@ -331,6 +331,8 @@ namespace SuperVikingKart
             if (!player) return;
             var prefab = ZNetScene.instance.GetPrefab("SpearChitin");
             if (!prefab) return;
+            var exists = player.GetInventory().ContainsItem(prefab.GetComponent<ItemDrop>().m_itemData);
+            if (exists) return;
             SuperVikingKart.DebugLog($"SE_KartHarpoon - Adding harpoon to {player.GetPlayerName()}");
             player.GetInventory().AddItem(prefab, 1);
         }
