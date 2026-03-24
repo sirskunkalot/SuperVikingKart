@@ -265,21 +265,21 @@ namespace SuperVikingKart
 
         private Material CreateBuffBlockMaterial() =>
             CreateBlockMaterial(
-                new Color(1f, 0.85f, 0f),
+                new Color(0.85f, 0.85f, 0f),
                 new Color(0.6f, 0.5f, 0f),
-                new Color(0.2f, 0.15f, 0f));
+                Color.black);  //new Color(0.2f, 0.15f, 0f));
 
         private Material CreateDebuffBlockMaterial() =>
             CreateBlockMaterial(
-                new Color(1f, 0.2f, 0.2f),
-                new Color(0.7f, 0.1f, 0.1f),
-                new Color(0.3f, 0.05f, 0.05f));
+                new Color(0.8f, 0.2f, 0.2f),
+                new Color(0.6f, 0.1f, 0.1f),
+                Color.black);  //new Color(0.3f, 0.05f, 0.05f));
 
         private Material CreateMysteryBlockMaterial() =>
             CreateBlockMaterial(
-                new Color(0.5f, 0.2f, 0.8f),
-                new Color(0.3f, 0.1f, 0.5f),
-                new Color(0.15f, 0.05f, 0.3f));
+                new Color(0.6f, 0.2f, 0.8f),
+                new Color(0.4f, 0.1f, 0.5f),
+                Color.black);  //new Color(0.15f, 0.05f, 0.3f));
 
         private Material CreateBlockMaterial(Color bgColor, Color borderColor, Color markColor)
         {
@@ -314,13 +314,23 @@ namespace SuperVikingKart
             texture.SetPixels(colors);
             texture.Apply();
             texture.filterMode = FilterMode.Point;
-
+            
             var shader = PrefabManager.Cache.GetPrefab<Shader>("Custom/Piece");
             var mat = new Material(shader)
             {
                 mainTexture = texture,
                 color = new Color(0.8f, 0.8f, 0.8f)
             };
+
+            // Kill vertex noise to remove flickering
+            mat.SetFloat("_RippleDistance", 0f);
+            mat.SetFloat("_ValueNoise", 0f);
+            mat.SetFloat("_ValueNoiseVertex", 0f);
+
+            // Slight emission so it looks bright regardless of lighting angle
+            mat.EnableKeyword("_EMISSION");
+            mat.SetColor("_EmissionColor", bgColor * 0.3f);
+
             return mat;
         }
 
@@ -822,8 +832,6 @@ namespace SuperVikingKart
                 PrefabManager.OnVanillaPrefabsAvailable -= CreateRaceLine;
             }
         }
-
-        // ---- Prefab helpers -------------------------------------------------
 
         private void CreatePost(string name, Transform parent, Vector3 localPos)
         {
