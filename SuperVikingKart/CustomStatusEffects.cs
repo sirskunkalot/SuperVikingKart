@@ -263,7 +263,7 @@ namespace SuperVikingKart
             var prefab = ZNetScene.instance.GetPrefab("BombBile");
             if (!prefab) return;
             SuperVikingKart.DebugLog($"SE_KartBileBombs - Adding bile bombs to {player.GetPlayerName()}");
-            player.GetInventory().AddItem(prefab, 5);
+            player.GetInventory().AddItem(prefab, 2);
         }
     }
 
