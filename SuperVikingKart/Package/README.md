@@ -20,7 +20,7 @@ One player mounts the kart by interacting with it. Another player pulls it by at
 
 The rider cannot damage their own kart with melee attacks. The kart's colliders are also temporarily disabled during swings so the rider can still hit targets through it. Hit your fellow contestants and karts while they are near!
 
-Alt-interact while aiming at the mount point to open a color picker. Drag the sliders for a live preview - the chosen color is broadcast to all clients and saved to the world.
+To change the color of Super Viking Kart use Alt-interact while aiming at the mount point of the cart to open a color picker. Drag the sliders for a live preview - the chosen color is broadcast to all clients and saved to the world.
 
 Destroyed karts respawn after a configurable delay (default: 10 seconds) with a floating countdown at the destruction site. Karts removed with the Hammer do not respawn.
 
@@ -208,6 +208,6 @@ Configuration is found in `<Valheim>\BepInEx\configs\de.sirskunkalot.SuperViking
 ## Credits
 Mod created by [Jules](https://github.com/sirskunkalot).
 
-Made with Löve and [Jotunn](https://github.com/Valheim-Modding/Jotunn).
+Made with Löve and [Jötunn](https://github.com/Valheim-Modding/Jotunn).
 
 Source available on GitHub: [https://github.com/sirskunkalot/SuperVikingKart](https://github.com/sirskunkalot/SuperVikingKart). All contributions welcome!
