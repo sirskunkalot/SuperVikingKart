@@ -161,6 +161,9 @@ If something isn't working, these commands can help:
 - `svk_race_admin lap meadows_gp` - simulate a lap crossing to verify finish line logic
 - `svk_race_admin forcereset meadows_gp` - reset the race back to Idle at any time
 
+### PS
+All the building pieces can be scaled before being placed and will retain their scaling (`ZNetView.m_syncInitialScale = true`). 
+
 ## Console Commands
 
 ### Player Commands

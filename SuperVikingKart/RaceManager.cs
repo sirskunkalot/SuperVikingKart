@@ -750,7 +750,7 @@ namespace SuperVikingKart
             if (race == null) return;
             race.Reset();
             var localPlayer = Player.m_localPlayer;
-            if (localPlayer)
+            if (localPlayer && race.IsRegistered(localPlayer.GetZDOID()))
                 localPlayer.Message(MessageHud.MessageType.Center, $"{race.Name} reset");
         }
     }
