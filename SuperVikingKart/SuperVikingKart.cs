@@ -109,12 +109,10 @@ namespace SuperVikingKart
                     Category = PieceCategories.Misc,
                     Requirements = new[]
                     {
-                        new RequirementConfig("Wood", 1)
+                        new RequirementConfig("Wood", 4)
                     }
                 });
 
-                //TODO: with or without station?
-                cart.Piece.m_craftingStation = null;
                 cart.Piece.m_canBeRemoved = true;
                 PieceManager.Instance.AddPiece(cart);
 
@@ -205,11 +203,11 @@ namespace SuperVikingKart
 
             var netView = prefab.AddComponent<ZNetView>();
             netView.m_persistent = true;
+            netView.m_syncInitialScale = true;
 
             var piece = prefab.AddComponent<Piece>();
             piece.m_canBeRemoved = true;
-            //TODO: with or without station?
-            //piece.m_craftingStation = PrefabManager.Cache.GetPrefab<CraftingStation>(CraftingStations.Workbench);
+            piece.m_craftingStation = PrefabManager.Cache.GetPrefab<CraftingStation>(CraftingStations.Workbench);
 
             var collider = prefab.AddComponent<BoxCollider>();
             collider.center = Vector3.up * 1f;
@@ -510,9 +508,11 @@ namespace SuperVikingKart
 
                 var netView = prefab.AddComponent<ZNetView>();
                 netView.m_persistent = true;
+                netView.m_syncInitialScale = true;
 
                 var piece = prefab.AddComponent<Piece>();
                 piece.m_canBeRemoved = true;
+                piece.m_craftingStation = PrefabManager.Cache.GetPrefab<CraftingStation>(CraftingStations.Workbench);
 
                 // BoardVisual
                 var boardVisual = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -710,9 +710,11 @@ namespace SuperVikingKart
 
                 var netView = prefab.AddComponent<ZNetView>();
                 netView.m_persistent = true;
+                netView.m_syncInitialScale = true;
 
                 var piece = prefab.AddComponent<Piece>();
                 piece.m_canBeRemoved = true;
+                piece.m_craftingStation = PrefabManager.Cache.GetPrefab<CraftingStation>(CraftingStations.Workbench);
 
                 // Place collider for placement
                 var placeGo = new GameObject("PlaceCollider");
