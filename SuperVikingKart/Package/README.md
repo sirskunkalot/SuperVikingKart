@@ -161,6 +161,9 @@ If something isn't working, these commands can help:
 - `svk_race_admin lap meadows_gp` - simulate a lap crossing to verify finish line logic
 - `svk_race_admin forcereset meadows_gp` - reset the race back to Idle at any time
 
+### PS
+All the building pieces can be scaled before being placed and will retain their scaling (`ZNetView.m_syncInitialScale = true`). 
+
 ## Console Commands
 
 ### Player Commands
@@ -181,7 +184,7 @@ All admin commands require devcommands.
 |---|---|
 | `svk_buff list` | Print all available effects with their targets and types. |
 | `svk_buff <name>` | Force-apply a specific buff or debuff to the local player. |
-| `svk_race_admin create <raceId> [laps] [name]` | Create a new race. |
+| `svk_race_admin create <raceId> [laps] [name]` | Create a new race. |S
 | `svk_race_admin remove <raceId>` | Remove a race entirely. |
 | `svk_race_admin addplayer <raceId> <playerName>` | Add a connected player to a race by name. |
 | `svk_race_admin setname <raceId> <name>` | Rename a race. |
