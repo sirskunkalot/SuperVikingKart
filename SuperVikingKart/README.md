@@ -128,6 +128,7 @@ Build a **Race Board** somewhere visible, such as near the start line. Open the 
 - **Race ID**: `meadows_gp`
 - **Name**: `Meadows Grand Prix`
 - **Laps**: `1`
+- **Description**: `Optional short description shown on the board`
 
 The board will show "Waiting for players..." until someone registers.
 
@@ -189,6 +190,7 @@ All admin commands require devcommands.
 | `svk_race_admin addplayer <raceId> <playerName>` | Add a connected player to a race by name. |
 | `svk_race_admin setname <raceId> <name>` | Rename a race. |
 | `svk_race_admin setlaps <raceId> <count>` | Set the lap count for a race. |
+| `svk_race_admin setdescription <raceId> <description>` | Set the description for a race. |
 | `svk_race_admin forcestart <raceId>` | Start a race immediately regardless of state. |
 | `svk_race_admin forcereset <raceId>` | Reset a race regardless of state. |
 | `svk_race_admin lap <raceId> [playerName]` | Simulate a lap completion for a player. |

@@ -57,7 +57,6 @@ internal class RaceBoardButton : MonoBehaviour, Hoverable, Interactable
             return "";
 
         var race = RaceManager.GetRace(Board.GetRaceId());
-
         return Localization.instance.Localize(
             ButtonType switch
             {
@@ -126,13 +125,12 @@ internal class RaceBoardButton : MonoBehaviour, Hoverable, Interactable
 internal class RaceBoardComponent : MonoBehaviour, Hoverable
 {
     // --- ZDO Keys ---
-
     private const string ZdoKeyRaceId = "SuperVikingKart_RaceBoard_RaceId";
     private const string ZdoKeyName = "SuperVikingKart_RaceBoard_Name";
     private const string ZdoKeyLaps = "SuperVikingKart_RaceBoard_Laps";
+    private const string ZdoKeyDescription = "SuperVikingKart_RaceBoard_Description";
 
-    // --- References set by SuperVikingKart.cs during prefab setup ---
-
+    // --- References set during prefab setup ---
     public TMPro.TextMeshPro StatusDisplay;
     public RaceBoardButton RegisterButton;
     public RaceBoardButton StartButton;
@@ -140,15 +138,12 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
     public RaceBoardButton AdminButton;
 
     // --- Private ---
-
     private ZNetView _netView;
 
     // --- Lifecycle ---
-
     private void Awake()
     {
         _netView = GetComponent<ZNetView>();
-
         if (!_netView || _netView.GetZDO() == null)
         {
             SuperVikingKart.DebugLog("RaceBoard Awake - no ZNetView or ZDO, disabling");
@@ -165,8 +160,10 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
         {
             var name = GetRaceName();
             var laps = GetLaps();
-            SuperVikingKart.DebugLog($"RaceBoard Awake - Bootstrapping race [{raceId}] \"{name}\" ({laps} laps)");
-            RaceManager.SendCreateRace(raceId, name, laps);
+            var description = GetDescription();
+            SuperVikingKart.DebugLog(
+                $"RaceBoard Awake - Bootstrapping race [{raceId}] \"{name}\" ({laps} laps) Description: {description}");
+            RaceManager.SendCreateRace(raceId, name, laps, description);
         }
     }
 
@@ -176,7 +173,6 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
     }
 
     // --- Status Display ---
-
     private void UpdateStatusDisplay()
     {
         if (!StatusDisplay)
@@ -204,6 +200,13 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
         var sb = new System.Text.StringBuilder();
         sb.AppendLine($"<b>{race.Name}</b>");
         sb.AppendLine($"{race.TotalLaps} {(race.TotalLaps == 1 ? "lap" : "laps")}");
+
+        if (!string.IsNullOrWhiteSpace(race.Description))
+        {
+            sb.AppendLine();
+            sb.AppendLine($"<color=#aaaaaa><i>{race.Description}</i></color>");
+        }
+
         sb.AppendLine();
 
         switch (race.State)
@@ -249,7 +252,6 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
     }
 
     // --- Button Interactions ---
-
     public void OnButtonInteract(RaceBoardButtonType buttonType, Player player)
     {
         var raceId = GetRaceId();
@@ -323,30 +325,30 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
     }
 
     // --- Configure (called by RaceBoardAdminGui on confirm) ---
-
-    public void Configure(string raceId, string name, int laps)
+    public void Configure(string raceId, string name, int laps, string description)
     {
         // Claim ZDO ownership and persist config locally
         _netView.ClaimOwnership();
         _netView.GetZDO().Set(ZdoKeyRaceId, raceId);
         _netView.GetZDO().Set(ZdoKeyName, name);
         _netView.GetZDO().Set(ZdoKeyLaps, laps);
+        _netView.GetZDO().Set(ZdoKeyDescription, description);
 
         // Drive RaceManager state via RPCs
         var existing = RaceManager.GetRace(raceId);
         if (existing == null)
-            RaceManager.SendCreateRace(raceId, name, laps);
+            RaceManager.SendCreateRace(raceId, name, laps, description);
         else
         {
             RaceManager.SendSetName(raceId, name);
             RaceManager.SendSetLaps(raceId, laps);
+            RaceManager.SendSetDescription(raceId, description);
         }
 
         SuperVikingKart.DebugLog($"RaceBoard - Configured [{raceId}] \"{name}\" ({laps} laps)");
     }
 
     // --- ZDO Accessors ---
-
     public string GetRaceId()
     {
         return _netView?.GetZDO()?.GetString(ZdoKeyRaceId) ?? "";
@@ -362,8 +364,12 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
         return _netView?.GetZDO()?.GetInt(ZdoKeyLaps, 1) ?? 1;
     }
 
-    // --- Hoverable ---
+    public string GetDescription()
+    {
+        return _netView?.GetZDO()?.GetString(ZdoKeyDescription) ?? "";
+    }
 
+    // --- Hoverable ---
     public string GetHoverText()
     {
         var raceId = GetRaceId();
@@ -389,12 +395,10 @@ internal static class RaceBoardAdminGui
 {
     private static GameObject _panel;
     private static RaceBoardComponent _currentBoard;
-
     private static InputField _raceIdField;
     private static InputField _nameField;
     private static InputField _lapsField;
-
-    // --- Init ---
+    private static InputField _descriptionField;
 
     /// <summary>
     /// Rebuilds the panel on every scene change.
@@ -419,9 +423,8 @@ internal static class RaceBoardAdminGui
             anchorMax: new Vector2(0.5f, 0.5f),
             position: Vector2.zero,
             width: 420f,
-            height: 250f,
+            height: 300f,
             draggable: true);
-
         _panel.SetActive(false);
 
         var layout = _panel.AddComponent<VerticalLayoutGroup>();
@@ -445,6 +448,7 @@ internal static class RaceBoardAdminGui
         // Race ID row
         AddLabeledField("Race ID", out _raceIdField,
             InputField.ContentType.Standard, "meadows_gp");
+        _raceIdField.onValueChanged.AddListener(OnRaceIdChanged);
 
         // Name row
         AddLabeledField("Name", out _nameField,
@@ -454,9 +458,14 @@ internal static class RaceBoardAdminGui
         AddLabeledField("Laps", out _lapsField,
             InputField.ContentType.IntegerNumber, "1");
 
+        // Description row
+        AddLabeledField("Description", out _descriptionField,
+            InputField.ContentType.Standard, "Optional track description...");
+
         // Button row
         var buttonRow = new GameObject("ButtonRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         buttonRow.transform.SetParent(_panel.transform, false);
+
         var buttonLayout = buttonRow.GetComponent<HorizontalLayoutGroup>();
         buttonLayout.spacing = 10f;
         buttonLayout.childForceExpandWidth = true;
@@ -480,8 +489,6 @@ internal static class RaceBoardAdminGui
         SuperVikingKart.DebugLog("RaceBoardAdminGui - Panel built");
     }
 
-    // --- Open / Close ---
-
     public static void Open(RaceBoardComponent board)
     {
         if (_panel == null)
@@ -496,10 +503,10 @@ internal static class RaceBoardAdminGui
         _raceIdField.text = board.GetRaceId();
         _nameField.text = board.GetRaceName();
         _lapsField.text = board.GetLaps().ToString();
+        _descriptionField.text = board.GetDescription();
 
         _panel.SetActive(true);
         GUIManager.BlockInput(true);
-
         SuperVikingKart.DebugLog("RaceBoardAdminGui - Opened");
     }
 
@@ -510,11 +517,25 @@ internal static class RaceBoardAdminGui
 
         GUIManager.BlockInput(false);
         _currentBoard = null;
-
         SuperVikingKart.DebugLog("RaceBoardAdminGui - Closed");
     }
 
-    // --- Confirm ---
+    private static void OnRaceIdChanged(string value)
+    {
+        var race = RaceManager.GetRace(value.Trim());
+        if (race == null)
+        {
+            _nameField.text = null;
+            _lapsField.text = null;
+            _descriptionField.text = null;
+        }
+        else
+        {
+            _nameField.text = race.Name;
+            _lapsField.text = race.TotalLaps.ToString();
+            _descriptionField.text = race.Description;
+        }
+    }
 
     private static void OnConfirm()
     {
@@ -542,11 +563,11 @@ internal static class RaceBoardAdminGui
             return;
         }
 
-        _currentBoard.Configure(raceId, name, laps);
+        var description = _descriptionField.text.Trim();
+
+        _currentBoard.Configure(raceId, name, laps, description);
         Close();
     }
-
-    // --- Helpers ---
 
     /// <summary>
     /// Creates a label + input field row inside the panel's vertical layout.
@@ -556,6 +577,7 @@ internal static class RaceBoardAdminGui
     {
         var row = new GameObject($"{label}Row", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         row.transform.SetParent(_panel.transform, false);
+
         var rowLayout = row.GetComponent<HorizontalLayoutGroup>();
         rowLayout.spacing = 10f;
         rowLayout.childForceExpandWidth = false;

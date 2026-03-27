@@ -395,6 +395,16 @@ internal class RaceAdminCommand : ConsoleCommand
                 SetLaps(args[1], args[2]);
                 break;
 
+            case "setdescription":
+                if (args.Length < 3)
+                {
+                    Console.instance.Print("Usage: svk_race_admin setdescription <raceId> <description>");
+                    return;
+                }
+
+                SetDescription(args[1], string.Join(" ", args, 2, args.Length - 2));
+                break;
+
             case "forcestart":
                 if (args.Length < 2)
                 {
@@ -454,16 +464,17 @@ internal class RaceAdminCommand : ConsoleCommand
     private void PrintUsage()
     {
         Console.instance.Print("Usage: svk_race_admin <subcommand> [args]");
-        Console.instance.Print("  create <raceId>                  - Create a new race");
-        Console.instance.Print("  remove <raceId>                  - Remove a race");
-        Console.instance.Print("  addplayer <raceId> <playerName>  - Add a player by name");
-        Console.instance.Print("  setname <raceId> <name>          - Rename a race");
-        Console.instance.Print("  setlaps <raceId> <count>         - Set lap count");
-        Console.instance.Print("  forcestart <raceId>              - Start race regardless of state");
-        Console.instance.Print("  forcereset <raceId>              - Reset race regardless of state");
-        Console.instance.Print("  lap <raceId> [playerName]        - Simulate a lap completion");
-        Console.instance.Print("  finish <raceId> [playerName]     - Simulate finishing all laps");
-        Console.instance.Print("  state <raceId>                   - Show detailed race state");
+        Console.instance.Print("  create <raceId>                       - Create a new race");
+        Console.instance.Print("  remove <raceId>                       - Remove a race");
+        Console.instance.Print("  addplayer <raceId> <playerName>       - Add a player by name");
+        Console.instance.Print("  setname <raceId> <name>               - Rename a race");
+        Console.instance.Print("  setlaps <raceId> <count>              - Set lap count");
+        Console.instance.Print("  setdescription <raceId> <description> - Set lap count");
+        Console.instance.Print("  forcestart <raceId>                   - Start race regardless of state");
+        Console.instance.Print("  forcereset <raceId>                   - Reset race regardless of state");
+        Console.instance.Print("  lap <raceId> [playerName]             - Simulate a lap completion");
+        Console.instance.Print("  finish <raceId> [playerName]          - Simulate finishing all laps");
+        Console.instance.Print("  state <raceId>                        - Show detailed race state");
     }
 
     /// <summary>
@@ -568,6 +579,22 @@ internal class RaceAdminCommand : ConsoleCommand
 
         RaceManager.SendSetLaps(raceId, count);
         Console.instance.Print($"Race [{raceId}] laps set to {count}");
+    }
+
+    /// <summary>
+    /// Broadcasts a description for an existing race to all clients.
+    /// </summary>
+    private void SetDescription(string raceId, string description)
+    {
+        var race = RaceManager.GetRace(raceId);
+        if (race == null)
+        {
+            Console.instance.Print($"Race [{raceId}] not found");
+            return;
+        }
+
+        RaceManager.SendSetDescription(raceId, description);
+        Console.instance.Print($"Race [{raceId}] description set to \"{description}\"");
     }
 
     /// <summary>

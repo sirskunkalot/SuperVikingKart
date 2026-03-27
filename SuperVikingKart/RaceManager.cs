@@ -48,16 +48,18 @@ internal class Race
 {
     public string RaceId;
     public string Name;
+    public string Description;
     public int TotalLaps;
     public RaceState State = RaceState.Idle;
     public List<RaceContestant> Contestants = new();
     public double RaceStartTime;
 
-    public Race(string raceId, string name = null, int laps = 1)
+    public Race(string raceId, string name = null, int laps = 1, string description = "")
     {
         RaceId = raceId;
         Name = string.IsNullOrEmpty(name) ? raceId : name;
         TotalLaps = laps;
+        Description = description ?? "";
     }
 
     public bool IsRegistered(ZDOID playerId)
@@ -70,7 +72,6 @@ internal class Race
     {
         if (State != RaceState.Idle) return false;
         if (IsRegistered(playerId)) return false;
-
         Contestants.Add(new RaceContestant(playerName, playerId));
         SuperVikingKart.DebugLog($"Race [{RaceId}] - Registered {playerName}");
         return true;
@@ -151,7 +152,6 @@ internal class Race
         if (contestant == null || contestant.Finished) return;
         contestant.Finished = true;
         contestant.FinishTime = finishTime;
-
         SuperVikingKart.DebugLog(
             $"Race [{RaceId}] - {contestant.PlayerName} finished in {finishTime:F1}s");
 
@@ -172,7 +172,6 @@ internal class Race
         var contestant = GetContestant(playerId);
         if (contestant == null) return;
         contestant.Position = position;
-
         SuperVikingKart.DebugLog(
             $"Race [{RaceId}] - {contestant.PlayerName} assigned P{position}");
     }
@@ -225,7 +224,6 @@ internal static class RaceManager
     private static readonly Dictionary<string, Race> Races = new();
 
     // --- Init ---
-
     /// <summary>
     /// Registers all RPC handlers and, if running as a client, requests a full
     /// state snapshot from the server to catch up on any races already in progress.
@@ -235,10 +233,11 @@ internal static class RaceManager
     {
         ZRoutedRpc.instance.Register("SuperVikingKart_Race_RequestSync", RPC_RequestSync);
         ZRoutedRpc.instance.Register<ZPackage>("SuperVikingKart_Race_SyncState", RPC_SyncState);
-        ZRoutedRpc.instance.Register<string, string, int>("SuperVikingKart_Race_Create", RPC_CreateRace);
+        ZRoutedRpc.instance.Register<string, string, int, string>("SuperVikingKart_Race_Create", RPC_CreateRace);
         ZRoutedRpc.instance.Register<string>("SuperVikingKart_Race_Remove", RPC_RemoveRace);
         ZRoutedRpc.instance.Register<string, string>("SuperVikingKart_Race_SetName", RPC_SetName);
         ZRoutedRpc.instance.Register<string, int>("SuperVikingKart_Race_SetLaps", RPC_SetLaps);
+        ZRoutedRpc.instance.Register<string, string>("SuperVikingKart_Race_SetDescription", RPC_SetDescription);
         ZRoutedRpc.instance.Register<string, int>("SuperVikingKart_Race_SetState", RPC_SetState);
         ZRoutedRpc.instance.Register<string, string, ZDOID>("SuperVikingKart_Race_Register", RPC_Register);
         ZRoutedRpc.instance.Register<string, ZDOID>("SuperVikingKart_Race_Unregister", RPC_Unregister);
@@ -261,17 +260,15 @@ internal static class RaceManager
     }
 
     // --- Race Management ---
-
     public static Race GetRace(string raceId)
         => Races.TryGetValue(raceId, out var race) ? race : null;
 
     public static IEnumerable<Race> GetAllRaces() => Races.Values;
 
     // --- Send Methods ---
-
-    public static void SendCreateRace(string raceId, string name, int laps)
+    public static void SendCreateRace(string raceId, string name, int laps, string description = "")
         => ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
-            "SuperVikingKart_Race_Create", raceId, name, laps);
+            "SuperVikingKart_Race_Create", raceId, name, laps, description);
 
     public static void SendRemoveRace(string raceId)
         => ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
@@ -284,6 +281,10 @@ internal static class RaceManager
     public static void SendSetLaps(string raceId, int laps)
         => ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
             "SuperVikingKart_Race_SetLaps", raceId, laps);
+
+    public static void SendSetDescription(string raceId, string description)
+        => ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
+            "SuperVikingKart_Race_SetDescription", raceId, description);
 
     public static void SendState(string raceId, RaceState state)
         => ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
@@ -330,7 +331,6 @@ internal static class RaceManager
             "SuperVikingKart_Race_Reset", raceId);
 
     // --- RPC Handlers ---
-
     /// <summary>
     /// Server-only. Serialises the full Races dictionary into a ZPackage
     /// and sends it directly to the requesting peer for initial catch-up.
@@ -338,20 +338,19 @@ internal static class RaceManager
     private static void RPC_RequestSync(long sender)
     {
         if (!ZNet.instance.IsServer()) return;
-
         SuperVikingKart.DebugLog($"RaceManager - Syncing state to {sender}");
+
         var pkg = new ZPackage();
         pkg.Write(Races.Count);
-
         foreach (var race in Races.Values)
         {
             pkg.Write(race.RaceId);
             pkg.Write(race.Name);
+            pkg.Write(race.Description);
             pkg.Write(race.TotalLaps);
             pkg.Write((int)race.State);
             pkg.Write(race.RaceStartTime);
             pkg.Write(race.Contestants.Count);
-
             foreach (var c in race.Contestants)
             {
                 pkg.Write(c.PlayerName);
@@ -380,7 +379,7 @@ internal static class RaceManager
         var raceCount = pkg.ReadInt();
         for (var i = 0; i < raceCount; i++)
         {
-            var race = new Race(pkg.ReadString(), pkg.ReadString())
+            var race = new Race(pkg.ReadString(), pkg.ReadString(), description: pkg.ReadString())
             {
                 TotalLaps = pkg.ReadInt(),
                 State = (RaceState)pkg.ReadInt(),
@@ -413,10 +412,10 @@ internal static class RaceManager
     /// Runs on all peers. Creates a new Race entry if one does not already exist for
     /// the given ID, ensuring idempotent handling of any duplicate broadcasts.
     /// </summary>
-    private static void RPC_CreateRace(long sender, string raceId, string name, int laps)
+    private static void RPC_CreateRace(long sender, string raceId, string name, int laps, string description)
     {
         if (Races.ContainsKey(raceId)) return;
-        Races[raceId] = new Race(raceId, name, laps);
+        Races[raceId] = new Race(raceId, name, laps, description);
         SuperVikingKart.DebugLog($"RaceManager - Created race [{raceId}] \"{name}\" ({laps} laps)");
     }
 
@@ -450,6 +449,17 @@ internal static class RaceManager
         if (race == null) return;
         race.TotalLaps = laps;
         SuperVikingKart.DebugLog($"RaceManager - Laps set to {laps} for [{raceId}]");
+    }
+
+    /// <summary>
+    /// Runs on all peers. Updates the description of an existing race.
+    /// </summary>
+    private static void RPC_SetDescription(long sender, string raceId, string description)
+    {
+        var race = GetRace(raceId);
+        if (race == null) return;
+        race.Description = description;
+        SuperVikingKart.DebugLog($"RaceManager - Description updated to {description} for [{raceId}]");
     }
 
     /// <summary>
@@ -497,7 +507,6 @@ internal static class RaceManager
         if (contestant == null) return;
         var wasRacing = race.State == RaceState.Racing;
         race.RemoveContestant(playerId);
-
         var localPlayer = Player.m_localPlayer;
         if (localPlayer && localPlayer.GetZDOID() == playerId)
         {
@@ -625,7 +634,6 @@ internal static class RaceManager
         if (contestant == null || contestant.Finished) return;
         contestant.CrossedStart = true;
         contestant.CurrentLap++;
-
         var localPlayer = Player.m_localPlayer;
         if (localPlayer && localPlayer.GetZDOID() == playerId && race.TotalLaps > 1)
             localPlayer.Message(MessageHud.MessageType.Center,
@@ -701,8 +709,8 @@ internal static class RaceManager
         race.AssignPosition(playerId, position);
         var contestant = race.GetContestant(playerId);
         if (contestant == null) return;
-
         var localPlayer = Player.m_localPlayer;
+
         if (localPlayer && localPlayer.GetZDOID() == playerId)
             localPlayer.Message(MessageHud.MessageType.Center,
                 $"P{contestant.Position}! Time: {contestant.FinishTime:F1}s");
@@ -728,8 +736,8 @@ internal static class RaceManager
         var contestant = race.GetContestant(playerId);
         if (contestant == null) return;
         race.RecordDnf(playerId);
-
         var localPlayer = Player.m_localPlayer;
+
         if (localPlayer && race.IsRegistered(localPlayer.GetZDOID()))
             localPlayer.Message(MessageHud.MessageType.Center,
                 $"{contestant.PlayerName} disconnected - DNF");
