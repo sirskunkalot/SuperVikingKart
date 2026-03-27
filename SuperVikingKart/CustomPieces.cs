@@ -529,19 +529,18 @@ internal static class RaceLinePiece
         snapCol.center = new Vector3(3f, 0f, 0f);
         snapCol.size = new Vector3(6f, 0.001f, 0.001f);
 
-        // Trigger Collider
+        // Trigger collider
         var triggerGo = new GameObject("TriggerCollider");
         triggerGo.transform.SetParent(prefab.transform, false);
         triggerGo.transform.localPosition = new Vector3(0f, 0f, 0f);
 
-        // Kinematic Rigidbody required for trigger callbacks
-        var rb = triggerGo.AddComponent<Rigidbody>();
-        rb.isKinematic = true;
-        rb.useGravity = false;
-
         var triggerCol = triggerGo.AddComponent<BoxCollider>();
         triggerCol.isTrigger = true;
-        triggerCol.size = new Vector3(6f, 3f, 1f); // wide, tall, thin
+        triggerCol.size = new Vector3(6f, 6f, 1f); // wide, tall, thin
+
+        var triggerRig = triggerGo.AddComponent<Rigidbody>();
+        triggerRig.isKinematic = true;
+        triggerRig.useGravity = false;
 
         // Gate posts
         CreatePost("PostLeft", prefab.transform, new Vector3(-3f, 1.5f, 0f));
