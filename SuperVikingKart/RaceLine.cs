@@ -43,7 +43,7 @@ internal class RaceLineComponent : MonoBehaviour, Hoverable, Interactable
             enabled = false;
             return;
         }
-            
+
         // Destroy arrow when not in ghost mode
         DestroyImmediate(transform.Find("DirectionArrow").gameObject);
 
@@ -271,12 +271,6 @@ internal static class RaceLineAdminGui
     private static InputField _raceIdField;
     private static Dropdown _roleDropdown;
 
-    // --- Init ---
-
-    /// <summary>
-    /// Rebuilds the panel on every scene change.
-    /// Subscribed to GUIManager.OnCustomGUIAvailable in SuperVikingKart.Awake.
-    /// </summary>
     public static void Build()
     {
         if (!GUIManager.CustomGUIFront)
@@ -288,14 +282,12 @@ internal static class RaceLineAdminGui
             _panel = null;
         }
 
-        // Root woodpanel — same style as RaceBoardAdminGui
         _panel = GUIManager.Instance.CreateWoodpanel(
             GUIManager.CustomGUIFront.transform,
             anchorMin: new Vector2(0.5f, 0.5f),
             anchorMax: new Vector2(0.5f, 0.5f),
             position: Vector2.zero,
-            width: 420f,
-            height: 210f,
+            width: 420f, height: 210f,
             draggable: true);
         _panel.SetActive(false);
 
@@ -306,81 +298,100 @@ internal static class RaceLineAdminGui
         layout.childForceExpandHeight = false;
         layout.childAlignment = TextAnchor.UpperLeft;
 
-        // Title
+        // ----- Title -----
         var title = GUIManager.Instance.CreateText(
-            "Configure Race Line",
-            _panel.transform,
+            "Configure Race Line", _panel.transform,
             new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), Vector2.zero,
-            GUIManager.Instance.AveriaSerifBold, 20,
-            GUIManager.Instance.ValheimOrange,
-            true, Color.black,
-            380f, 30f, false);
+            GUIManager.Instance.AveriaSerifBold, 20, GUIManager.Instance.ValheimOrange,
+            true, Color.black, 380f, 30f, false);
         title.GetComponent<Text>().alignment = TextAnchor.MiddleCenter;
+        var titleLE = title.AddComponent<LayoutElement>();
+        titleLE.preferredHeight = 30f;
+        titleLE.minHeight = 30f;
+        titleLE.flexibleHeight = 0f;
 
-        // Race ID row
+        // ----- Race ID -----
         AddLabeledField("Race ID", out _raceIdField,
-            InputField.ContentType.Standard, "meadows_gp");
+            InputField.ContentType.Standard, "meadows_gp", fieldHeight: 30f);
 
-        // Role row
-        var dropdownRow = new GameObject("RoleRow",
-            typeof(RectTransform), typeof(HorizontalLayoutGroup));
-        dropdownRow.transform.SetParent(_panel.transform, false);
-        var rl = dropdownRow.GetComponent<HorizontalLayoutGroup>();
-        rl.spacing = 10f;
-        rl.childForceExpandWidth = false;
-        rl.childForceExpandHeight = true;
-        rl.childAlignment = TextAnchor.MiddleLeft;
+        // ----- Role -----
+        var roleRow = new GameObject("RoleRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+        roleRow.transform.SetParent(_panel.transform, false);
+        var roleRowLE = roleRow.AddComponent<LayoutElement>();
+        roleRowLE.preferredHeight = 30f;
+        roleRowLE.minHeight = 30f;
+        roleRowLE.flexibleHeight = 0f;
+        var roleLayout = roleRow.GetComponent<HorizontalLayoutGroup>();
+        roleLayout.spacing = 10f;
+        roleLayout.childForceExpandWidth = false;
+        roleLayout.childForceExpandHeight = true;
+        roleLayout.childAlignment = TextAnchor.MiddleLeft;
 
-        var labelGo = GUIManager.Instance.CreateText(
-            "Role", dropdownRow.transform,
+        var roleLabelGo = GUIManager.Instance.CreateText(
+            "Role", roleRow.transform,
             new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero,
-            GUIManager.Instance.AveriaSerifBold, 16,
-            Color.white, true, Color.black,
-            90f, 30f, false);
-        labelGo.AddComponent<LayoutElement>().preferredWidth = 90f;
+            GUIManager.Instance.AveriaSerifBold, 16, Color.white,
+            true, Color.black, 90f, 30f, false);
+        var roleLabelLE = roleLabelGo.AddComponent<LayoutElement>();
+        roleLabelLE.preferredWidth = 90f;
+        roleLabelLE.minWidth = 90f;
+        roleLabelLE.flexibleWidth = 0f;
+        roleLabelLE.preferredHeight = 30f;
+        roleLabelLE.minHeight = 30f;
+        roleLabelLE.flexibleHeight = 0f;
 
         var dropdownGo = GUIManager.Instance.CreateDropDown(
-            dropdownRow.transform,
+            roleRow.transform,
             new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero,
-            16,
-            width: 260f, height: 30f);
-        dropdownGo.AddComponent<LayoutElement>().preferredWidth = 260f;
-
+            16, width: 260f, height: 30f);
+        var dropdownLE = dropdownGo.AddComponent<LayoutElement>();
+        dropdownLE.preferredWidth = 260f;
+        dropdownLE.minWidth = 260f;
+        dropdownLE.flexibleWidth = 0f;
+        dropdownLE.preferredHeight = 30f;
+        dropdownLE.minHeight = 30f;
+        dropdownLE.flexibleHeight = 0f;
         _roleDropdown = dropdownGo.GetComponent<Dropdown>();
         _roleDropdown.ClearOptions();
-        _roleDropdown.AddOptions(new List<string>
-        {
-            "StartFinish",
-            "Start",
-            "Finish"
-        });
+        _roleDropdown.AddOptions(new List<string> { "StartFinish", "Start", "Finish" });
 
-        // Button row
-        var buttonRow = new GameObject("ButtonRow",
-            typeof(RectTransform), typeof(HorizontalLayoutGroup));
+        // ----- Buttons -----
+        var buttonRow = new GameObject("ButtonRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         buttonRow.transform.SetParent(_panel.transform, false);
-        var bl = buttonRow.GetComponent<HorizontalLayoutGroup>();
-        bl.spacing = 10f;
-        bl.childForceExpandWidth = true;
-        bl.childForceExpandHeight = true;
-        bl.childAlignment = TextAnchor.MiddleCenter;
+        var buttonRowLE = buttonRow.AddComponent<LayoutElement>();
+        buttonRowLE.preferredHeight = 40f;
+        buttonRowLE.minHeight = 40f;
+        buttonRowLE.flexibleHeight = 0f;
+        var buttonLayout = buttonRow.GetComponent<HorizontalLayoutGroup>();
+        buttonLayout.spacing = 10f;
+        buttonLayout.childForceExpandWidth = false;
+        buttonLayout.childForceExpandHeight = false;
+        buttonLayout.childAlignment = TextAnchor.MiddleCenter;
 
-        var confirmGo = GUIManager.Instance.CreateButton(
-            "Confirm", buttonRow.transform,
-            new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero,
-            width: 160f, height: 40f);
-        confirmGo.GetComponent<Button>().onClick.AddListener(OnConfirm);
-
-        var cancelGo = GUIManager.Instance.CreateButton(
-            "Cancel", buttonRow.transform,
-            new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero,
-            width: 160f, height: 40f);
+        var cancelGo = GUIManager.Instance.CreateButton("Cancel", buttonRow.transform,
+            new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, 160f, 40f);
+        var cancelLE = cancelGo.AddComponent<LayoutElement>();
+        cancelLE.preferredWidth = 160f;
+        cancelLE.minWidth = 160f;
+        cancelLE.flexibleWidth = 0f;
+        cancelLE.preferredHeight = 40f;
+        cancelLE.minHeight = 40f;
+        cancelLE.flexibleHeight = 0f;
         cancelGo.GetComponent<Button>().onClick.AddListener(Close);
+
+        var confirmGo = GUIManager.Instance.CreateButton("Confirm", buttonRow.transform,
+            new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, 160f, 40f);
+        var confirmLE = confirmGo.AddComponent<LayoutElement>();
+        confirmLE.preferredWidth = 160f;
+        confirmLE.minWidth = 160f;
+        confirmLE.flexibleWidth = 0f;
+        confirmLE.preferredHeight = 40f;
+        confirmLE.minHeight = 40f;
+        confirmLE.flexibleHeight = 0f;
+        confirmGo.GetComponent<Button>().onClick.AddListener(OnConfirm);
 
         SuperVikingKart.DebugLog("RaceLineAdminGui - Panel built");
     }
-
-    // --- Open / Close ---
 
     public static void Open(RaceLineComponent line)
     {
@@ -392,10 +403,8 @@ internal static class RaceLineAdminGui
 
         _currentLine = line;
         _raceIdField.text = line.GetRaceId();
-
         _roleDropdown.value = (int)line.GetRole();
         _roleDropdown.RefreshShownValue();
-
         _panel.SetActive(true);
         GUIManager.BlockInput(true);
         SuperVikingKart.DebugLog("RaceLineAdminGui - Opened");
@@ -409,8 +418,6 @@ internal static class RaceLineAdminGui
         _currentLine = null;
         SuperVikingKart.DebugLog("RaceLineAdminGui - Closed");
     }
-
-    // --- Confirm ---
 
     private static void OnConfirm()
     {
@@ -429,43 +436,59 @@ internal static class RaceLineAdminGui
 
         var role = (RaceLineRole)_roleDropdown.value;
         _currentLine.Configure(raceId, role);
-
         SuperVikingKart.DebugLog($"RaceLineAdminGui - Configured [{raceId}] Role: {role}");
         Close();
     }
 
-    // --- Helpers ---
-
-    /// <summary>
-    /// Creates a label + input field row inside the panel's vertical layout.
-    /// </summary>
     private static void AddLabeledField(string label, out InputField field,
-        InputField.ContentType contentType, string placeholder)
+        InputField.ContentType contentType, string placeholder, float fieldHeight)
     {
-        var row = new GameObject($"{label}Row",
-            typeof(RectTransform), typeof(HorizontalLayoutGroup));
+        var row = new GameObject($"{label}Row", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         row.transform.SetParent(_panel.transform, false);
-        var rl = row.GetComponent<HorizontalLayoutGroup>();
-        rl.spacing = 10f;
-        rl.childForceExpandWidth = false;
-        rl.childForceExpandHeight = true;
-        rl.childAlignment = TextAnchor.MiddleLeft;
+        var rowLE = row.AddComponent<LayoutElement>();
+        rowLE.preferredHeight = fieldHeight;
+        rowLE.minHeight = fieldHeight;
+        rowLE.flexibleHeight = 0f;
+        var rowLayout = row.GetComponent<HorizontalLayoutGroup>();
+        rowLayout.spacing = 10f;
+        rowLayout.childForceExpandWidth = false;
+        rowLayout.childForceExpandHeight = true;
+        rowLayout.childAlignment = TextAnchor.MiddleLeft;
 
         var labelGo = GUIManager.Instance.CreateText(
             label, row.transform,
             new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero,
-            GUIManager.Instance.AveriaSerifBold, 16,
-            Color.white, true, Color.black,
-            90f, 30f, false);
-        labelGo.AddComponent<LayoutElement>().preferredWidth = 90f;
+            GUIManager.Instance.AveriaSerifBold, 16, Color.white,
+            true, Color.black, 90f, fieldHeight, false);
+        var labelText = labelGo.GetComponent<Text>();
+        if (labelText != null)
+        {
+            labelText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            labelText.verticalOverflow = VerticalWrapMode.Truncate;
+            labelText.resizeTextForBestFit = false;
+        }
+
+        var labelLE = labelGo.AddComponent<LayoutElement>();
+        labelLE.preferredWidth = 90f;
+        labelLE.minWidth = 90f;
+        labelLE.flexibleWidth = 0f;
+        labelLE.preferredHeight = fieldHeight;
+        labelLE.minHeight = fieldHeight;
+        labelLE.flexibleHeight = 0f;
 
         var inputGo = GUIManager.Instance.CreateInputField(
             row.transform,
             new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero,
-            contentType, placeholder, 16,
-            width: 260f, height: 30f);
-        inputGo.AddComponent<LayoutElement>().preferredWidth = 260f;
+            contentType, placeholder, 16, width: 260f, height: fieldHeight);
+        var inputLE = inputGo.AddComponent<LayoutElement>();
+        inputLE.preferredWidth = 260f;
+        inputLE.minWidth = 260f;
+        inputLE.flexibleWidth = 0f;
+        inputLE.preferredHeight = fieldHeight;
+        inputLE.minHeight = fieldHeight;
+        inputLE.flexibleHeight = 0f;
 
         field = inputGo.GetComponent<InputField>();
+        field.lineType = InputField.LineType.SingleLine;
     }
 }

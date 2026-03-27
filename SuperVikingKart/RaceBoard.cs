@@ -400,30 +400,24 @@ internal static class RaceBoardAdminGui
     private static InputField _lapsField;
     private static InputField _descriptionField;
 
-    /// <summary>
-    /// Rebuilds the panel on every scene change.
-    /// Subscribed to GUIManager in SuperVikingKart.Awake
-    /// </summary>
     public static void Build()
     {
         if (!GUIManager.CustomGUIFront)
             return;
 
-        // Destroy any leftover panel from previous scene
         if (_panel)
         {
             UnityEngine.Object.DestroyImmediate(_panel);
             _panel = null;
         }
 
-        // Root panel — Valheim woodpanel style, centered, draggable
         _panel = GUIManager.Instance.CreateWoodpanel(
             GUIManager.CustomGUIFront.transform,
             anchorMin: new Vector2(0.5f, 0.5f),
             anchorMax: new Vector2(0.5f, 0.5f),
             position: Vector2.zero,
             width: 420f,
-            height: 300f,
+            height: 320f,
             draggable: true);
         _panel.SetActive(false);
 
@@ -444,47 +438,76 @@ internal static class RaceBoardAdminGui
             true, Color.black,
             380f, 30f, false);
         title.GetComponent<Text>().alignment = TextAnchor.MiddleCenter;
+        var titleLE = title.AddComponent<LayoutElement>();
+        titleLE.preferredHeight = 30f;
+        titleLE.minHeight = 30f;
+        titleLE.flexibleHeight = 0f;
 
         // Race ID row
         AddLabeledField("Race ID", out _raceIdField,
-            InputField.ContentType.Standard, "meadows_gp");
+            InputField.ContentType.Standard, "meadows_gp",
+            fieldHeight: 30f, multiLine: false);
         _raceIdField.onValueChanged.AddListener(OnRaceIdChanged);
 
         // Name row
         AddLabeledField("Name", out _nameField,
-            InputField.ContentType.Standard, "Meadows Grand Prix");
+            InputField.ContentType.Standard, "Meadows Grand Prix",
+            fieldHeight: 30f, multiLine: false);
 
         // Laps row
         AddLabeledField("Laps", out _lapsField,
-            InputField.ContentType.IntegerNumber, "1");
+            InputField.ContentType.IntegerNumber, "1",
+            fieldHeight: 30f, multiLine: false);
 
         // Description row
         AddLabeledField("Description", out _descriptionField,
-            InputField.ContentType.Standard, "Optional track description...");
+            InputField.ContentType.Standard, "Optional track description...",
+            fieldHeight: 60f, multiLine: true);
 
         // Button row
         var buttonRow = new GameObject("ButtonRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         buttonRow.transform.SetParent(_panel.transform, false);
 
+        var buttonRowLE = buttonRow.AddComponent<LayoutElement>();
+        buttonRowLE.preferredHeight = 40f;
+        buttonRowLE.minHeight = 40f;
+        buttonRowLE.flexibleHeight = 0f;
+
         var buttonLayout = buttonRow.GetComponent<HorizontalLayoutGroup>();
         buttonLayout.spacing = 10f;
-        buttonLayout.childForceExpandWidth = true;
-        buttonLayout.childForceExpandHeight = true;
+        buttonLayout.childForceExpandWidth = false;
+        buttonLayout.childForceExpandHeight = false;
         buttonLayout.childAlignment = TextAnchor.MiddleCenter;
-
-        var confirmGo = GUIManager.Instance.CreateButton(
-            "Confirm",
-            buttonRow.transform,
-            new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero,
-            width: 160f, height: 40f);
-        confirmGo.GetComponent<Button>().onClick.AddListener(OnConfirm);
 
         var cancelGo = GUIManager.Instance.CreateButton(
             "Cancel",
             buttonRow.transform,
             new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero,
             width: 160f, height: 40f);
+
+        var cancelLE = cancelGo.AddComponent<LayoutElement>();
+        cancelLE.preferredWidth = 160f;
+        cancelLE.minWidth = 160f;
+        cancelLE.flexibleWidth = 0f;
+        cancelLE.preferredHeight = 40f;
+        cancelLE.minHeight = 40f;
+        cancelLE.flexibleHeight = 0f;
         cancelGo.GetComponent<Button>().onClick.AddListener(Close);
+
+        var confirmGo = GUIManager.Instance.CreateButton(
+            "Confirm",
+            buttonRow.transform,
+            new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero,
+            width: 160f, height: 40f);
+
+        var confirmLE = confirmGo.AddComponent<LayoutElement>();
+        confirmLE.preferredWidth = 160f;
+        confirmLE.minWidth = 160f;
+        confirmLE.flexibleWidth = 0f;
+        confirmLE.preferredHeight = 40f;
+        confirmLE.minHeight = 40f;
+        confirmLE.flexibleHeight = 0f;
+        confirmGo.GetComponent<Button>().onClick.AddListener(OnConfirm);
 
         SuperVikingKart.DebugLog("RaceBoardAdminGui - Panel built");
     }
@@ -498,13 +521,10 @@ internal static class RaceBoardAdminGui
         }
 
         _currentBoard = board;
-
-        // Populate from current ZDO values
         _raceIdField.text = board.GetRaceId();
         _nameField.text = board.GetRaceName();
         _lapsField.text = board.GetLaps().ToString();
         _descriptionField.text = board.GetDescription();
-
         _panel.SetActive(true);
         GUIManager.BlockInput(true);
         SuperVikingKart.DebugLog("RaceBoardAdminGui - Opened");
@@ -514,7 +534,6 @@ internal static class RaceBoardAdminGui
     {
         if (_panel)
             _panel.SetActive(false);
-
         GUIManager.BlockInput(false);
         _currentBoard = null;
         SuperVikingKart.DebugLog("RaceBoardAdminGui - Closed");
@@ -523,18 +542,11 @@ internal static class RaceBoardAdminGui
     private static void OnRaceIdChanged(string value)
     {
         var race = RaceManager.GetRace(value.Trim());
-        if (race == null)
-        {
-            _nameField.text = null;
-            _lapsField.text = null;
-            _descriptionField.text = null;
-        }
-        else
-        {
-            _nameField.text = race.Name;
-            _lapsField.text = race.TotalLaps.ToString();
-            _descriptionField.text = race.Description;
-        }
+        if (race == null) return;
+        
+        _nameField.text = race.Name;
+        _lapsField.text = race.TotalLaps.ToString();
+        _descriptionField.text = race.Description;
     }
 
     private static void OnConfirm()
@@ -546,14 +558,13 @@ internal static class RaceBoardAdminGui
         }
 
         var raceId = _raceIdField.text.Trim();
-        var name = _nameField.text.Trim();
-
         if (string.IsNullOrEmpty(raceId))
         {
             SuperVikingKart.DebugLog("RaceBoardAdminGui - Validation failed: empty raceId");
             return;
         }
 
+        var name = _nameField.text.Trim();
         if (string.IsNullOrEmpty(name))
             name = raceId;
 
@@ -563,20 +574,26 @@ internal static class RaceBoardAdminGui
             return;
         }
 
-        var description = _descriptionField.text.Trim();
-
+        var description = _descriptionField.text;
         _currentBoard.Configure(raceId, name, laps, description);
         Close();
     }
 
-    /// <summary>
-    /// Creates a label + input field row inside the panel's vertical layout.
-    /// </summary>
-    private static void AddLabeledField(string label, out InputField field,
-        InputField.ContentType contentType, string placeholder)
+    private static void AddLabeledField(
+        string label,
+        out InputField field,
+        InputField.ContentType contentType,
+        string placeholder,
+        float fieldHeight,
+        bool multiLine)
     {
         var row = new GameObject($"{label}Row", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         row.transform.SetParent(_panel.transform, false);
+
+        var rowLE = row.AddComponent<LayoutElement>();
+        rowLE.preferredHeight = fieldHeight;
+        rowLE.minHeight = fieldHeight;
+        rowLE.flexibleHeight = 0f;
 
         var rowLayout = row.GetComponent<HorizontalLayoutGroup>();
         rowLayout.spacing = 10f;
@@ -584,7 +601,7 @@ internal static class RaceBoardAdminGui
         rowLayout.childForceExpandHeight = true;
         rowLayout.childAlignment = TextAnchor.MiddleLeft;
 
-        // Label
+        // Label — fixed width, no wrapping
         var labelGo = GUIManager.Instance.CreateText(
             label,
             row.transform,
@@ -592,17 +609,54 @@ internal static class RaceBoardAdminGui
             GUIManager.Instance.AveriaSerifBold, 16,
             Color.white,
             true, Color.black,
-            90f, 30f, false);
-        labelGo.AddComponent<LayoutElement>().preferredWidth = 90f;
+            90f, fieldHeight, false);
 
-        // Input field
+        var labelText = labelGo.GetComponent<Text>();
+        if (labelText != null)
+        {
+            labelText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            labelText.verticalOverflow = VerticalWrapMode.Truncate;
+            labelText.resizeTextForBestFit = false;
+        }
+
+        var labelLE = labelGo.AddComponent<LayoutElement>();
+        labelLE.preferredWidth = 90f;
+        labelLE.minWidth = 90f;
+        labelLE.flexibleWidth = 0f;
+        labelLE.preferredHeight = fieldHeight;
+        labelLE.minHeight = fieldHeight;
+        labelLE.flexibleHeight = 0f;
+
+        // Input field — fixed width and height, never grows
         var inputGo = GUIManager.Instance.CreateInputField(
             row.transform,
             new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero,
             contentType, placeholder, 16,
-            width: 260f, height: 30f);
-        inputGo.AddComponent<LayoutElement>().preferredWidth = 260f;
+            width: 260f, height: fieldHeight);
+
+        var inputLE = inputGo.AddComponent<LayoutElement>();
+        inputLE.preferredWidth = 260f;
+        inputLE.minWidth = 260f;
+        inputLE.flexibleWidth = 0f;
+        inputLE.preferredHeight = fieldHeight;
+        inputLE.minHeight = fieldHeight;
+        inputLE.flexibleHeight = 0f;
 
         field = inputGo.GetComponent<InputField>();
+
+        if (multiLine)
+        {
+            field.lineType = InputField.LineType.MultiLineNewline;
+            var textComponent = field.textComponent;
+            if (textComponent != null)
+            {
+                textComponent.horizontalOverflow = HorizontalWrapMode.Wrap;
+                textComponent.verticalOverflow = VerticalWrapMode.Truncate;
+            }
+        }
+        else
+        {
+            field.lineType = InputField.LineType.SingleLine;
+        }
     }
 }
