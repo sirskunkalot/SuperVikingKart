@@ -780,11 +780,12 @@ internal static class RaceManager
     {
         var race = GetRace(raceId);
         if (race == null) return;
+        var localPlayer = Player.m_localPlayer;
+        var wasRegistered = localPlayer && race.IsRegistered(localPlayer.GetZDOID());
         race.Reset();
         OnRaceChanged?.Invoke(raceId);
 
-        var localPlayer = Player.m_localPlayer;
-        if (localPlayer && race.IsRegistered(localPlayer.GetZDOID()))
+        if (wasRegistered)
             localPlayer.Message(MessageHud.MessageType.Center, $"{race.Name} reset");
     }
 }
