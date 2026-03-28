@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -167,11 +168,11 @@ internal class BuffBlockComponent : MonoBehaviour
         SuperVikingKart.DebugLog(
             $"BuffBlock trigger entered by: {other.name} (parent: {other.transform.root.name})");
 
-        if (!IsActive())
-        {
-            SuperVikingKart.DebugLog("BuffBlock - Not active, ignoring trigger");
-            return;
-        }
+        // if (!IsActive())
+        // {
+        //     SuperVikingKart.DebugLog("BuffBlock - Not active, ignoring trigger");
+        //     return;
+        // }
 
         var localPlayer = Player.m_localPlayer;
         if (!localPlayer)
@@ -385,19 +386,12 @@ internal class BuffBlockComponent : MonoBehaviour
     }
 
     /// <summary>
-    /// Runs on all clients. Hides the block visual, starts the respawn timer
-    /// on the owner, and spawns an optional collection effect.
+    /// Runs on all clients. Hides the block visual and spawns an optional collection effect.
     /// </summary>
     private void RPC_BuffBlockCollected(long sender, int buffIndex)
     {
         SuperVikingKart.DebugLog(
             $"BuffBlock RPC_BuffBlockCollected - sender: {sender}, buffIndex: {buffIndex}, IsOwner: {_netView.IsOwner()}");
-
-        if (_netView.IsOwner())
-        {
-            _netView.GetZDO().Set(ZdoKeyIsActive, false);
-            _respawnTimer = SuperVikingKart.BuffBlockRespawnTimeConfig.Value;
-        }
 
         if (CollectEffectPrefab)
         {
