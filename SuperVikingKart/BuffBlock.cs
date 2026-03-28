@@ -66,9 +66,6 @@ internal class BuffBlockComponent : MonoBehaviour
         new("Stamina Regen", "SuperVikingKart_StaminaRegen", BuffTarget.Puller),
         new("Stamina Burst", "SuperVikingKart_StaminaBurst", BuffTarget.Puller),
         // Rider
-        new("Shield", "SuperVikingKart_Shield", BuffTarget.Rider),
-        new("Health Regen", "SuperVikingKart_HealthRegen", BuffTarget.Rider),
-        new("Health Burst", "SuperVikingKart_HealthBurst", BuffTarget.Rider),
         new("Ooze Bombs", "SuperVikingKart_OozeBombs", BuffTarget.Rider),
         new("Bile Bombs", "SuperVikingKart_BileBombs", BuffTarget.Rider),
         new("Smoke Bombs", "SuperVikingKart_SmokeBombs", BuffTarget.Rider),
@@ -76,6 +73,9 @@ internal class BuffBlockComponent : MonoBehaviour
         new("Harpoon", "SuperVikingKart_Harpoon", BuffTarget.Rider),
         new("Berserk", "SuperVikingKart_Berserk", BuffTarget.Rider),
         // Both
+        new("Shield", "SuperVikingKart_Shield", BuffTarget.Both),
+        new("Health Regen", "SuperVikingKart_HealthRegen", BuffTarget.Both),
+        new("Health Burst", "SuperVikingKart_HealthBurst", BuffTarget.Both),
         new("Living Dead", "SuperVikingKart_LivingDead", BuffTarget.Both),
     };
 
@@ -91,7 +91,7 @@ internal class BuffBlockComponent : MonoBehaviour
         new("Stagger", "SuperVikingKart_Stagger", BuffTarget.Rider, BuffType.Debuff),
         new("Disarm", "SuperVikingKart_Disarm", BuffTarget.Rider, BuffType.Debuff),
         // Both
-        new("Wet", "Wet", BuffTarget.Both, BuffType.Debuff),
+        new("Weak", "SuperVikingKart_Weak", BuffTarget.Both, BuffType.Debuff),
         new("Shock", "SuperVikingKart_Shock", BuffTarget.Both, BuffType.Debuff),
         new("Blind", "SuperVikingKart_Blind", BuffTarget.Both, BuffType.Debuff),
     };

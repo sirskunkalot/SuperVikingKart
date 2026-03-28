@@ -131,12 +131,6 @@ internal class SuperVikingKart : BaseUnityPlugin
 
             // Rider
             ItemManager.Instance.AddStatusEffect(
-                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartShield>(), fixReference: false));
-            ItemManager.Instance.AddStatusEffect(
-                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartHealthRegen>(), fixReference: false));
-            ItemManager.Instance.AddStatusEffect(
-                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartHealthBurst>(), fixReference: false));
-            ItemManager.Instance.AddStatusEffect(
                 new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartOozeBombs>(), fixReference: false));
             ItemManager.Instance.AddStatusEffect(
                 new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartBileBombs>(), fixReference: false));
@@ -150,6 +144,12 @@ internal class SuperVikingKart : BaseUnityPlugin
                 new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartBerserk>(), fixReference: false));
 
             // Both
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartShield>(), fixReference: false));
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartHealthRegen>(), fixReference: false));
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartHealthBurst>(), fixReference: false));
             ItemManager.Instance.AddStatusEffect(
                 new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartLivingDead>(), fixReference: false));
 
@@ -174,6 +174,8 @@ internal class SuperVikingKart : BaseUnityPlugin
                 new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartDisarm>(), fixReference: false));
 
             // Both
+            ItemManager.Instance.AddStatusEffect(
+                new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartWeak>(), fixReference: false));
             ItemManager.Instance.AddStatusEffect(
                 new CustomStatusEffect(ScriptableObject.CreateInstance<SE_KartBlind>(), fixReference: false));
             ItemManager.Instance.AddStatusEffect(

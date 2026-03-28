@@ -44,22 +44,22 @@ Three types of collectible blocks that apply effects when a kart drives through 
 
 ### Rider Buffs
 
-| Effect | Description |
-|---|---|
-| Shield | Grants resistance to blunt, slash, and pierce damage for 15 seconds. |
-| Health Regen | Regenerates health over time for 10 seconds. |
-| Health Burst | Instantly fully heals the rider. |
-| Ooze Bombs | Adds 5 ooze bombs to inventory. |
-| Bile Bombs | Adds 2 bile bombs to inventory. |
-| Smoke Bombs | Adds 5 smoke bombs to inventory. |
-| Fire Arrows | Adds 20 fire arrows to inventory. |
+| Effect | Description                                                                        |
+|---|------------------------------------------------------------------------------------|
+| Ooze Bombs | Adds 5 ooze bombs to inventory.                                                    |
+| Bile Bombs | Adds 2 bile bombs to inventory.                                                    |
+| Smoke Bombs | Adds 5 smoke bombs to inventory.                                                   |
+| Fire Arrows | Adds 20 fire arrows to inventory.                                                  |
 | Harpoon | Adds a chitin spear to inventory. Will not add a second if one is already carried. |
-| Berserk | Massively increases damage output for 10 seconds. |
+| Berserk | Massively increases damage output for 30 seconds.                                  |
 
 ### Shared Buffs
 
-| Effect | Description |
-|---|---|
+| Effect | Description                                                                                                                            |
+|---|----------------------------------------------------------------------------------------------------------------------------------------|
+| Shield | Grants resistance to blunt, slash, and pierce damage for 30 seconds.                                                                   |
+| Health Regen | Regenerates health over time for 10 seconds.                                                                                           |
+| Health Burst | Instantly fully heals the rider.                                                                                                       |
 | Living Dead | Prevents death once for both players. A fatal blow is cancelled and the player is left at 1 HP. Expires after use or after 20 seconds. |
 
 ### Puller Debuffs
@@ -81,11 +81,11 @@ Three types of collectible blocks that apply effects when a kart drives through 
 
 ### Shared Debuffs
 
-| Effect | Description |
-|---|---|
-| Wet | Applies the vanilla Wet status effect to both players. |
+| Effect | Description                                                                                                   |
+|-------|---------------------------------------------------------------------------------------------------------------|
+| Weak  | Reduces health and stamina regen for 30 seconds                                                               |
 | Shock | Deals lightning damage every second and reduces movement speed by 30% for 5 seconds. Applies to both players. |
-| Blind | Covers the screen with a dark overlay for 5 seconds. Applies to both players. |
+| Blind | Covers the screen with a dark overlay for 5 seconds. Applies to both players.                                 |
 
 ## Race System
 

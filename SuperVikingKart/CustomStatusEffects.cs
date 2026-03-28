@@ -118,113 +118,6 @@ internal class SE_KartStaminaBurst : SE_Stats
 // --- Rider ---
 
 /// <summary>
-/// Status effect that grants temporary resistance to physical damage
-/// </summary>
-internal class SE_KartShield : SE_Stats
-{
-    public void OnEnable()
-    {
-        name = "SuperVikingKart_Shield";
-        m_ttl = 15f;
-        m_icon = PrefabManager.Cache.GetPrefab<Sprite>("TrophyBonemass");
-        var effect = PrefabManager.Cache.GetPrefab<GameObject>("fx_GP_Activation");
-        if (effect)
-        {
-            m_startEffects.m_effectPrefabs = new[]
-            {
-                new EffectList.EffectData { m_prefab = effect, m_enabled = true, m_attach = true }
-            };
-        }
-
-        m_mods = new List<HitData.DamageModPair>
-        {
-            new() { m_type = HitData.DamageType.Blunt, m_modifier = HitData.DamageModifier.Resistant },
-            new() { m_type = HitData.DamageType.Slash, m_modifier = HitData.DamageModifier.Resistant },
-            new() { m_type = HitData.DamageType.Pierce, m_modifier = HitData.DamageModifier.Resistant },
-        };
-    }
-
-    public override void Setup(Character character)
-    {
-        base.Setup(character);
-        SuperVikingKart.DebugLog($"SE_KartShield - Applied to {character.m_name}");
-    }
-
-    public override void Stop()
-    {
-        SuperVikingKart.DebugLog($"SE_KartShield - Stopped on {m_character?.m_name}");
-        base.Stop();
-    }
-}
-
-/// <summary>
-/// Status effect that regens health for ten seconds
-/// </summary>
-internal class SE_KartHealthRegen : SE_Stats
-{
-    public void OnEnable()
-    {
-        name = "SuperVikingKart_HealthRegen";
-        m_ttl = 10f;
-        m_icon = PrefabManager.Cache.GetPrefab<Sprite>("potion_health_minor");
-        var vfx = PrefabManager.Cache.GetPrefab<GameObject>("vfx_Potion_health_medium");
-        var sfx = PrefabManager.Cache.GetPrefab<GameObject>("sfx_Potion_health_minor");
-        if (vfx && sfx)
-        {
-            m_startEffects.m_effectPrefabs = new[]
-            {
-                new EffectList.EffectData { m_prefab = vfx, m_enabled = true, m_attach = true },
-                new EffectList.EffectData { m_prefab = sfx, m_enabled = true, m_attach = true },
-            };
-        }
-
-        m_healthOverTime = 100f;
-        m_healthOverTimeInterval = 2f;
-    }
-
-    public override void Setup(Character character)
-    {
-        base.Setup(character);
-        SuperVikingKart.DebugLog($"SE_KartStaminaRegen - Applied to {character.m_name}");
-    }
-
-    public override void Stop()
-    {
-        SuperVikingKart.DebugLog($"SE_KartStaminaRegen - Stopped on {m_character?.m_name}");
-        base.Stop();
-    }
-}
-
-/// <summary>
-/// Status effect that fully heals the player once
-/// </summary>
-internal class SE_KartHealthBurst : SE_Stats
-{
-    public void OnEnable()
-    {
-        name = "SuperVikingKart_HealthBurst";
-        m_ttl = 2f;
-        var vfx = PrefabManager.Cache.GetPrefab<GameObject>("vfx_Potion_health_medium");
-        var sfx = PrefabManager.Cache.GetPrefab<GameObject>("sfx_Potion_health_large");
-        if (vfx && sfx)
-        {
-            m_startEffects.m_effectPrefabs = new[]
-            {
-                new EffectList.EffectData { m_prefab = vfx, m_enabled = true, m_attach = true },
-                new EffectList.EffectData { m_prefab = sfx, m_enabled = true, m_attach = true },
-            };
-        }
-    }
-
-    public override void Setup(Character character)
-    {
-        base.Setup(character);
-        character.Heal(character.GetMaxHealth());
-        SuperVikingKart.DebugLog($"SE_KartHealthBurst - Fully healed {character.m_name}");
-    }
-}
-
-/// <summary>
 /// Status effect that gives the rider ooze bombs
 /// </summary>
 internal class SE_KartOozeBombs : SE_Stats
@@ -349,7 +242,7 @@ internal class SE_KartBerserk : SE_Stats
     public void OnEnable()
     {
         name = "SuperVikingKart_Berserk";
-        m_ttl = 10f;
+        m_ttl = 30f;
         m_icon = PrefabManager.Cache.GetPrefab<Sprite>("potion_bzerker");
         var effect = PrefabManager.Cache.GetPrefab<GameObject>("vfx_MeadBzerker");
         if (effect)
@@ -383,6 +276,113 @@ internal class SE_KartBerserk : SE_Stats
 }
 
 // --- Both ---
+
+/// <summary>
+/// Status effect that grants temporary resistance to physical damage
+/// </summary>
+internal class SE_KartShield : SE_Stats
+{
+    public void OnEnable()
+    {
+        name = "SuperVikingKart_Shield";
+        m_ttl = 30f;
+        m_icon = PrefabManager.Cache.GetPrefab<Sprite>("TrophyBonemass");
+        var effect = PrefabManager.Cache.GetPrefab<GameObject>("fx_GP_Activation");
+        if (effect)
+        {
+            m_startEffects.m_effectPrefabs = new[]
+            {
+                new EffectList.EffectData { m_prefab = effect, m_enabled = true, m_attach = true }
+            };
+        }
+
+        m_mods = new List<HitData.DamageModPair>
+        {
+            new() { m_type = HitData.DamageType.Blunt, m_modifier = HitData.DamageModifier.Resistant },
+            new() { m_type = HitData.DamageType.Slash, m_modifier = HitData.DamageModifier.Resistant },
+            new() { m_type = HitData.DamageType.Pierce, m_modifier = HitData.DamageModifier.Resistant },
+        };
+    }
+
+    public override void Setup(Character character)
+    {
+        base.Setup(character);
+        SuperVikingKart.DebugLog($"SE_KartShield - Applied to {character.m_name}");
+    }
+
+    public override void Stop()
+    {
+        SuperVikingKart.DebugLog($"SE_KartShield - Stopped on {m_character?.m_name}");
+        base.Stop();
+    }
+}
+
+/// <summary>
+/// Status effect that regens health for ten seconds
+/// </summary>
+internal class SE_KartHealthRegen : SE_Stats
+{
+    public void OnEnable()
+    {
+        name = "SuperVikingKart_HealthRegen";
+        m_ttl = 10f;
+        m_icon = PrefabManager.Cache.GetPrefab<Sprite>("potion_health_minor");
+        var vfx = PrefabManager.Cache.GetPrefab<GameObject>("vfx_Potion_health_medium");
+        var sfx = PrefabManager.Cache.GetPrefab<GameObject>("sfx_Potion_health_minor");
+        if (vfx && sfx)
+        {
+            m_startEffects.m_effectPrefabs = new[]
+            {
+                new EffectList.EffectData { m_prefab = vfx, m_enabled = true, m_attach = true },
+                new EffectList.EffectData { m_prefab = sfx, m_enabled = true, m_attach = true },
+            };
+        }
+
+        m_healthOverTime = 100f;
+        m_healthOverTimeInterval = 2f;
+    }
+
+    public override void Setup(Character character)
+    {
+        base.Setup(character);
+        SuperVikingKart.DebugLog($"SE_KartStaminaRegen - Applied to {character.m_name}");
+    }
+
+    public override void Stop()
+    {
+        SuperVikingKart.DebugLog($"SE_KartStaminaRegen - Stopped on {m_character?.m_name}");
+        base.Stop();
+    }
+}
+
+/// <summary>
+/// Status effect that fully heals the player once
+/// </summary>
+internal class SE_KartHealthBurst : SE_Stats
+{
+    public void OnEnable()
+    {
+        name = "SuperVikingKart_HealthBurst";
+        m_ttl = 2f;
+        var vfx = PrefabManager.Cache.GetPrefab<GameObject>("vfx_Potion_health_medium");
+        var sfx = PrefabManager.Cache.GetPrefab<GameObject>("sfx_Potion_health_large");
+        if (vfx && sfx)
+        {
+            m_startEffects.m_effectPrefabs = new[]
+            {
+                new EffectList.EffectData { m_prefab = vfx, m_enabled = true, m_attach = true },
+                new EffectList.EffectData { m_prefab = sfx, m_enabled = true, m_attach = true },
+            };
+        }
+    }
+
+    public override void Setup(Character character)
+    {
+        base.Setup(character);
+        character.Heal(character.GetMaxHealth());
+        SuperVikingKart.DebugLog($"SE_KartHealthBurst - Fully healed {character.m_name}");
+    }
+}
 
 /// <summary>
 /// Status effect that prevents the player from dying once, leaving them at 1 HP instead
@@ -697,6 +697,98 @@ internal class SE_KartDisarm : SE_Stats
 // --- Both ---
 
 /// <summary>
+/// Status effect that reduces health and stamina regen
+/// </summary>
+internal class SE_KartWeak : SE_Stats
+{
+    private float _timer;
+
+    public void OnEnable()
+    {
+        name = "SuperVikingKart_Weak";
+        m_ttl = 30f;
+        m_icon = PrefabManager.Cache.GetPrefab<Sprite>("Wet");
+        var effect = PrefabManager.Cache.GetPrefab<GameObject>("vfx_Wet");
+        if (effect)
+        {
+            m_startEffects.m_effectPrefabs = new[]
+            {
+                new EffectList.EffectData { m_prefab = effect, m_enabled = true, m_attach = true }
+            };
+        }
+        m_healthRegenMultiplier = 0.75f;
+        m_staminaRegenMultiplier = 0.85f;
+        m_eitrRegenMultiplier = 0.85f;
+    }
+
+    public override void Setup(Character character)
+    {
+        base.Setup(character);
+        SuperVikingKart.DebugLog($"SE_KartWeak - Applied to {character.m_name}");
+    }
+
+    public override void Stop()
+    {
+        SuperVikingKart.DebugLog($"SE_KartWeak - Stopped on {m_character?.m_name}");
+        base.Stop();
+    }
+}
+
+/// <summary>
+/// Status effect that deals lightning damage and slows movement - medium damage with slow
+/// </summary>
+internal class SE_KartShock : SE_Stats
+{
+    private float _timer;
+
+    public void OnEnable()
+    {
+        name = "SuperVikingKart_Shock";
+        m_ttl = 5f;
+        m_icon = PrefabManager.Cache.GetPrefab<Sprite>("Lightning");
+        var effect1 = PrefabManager.Cache.GetPrefab<GameObject>("vfx_FireWork_ThunderStone");
+        var effect2 = PrefabManager.Cache.GetPrefab<GameObject>("fx_Lightning");
+        if (effect1 && effect2)
+        {
+            m_startEffects.m_effectPrefabs = new[]
+            {
+                new EffectList.EffectData { m_prefab = effect1, m_enabled = true, m_attach = true },
+                new EffectList.EffectData { m_prefab = effect2, m_enabled = true, m_attach = true }
+            };
+        }
+    }
+
+    public override void Setup(Character character)
+    {
+        base.Setup(character);
+        SuperVikingKart.DebugLog($"SE_KartShock - Applied to {character.m_name}");
+    }
+
+    public override void UpdateStatusEffect(float dt)
+    {
+        base.UpdateStatusEffect(dt);
+        _timer -= dt;
+        if (_timer > 0f) return;
+        _timer = 1f;
+        var hit = new HitData();
+        hit.m_point = m_character.GetCenterPoint();
+        hit.m_damage.m_lightning = 5f;
+        m_character.ApplyDamage(hit, true, false);
+    }
+
+    public override void ModifySpeed(float baseSpeed, ref float speed, Character character, Vector3 dir)
+    {
+        speed *= 0.7f;
+    }
+
+    public override void Stop()
+    {
+        SuperVikingKart.DebugLog($"SE_KartShock - Stopped on {m_character?.m_name}");
+        base.Stop();
+    }
+}
+
+/// <summary>
 /// Status effect that blinds the player with a screen overlay
 /// </summary>
 internal class SE_KartBlind : SE_Stats
@@ -743,58 +835,6 @@ internal class SE_KartBlind : SE_Stats
         SuperVikingKart.DebugLog($"SE_KartBlind - Stopped on {m_character?.m_name}");
         if (_overlay)
             Object.Destroy(_overlay);
-        base.Stop();
-    }
-}
-
-/// <summary>
-/// Status effect that deals lightning damage and slows movement - medium damage with slow
-/// </summary>
-internal class SE_KartShock : SE_Stats
-{
-    private float _timer;
-
-    public void OnEnable()
-    {
-        name = "SuperVikingKart_Shock";
-        m_ttl = 5f;
-        m_icon = PrefabManager.Cache.GetPrefab<Sprite>("Lightning");
-        var effect = PrefabManager.Cache.GetPrefab<GameObject>("vfx_FireWork_ThunderStone");
-        if (effect)
-        {
-            m_startEffects.m_effectPrefabs = new[]
-            {
-                new EffectList.EffectData { m_prefab = effect, m_enabled = true, m_attach = true }
-            };
-        }
-    }
-
-    public override void Setup(Character character)
-    {
-        base.Setup(character);
-        SuperVikingKart.DebugLog($"SE_KartShock - Applied to {character.m_name}");
-    }
-
-    public override void UpdateStatusEffect(float dt)
-    {
-        base.UpdateStatusEffect(dt);
-        _timer -= dt;
-        if (_timer > 0f) return;
-        _timer = 1f;
-        var hit = new HitData();
-        hit.m_point = m_character.GetCenterPoint();
-        hit.m_damage.m_lightning = 5f;
-        m_character.ApplyDamage(hit, true, false);
-    }
-
-    public override void ModifySpeed(float baseSpeed, ref float speed, Character character, Vector3 dir)
-    {
-        speed *= 0.7f;
-    }
-
-    public override void Stop()
-    {
-        SuperVikingKart.DebugLog($"SE_KartShock - Stopped on {m_character?.m_name}");
         base.Stop();
     }
 }
