@@ -419,17 +419,23 @@ internal class BuffBlockComponent : MonoBehaviour
 
 /// <summary>
 /// Relays trigger events from the visual child to the parent BuffBlockComponent.
-/// Needed because the trigger collider is on the Visual child object,
-/// not on the root where BuffBlockComponent lives.
+/// Records already entered Collider to prevent spam.
+/// After collection the visual gets disabled and clears its list.
 /// </summary>
 internal class BuffBlockTrigger : MonoBehaviour
 {
     public BuffBlockComponent BuffBlock;
+    private readonly HashSet<Collider> _seen = new();
 
     private void OnTriggerEnter(Collider other)
     {
-        if (BuffBlock)
+        if (_seen.Add(other) && BuffBlock)
             BuffBlock.OnBuffBlockTriggerEnter(other);
+    }
+
+    private void OnDisable()
+    {
+        _seen.Clear();
     }
 }
 
