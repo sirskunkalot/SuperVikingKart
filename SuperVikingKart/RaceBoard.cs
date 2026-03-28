@@ -167,8 +167,20 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
         }
     }
 
-    private void Update()
+    private void OnEnable()
     {
+        RaceManager.OnRaceChanged += OnRaceChanged;
+        UpdateStatusDisplay();
+    }
+
+    private void OnDisable()
+    {
+        RaceManager.OnRaceChanged -= OnRaceChanged;
+    }
+
+    private void OnRaceChanged(string raceId)
+    {
+        if (raceId != GetRaceId()) return;
         UpdateStatusDisplay();
     }
 
@@ -543,7 +555,7 @@ internal static class RaceBoardAdminGui
     {
         var race = RaceManager.GetRace(value.Trim());
         if (race == null) return;
-        
+
         _nameField.text = race.Name;
         _lapsField.text = race.TotalLaps.ToString();
         _descriptionField.text = race.Description;

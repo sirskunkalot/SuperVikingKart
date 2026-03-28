@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -216,11 +217,14 @@ internal class Race
 /// Manages all active races and handles global RPCs for race state changes.
 /// Acts as the single source of truth on the server; clients receive and apply
 /// state deltas via the registered RPC handlers. All public entry points are
-/// the Send* methods — direct mutation of Race objects should only happen
+/// the Send* methods - direct mutation of Race objects should only happen
 /// inside RPC handlers so every peer stays in sync.
 /// </summary>
 internal static class RaceManager
 {
+    // Event that is fired when anything is mutated in the race manager through RPCs
+    public static event Action<string> OnRaceChanged;
+
     private static readonly Dictionary<string, Race> Races = new();
 
     // --- Init ---
@@ -406,6 +410,9 @@ internal static class RaceManager
                 $"RaceManager - Synced race [{race.RaceId}] " +
                 $"State: {race.State}, Contestants: {race.Contestants.Count}");
         }
+
+        foreach (var race in Races.Values)
+            OnRaceChanged?.Invoke(race.RaceId);
     }
 
     /// <summary>
@@ -416,6 +423,7 @@ internal static class RaceManager
     {
         if (Races.ContainsKey(raceId)) return;
         Races[raceId] = new Race(raceId, name, laps, description);
+        OnRaceChanged?.Invoke(raceId);
         SuperVikingKart.DebugLog($"RaceManager - Created race [{raceId}] \"{name}\" ({laps} laps)");
     }
 
@@ -425,6 +433,7 @@ internal static class RaceManager
     private static void RPC_RemoveRace(long sender, string raceId)
     {
         Races.Remove(raceId);
+        OnRaceChanged?.Invoke(raceId);
         SuperVikingKart.DebugLog($"RaceManager - Removed race [{raceId}]");
     }
 
@@ -436,6 +445,7 @@ internal static class RaceManager
         var race = GetRace(raceId);
         if (race == null) return;
         race.Name = name;
+        OnRaceChanged?.Invoke(raceId);
         SuperVikingKart.DebugLog($"RaceManager - Race [{raceId}] renamed to \"{name}\"");
     }
 
@@ -448,6 +458,7 @@ internal static class RaceManager
         var race = GetRace(raceId);
         if (race == null) return;
         race.TotalLaps = laps;
+        OnRaceChanged?.Invoke(raceId);
         SuperVikingKart.DebugLog($"RaceManager - Laps set to {laps} for [{raceId}]");
     }
 
@@ -459,6 +470,7 @@ internal static class RaceManager
         var race = GetRace(raceId);
         if (race == null) return;
         race.Description = description;
+        OnRaceChanged?.Invoke(raceId);
         SuperVikingKart.DebugLog($"RaceManager - Description updated to {description} for [{raceId}]");
     }
 
@@ -472,6 +484,7 @@ internal static class RaceManager
         var race = GetRace(raceId);
         if (race == null) return;
         race.State = (RaceState)state;
+        OnRaceChanged?.Invoke(raceId);
         SuperVikingKart.DebugLog($"RaceManager - State set to {(RaceState)state} for [{raceId}]");
     }
 
@@ -484,6 +497,8 @@ internal static class RaceManager
         var race = GetRace(raceId);
         if (race == null) return;
         var added = race.AddContestant(playerName, playerId);
+        OnRaceChanged?.Invoke(raceId);
+
         var localPlayer = Player.m_localPlayer;
         if (localPlayer && localPlayer.GetZDOID() == playerId)
         {
@@ -507,6 +522,8 @@ internal static class RaceManager
         if (contestant == null) return;
         var wasRacing = race.State == RaceState.Racing;
         race.RemoveContestant(playerId);
+        OnRaceChanged?.Invoke(raceId);
+
         var localPlayer = Player.m_localPlayer;
         if (localPlayer && localPlayer.GetZDOID() == playerId)
         {
@@ -531,6 +548,7 @@ internal static class RaceManager
         var race = GetRace(raceId);
         if (race == null) return;
         race.StartCountdown();
+        OnRaceChanged?.Invoke(raceId);
         if (sender == ZDOMan.GetSessionID())
             SuperVikingKart.Instance.StartCoroutine(CountdownCoroutine(raceId));
     }
@@ -575,6 +593,7 @@ internal static class RaceManager
         var race = GetRace(raceId);
         if (race == null) return;
         race.StartRace(startTime);
+        OnRaceChanged?.Invoke(raceId);
 
         // Only the server runs the watchdog so DNF broadcasts aren't duplicated.
         if (ZNet.instance.IsServer())
@@ -634,6 +653,8 @@ internal static class RaceManager
         if (contestant == null || contestant.Finished) return;
         contestant.CrossedStart = true;
         contestant.CurrentLap++;
+        OnRaceChanged?.Invoke(raceId);
+
         var localPlayer = Player.m_localPlayer;
         if (localPlayer && localPlayer.GetZDOID() == playerId && race.TotalLaps > 1)
             localPlayer.Message(MessageHud.MessageType.Center,
@@ -655,7 +676,6 @@ internal static class RaceManager
         var contestant = race.GetContestant(playerId);
         if (contestant == null || contestant.Finished) return;
         var finished = race.RecordLap(playerId);
-        var localPlayer = Player.m_localPlayer;
 
         if (finished)
         {
@@ -691,6 +711,9 @@ internal static class RaceManager
         }
         else
         {
+            OnRaceChanged?.Invoke(raceId);
+
+            var localPlayer = Player.m_localPlayer;
             if (localPlayer && localPlayer.GetZDOID() == playerId)
                 localPlayer.Message(MessageHud.MessageType.Center,
                     $"Lap {contestant.CurrentLap}/{race.TotalLaps}");
@@ -707,10 +730,10 @@ internal static class RaceManager
         var race = GetRace(raceId);
         if (race == null) return;
         race.AssignPosition(playerId, position);
-        var contestant = race.GetContestant(playerId);
-        if (contestant == null) return;
-        var localPlayer = Player.m_localPlayer;
+        OnRaceChanged?.Invoke(raceId);
 
+        var contestant = race.GetContestant(playerId);
+        var localPlayer = Player.m_localPlayer;
         if (localPlayer && localPlayer.GetZDOID() == playerId)
             localPlayer.Message(MessageHud.MessageType.Center,
                 $"P{contestant.Position}! Time: {contestant.FinishTime:F1}s");
@@ -736,8 +759,9 @@ internal static class RaceManager
         var contestant = race.GetContestant(playerId);
         if (contestant == null) return;
         race.RecordDnf(playerId);
-        var localPlayer = Player.m_localPlayer;
+        OnRaceChanged?.Invoke(raceId);
 
+        var localPlayer = Player.m_localPlayer;
         if (localPlayer && race.IsRegistered(localPlayer.GetZDOID()))
             localPlayer.Message(MessageHud.MessageType.Center,
                 $"{contestant.PlayerName} disconnected - DNF");
@@ -757,6 +781,8 @@ internal static class RaceManager
         var race = GetRace(raceId);
         if (race == null) return;
         race.Reset();
+        OnRaceChanged?.Invoke(raceId);
+
         var localPlayer = Player.m_localPlayer;
         if (localPlayer && race.IsRegistered(localPlayer.GetZDOID()))
             localPlayer.Message(MessageHud.MessageType.Center, $"{race.Name} reset");

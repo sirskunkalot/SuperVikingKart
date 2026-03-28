@@ -747,7 +747,7 @@ internal class RaceAdminCommand : ConsoleCommand
         Console.instance.Print($"  Contestants: {race.Contestants.Count}");
 
         if (race.State == RaceState.Racing)
-            Console.instance.Print($"  Elapsed: {Time.time - race.RaceStartTime:F1}s");
+            Console.instance.Print($"  Elapsed: {ZNet.instance.m_netTime - race.RaceStartTime:F1}s");
 
         foreach (var c in race.Contestants)
         {
