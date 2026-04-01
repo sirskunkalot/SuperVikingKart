@@ -16,7 +16,6 @@ internal enum RaceBoardButtonType
 /// <summary>
 /// Placed on each button child of the RaceBoard prefab.
 /// Delegates interactions to the parent RaceBoardComponent.
-/// Admin button is restricted to server admins only.
 /// </summary>
 internal class RaceBoardButton : MonoBehaviour, Hoverable, Interactable
 {
@@ -140,17 +139,28 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
 
         SuperVikingKart.DebugLog($"RaceBoard Awake - ZDO: {_netView.GetZDO().m_uid}");
 
-        // Bootstrap RaceManager with persisted config if race doesn't exist yet.
-        // Safe to call on all clients - RPC_CreateRace is idempotent.
+        if (!_netView.IsOwner()) return;
+
         var raceId = GetRaceId();
-        if (!string.IsNullOrEmpty(raceId) && RaceManager.GetRace(raceId) == null)
+        if (string.IsNullOrEmpty(raceId)) return;
+
+        var existingRace = RaceManager.GetRace(raceId);
+        if (existingRace == null)
         {
             var name = GetRaceName();
             var laps = GetLaps();
             var description = GetDescription();
             SuperVikingKart.DebugLog(
-                $"RaceBoard Awake - Bootstrapping race [{raceId}] \"{name}\" ({laps} laps) Description: {description}");
+                $"RaceBoard Awake - Bootstrapping race [{raceId}] \"{name}\" ({laps} laps)");
             RaceManager.SendCreateRace(raceId, name, laps, description);
+        }
+        else
+        {
+            _netView.GetZDO().Set(ZdoKeyName, existingRace.Name);
+            _netView.GetZDO().Set(ZdoKeyLaps, existingRace.TotalLaps);
+            _netView.GetZDO().Set(ZdoKeyDescription, existingRace.Description);
+            SuperVikingKart.DebugLog(
+                $"RaceBoard Awake - Synced ZDO from RaceManager for [{raceId}]");
         }
     }
 
@@ -169,6 +179,20 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
     private void OnRaceChanged(string raceId)
     {
         if (raceId != GetRaceId()) return;
+        if (_netView.IsOwner())
+        {
+            var race = RaceManager.GetRace(raceId);
+            if (race != null)
+            {
+                if (GetRaceName() != race.Name)
+                    _netView.GetZDO().Set(ZdoKeyName, race.Name);
+                if (GetLaps() != race.TotalLaps)
+                    _netView.GetZDO().Set(ZdoKeyLaps, race.TotalLaps);
+                if (GetDescription() != race.Description)
+                    _netView.GetZDO().Set(ZdoKeyDescription, race.Description);
+            }
+        }
+
         UpdateStatusDisplay();
         UpdateRegisterButtonText();
     }
@@ -268,14 +292,14 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
     public void OnButtonInteract(RaceBoardButtonType buttonType, Player player)
     {
         var raceId = GetRaceId();
-        if (string.IsNullOrEmpty(raceId))
+        if (string.IsNullOrEmpty(raceId) && buttonType != RaceBoardButtonType.Admin)
         {
             player.Message(MessageHud.MessageType.Center, "This board is not configured yet");
             return;
         }
 
         var race = RaceManager.GetRace(raceId);
-        if (race == null)
+        if (race == null && buttonType != RaceBoardButtonType.Admin)
         {
             player.Message(MessageHud.MessageType.Center, "Race not found");
             return;
