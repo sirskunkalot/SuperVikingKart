@@ -202,10 +202,18 @@ internal class SE_KartFireArrows : SE_Stats
         base.Setup(character);
         var player = character as Player;
         if (!player) return;
-        var prefab = ZNetScene.instance.GetPrefab("ArrowFire");
-        if (!prefab) return;
+        var arrowPrefab = ZNetScene.instance.GetPrefab("ArrowFire");
+        if (!arrowPrefab) return;
+        // Add bow if not already in there
+        var bowPrefab = ZNetScene.instance.GetPrefab("BowFineWood");
+        if (bowPrefab)
+        {
+            if (!player.GetInventory().ContainsItemByName("$item_bow_finewood"))
+                player.GetInventory().AddItem(bowPrefab, 1);
+        }
+        // Add arrows
         SuperVikingKart.DebugLog($"SE_KartFireArrows - Adding fire arrows to {player.GetPlayerName()}");
-        player.GetInventory().AddItem(prefab, 20);
+        player.GetInventory().AddItem(arrowPrefab, 20);
     }
 }
 
