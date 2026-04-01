@@ -439,12 +439,12 @@ internal static class RaceBoardPiece
         var visual = GameObject.CreatePrimitive(PrimitiveType.Cube);
         visual.name = "Visual";
         visual.transform.SetParent(go.transform, false);
-        visual.transform.localScale = new Vector3(0.48f, 0.18f, 0.06f);
+        visual.transform.localScale = new Vector3(0.58f, 0.18f, 0.06f);
         Object.DestroyImmediate(visual.GetComponent<BoxCollider>());
         visual.GetComponent<MeshRenderer>().material = CreateButtonMaterial();
 
         var collider = go.AddComponent<BoxCollider>();
-        collider.size = new Vector3(0.48f, 0.18f, 0.12f);
+        collider.size = new Vector3(0.58f, 0.18f, 0.12f);
 
         // Label parented to root (no inherited scale from visual cube)
         var labelGo = new GameObject("Label");
@@ -459,7 +459,7 @@ internal static class RaceBoardPiece
         labelTmp.fontSize = 1f;
         labelTmp.color = Color.white;
         labelTmp.textWrappingMode = TextWrappingModes.Normal;
-        labelTmp.rectTransform.sizeDelta = new Vector2(0.44f, 0.16f);
+        labelTmp.rectTransform.sizeDelta = new Vector2(0.54f, 0.16f);
         labelTmp.rectTransform.pivot = new Vector2(0.5f, 0.5f);
         labelTmp.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
         labelTmp.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);

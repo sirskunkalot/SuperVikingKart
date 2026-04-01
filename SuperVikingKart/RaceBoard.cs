@@ -158,6 +158,7 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
     {
         RaceManager.OnRaceChanged += OnRaceChanged;
         UpdateStatusDisplay();
+        UpdateRegisterButtonText();
     }
 
     private void OnDisable()
@@ -169,6 +170,7 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
     {
         if (raceId != GetRaceId()) return;
         UpdateStatusDisplay();
+        UpdateRegisterButtonText();
     }
 
     // --- Status Display ---
@@ -248,6 +250,18 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
         }
 
         return sb.ToString();
+    }
+
+    // --- Button Text ---
+    private void UpdateRegisterButtonText()
+    {
+        if (!RegisterButton) return;
+        var label = RegisterButton.GetComponentInChildren<TMPro.TextMeshPro>();
+        if (label == null) return;
+        var race = RaceManager.GetRace(GetRaceId());
+        var player = Player.m_localPlayer;
+        var isRegistered = race != null && player != null && race.IsRegistered(player.GetZDOID());
+        label.text = isRegistered ? "Unregister" : "Register";
     }
 
     // --- Button Interactions ---
