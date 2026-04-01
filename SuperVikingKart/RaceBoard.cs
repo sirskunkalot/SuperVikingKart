@@ -32,19 +32,6 @@ internal class RaceBoardButton : MonoBehaviour, Hoverable, Interactable
         if (!player || player != Player.m_localPlayer)
             return false;
 
-        if (ButtonType == RaceBoardButtonType.Admin)
-        {
-            if (!SynchronizationManager.Instance.PlayerIsAdmin)
-            {
-                player.Message(MessageHud.MessageType.Center,
-                    "You need to be an admin to configure this board");
-                return false;
-            }
-
-            RaceBoardAdminGui.Open(Board);
-            return true;
-        }
-
         Board.OnButtonInteract(ButtonType, player);
         return true;
     }
@@ -291,6 +278,9 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
             case RaceBoardButtonType.Reset:
                 HandleReset(race, player);
                 break;
+            case RaceBoardButtonType.Admin:
+                HandleAdmin(race, player);
+                break;
         }
     }
 
@@ -334,6 +324,18 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
         }
 
         RaceManager.SendReset(race.RaceId);
+    }
+
+    private void HandleAdmin(Race race, Player player)
+    {
+        if (!SynchronizationManager.Instance.PlayerIsAdmin)
+        {
+            player.Message(MessageHud.MessageType.Center,
+                "You need to be an admin to configure this board");
+            return;
+        }
+
+        RaceBoardAdminGui.Open(this);
     }
 
     // --- Configure (called by RaceBoardAdminGui on confirm) ---
