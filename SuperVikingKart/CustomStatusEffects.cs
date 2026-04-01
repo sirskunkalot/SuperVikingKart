@@ -227,7 +227,7 @@ internal class SE_KartHarpoon : SE_Stats
         if (!player) return;
         var prefab = ZNetScene.instance.GetPrefab("SpearChitin");
         if (!prefab) return;
-        var exists = player.GetInventory().ContainsItem(prefab.GetComponent<ItemDrop>().m_itemData);
+        var exists = player.GetInventory().ContainsItemByName("$item_spear_chitin");
         if (exists) return;
         SuperVikingKart.DebugLog($"SE_KartHarpoon - Adding harpoon to {player.GetPlayerName()}");
         player.GetInventory().AddItem(prefab, 1);
