@@ -350,8 +350,8 @@ internal static class RaceManager
         {
             pkg.Write(race.RaceId);
             pkg.Write(race.Name);
-            pkg.Write(race.Description);
             pkg.Write(race.TotalLaps);
+            pkg.Write(race.Description);
             pkg.Write((int)race.State);
             pkg.Write(race.RaceStartTime);
             pkg.Write(race.Contestants.Count);
@@ -383,9 +383,8 @@ internal static class RaceManager
         var raceCount = pkg.ReadInt();
         for (var i = 0; i < raceCount; i++)
         {
-            var race = new Race(pkg.ReadString(), pkg.ReadString(), description: pkg.ReadString())
+            var race = new Race(pkg.ReadString(), pkg.ReadString(), pkg.ReadInt(), pkg.ReadString())
             {
-                TotalLaps = pkg.ReadInt(),
                 State = (RaceState)pkg.ReadInt(),
                 RaceStartTime = pkg.ReadDouble(),
             };
