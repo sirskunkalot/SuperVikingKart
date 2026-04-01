@@ -684,12 +684,13 @@ internal class SE_KartDisarm : SE_Stats
         base.Setup(character);
         var player = character as Player;
         if (!player) return;
+        
         var rightItem = player.GetRightItem();
         if (rightItem != null)
         {
             SuperVikingKart.DebugLog(
                 $"SE_KartDisarm - Dropping {rightItem.m_shared.m_name} from {player.GetPlayerName()}");
-            player.DropItem(player.GetInventory(), rightItem, 1);
+            player.DropItem(player.GetInventory(), rightItem, 100);
         }
 
         var leftItem = player.GetLeftItem();
@@ -697,7 +698,7 @@ internal class SE_KartDisarm : SE_Stats
         {
             SuperVikingKart.DebugLog(
                 $"SE_KartDisarm - Dropping {leftItem.m_shared.m_name} from {player.GetPlayerName()}");
-            player.DropItem(player.GetInventory(), leftItem, 1);
+            player.DropItem(player.GetInventory(), leftItem, 100);
         }
     }
 }
