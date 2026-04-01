@@ -14,8 +14,8 @@ internal enum RaceBoardButtonType
 }
 
 /// <summary>
-/// Placed on each button child of the RaceBoard prefab.
-/// Delegates interactions to the parent RaceBoardComponent.
+/// Attached to each button on the RaceBoard prefab.
+/// Forwards player interactions to the parent RaceBoardComponent.
 /// </summary>
 internal class RaceBoardButton : MonoBehaviour, Hoverable, Interactable
 {
@@ -102,31 +102,26 @@ internal class RaceBoardButton : MonoBehaviour, Hoverable, Interactable
 }
 
 /// <summary>
-/// Root coordinator for the RaceBoard piece.
-/// Persists race config (raceId, name, laps) in the ZDO.
-/// Drives the status TextMeshPro every Update tick from RaceManager state.
-/// ZNetView, Piece and WearNTear come from the Unity prefab.
-/// Admin GUI is handled by the shared static RaceBoardAdminGui.
+/// Root component for the RaceBoard piece.
+/// Persists race configuration (ID, name, laps, description) in the ZDO and
+/// keeps the status TextMeshPro display in sync with RaceManager state changes.
+/// Admin configuration is handled by the shared static RaceBoardAdminGui.
 /// </summary>
 internal class RaceBoardComponent : MonoBehaviour, Hoverable
 {
-    // --- ZDO Keys ---
     private const string ZdoKeyRaceId = "SuperVikingKart_RaceBoard_RaceId";
     private const string ZdoKeyName = "SuperVikingKart_RaceBoard_Name";
     private const string ZdoKeyLaps = "SuperVikingKart_RaceBoard_Laps";
     private const string ZdoKeyDescription = "SuperVikingKart_RaceBoard_Description";
 
-    // --- References set during prefab setup ---
     public TMPro.TextMeshPro StatusDisplay;
     public RaceBoardButton RegisterButton;
     public RaceBoardButton StartButton;
     public RaceBoardButton ResetButton;
     public RaceBoardButton AdminButton;
 
-    // --- Private ---
     private ZNetView _netView;
 
-    // --- Lifecycle ---
     private void Awake()
     {
         _netView = GetComponent<ZNetView>();
@@ -139,6 +134,7 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
 
         SuperVikingKart.DebugLog($"RaceBoard Awake - ZDO: {_netView.GetZDO().m_uid}");
 
+        // Only the ZDO owner is responsible for bootstrapping or syncing race state.
         if (!_netView.IsOwner()) return;
 
         var raceId = GetRaceId();
@@ -147,6 +143,7 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
         var existingRace = RaceManager.GetRace(raceId);
         if (existingRace == null)
         {
+            // No race exists yet — create one from the values stored in the ZDO.
             var name = GetRaceName();
             var laps = GetLaps();
             var description = GetDescription();
@@ -156,6 +153,7 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
         }
         else
         {
+            // Race already exists — mirror its current values back into the ZDO.
             _netView.GetZDO().Set(ZdoKeyName, existingRace.Name);
             _netView.GetZDO().Set(ZdoKeyLaps, existingRace.TotalLaps);
             _netView.GetZDO().Set(ZdoKeyDescription, existingRace.Description);
@@ -176,9 +174,15 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
         RaceManager.OnRaceChanged -= OnRaceChanged;
     }
 
+    /// <summary>
+    /// Responds to race state changes broadcast by RaceManager.
+    /// Ignores events that belong to a different race.
+    /// If this client owns the ZDO, also writes any changed fields back to it.
+    /// </summary>
     private void OnRaceChanged(string raceId)
     {
         if (raceId != GetRaceId()) return;
+
         if (_netView.IsOwner())
         {
             var race = RaceManager.GetRace(raceId);
@@ -197,7 +201,6 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
         UpdateRegisterButtonText();
     }
 
-    // --- Status Display ---
     private void UpdateStatusDisplay()
     {
         if (!StatusDisplay)
@@ -220,6 +223,10 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
         StatusDisplay.text = BuildStatusText(race);
     }
 
+    /// <summary>
+    /// Builds the full status string shown on the board for a given race,
+    /// including name, lap count, description, and per-state contestant details.
+    /// </summary>
     private string BuildStatusText(Race race)
     {
         var sb = new System.Text.StringBuilder();
@@ -276,19 +283,19 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
         return sb.ToString();
     }
 
-    // --- Button Text ---
     private void UpdateRegisterButtonText()
     {
         if (!RegisterButton) return;
+
         var label = RegisterButton.GetComponentInChildren<TMPro.TextMeshPro>();
         if (label == null) return;
+
         var race = RaceManager.GetRace(GetRaceId());
         var player = Player.m_localPlayer;
         var isRegistered = race != null && player != null && race.IsRegistered(player.GetZDOID());
         label.text = isRegistered ? "Unregister" : "Register";
     }
 
-    // --- Button Interactions ---
     public void OnButtonInteract(RaceBoardButtonType buttonType, Player player)
     {
         var raceId = GetRaceId();
@@ -376,17 +383,19 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
         RaceBoardAdminGui.Open(this);
     }
 
-    // --- Configure (called by RaceBoardAdminGui on confirm) ---
+    /// <summary>
+    /// Persists new board configuration to the ZDO and applies it to
+    /// RaceManager via RPCs. Called by RaceBoardAdminGui when the player
+    /// confirms the admin panel.
+    /// </summary>
     public void Configure(string raceId, string name, int laps, string description)
     {
-        // Claim ZDO ownership and persist config locally
         _netView.ClaimOwnership();
         _netView.GetZDO().Set(ZdoKeyRaceId, raceId);
         _netView.GetZDO().Set(ZdoKeyName, name);
         _netView.GetZDO().Set(ZdoKeyLaps, laps);
         _netView.GetZDO().Set(ZdoKeyDescription, description);
 
-        // Drive RaceManager state via RPCs
         var existing = RaceManager.GetRace(raceId);
         if (existing == null)
             RaceManager.SendCreateRace(raceId, name, laps, description);
@@ -400,28 +409,11 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
         SuperVikingKart.DebugLog($"RaceBoard - Configured [{raceId}] \"{name}\" ({laps} laps)");
     }
 
-    // --- ZDO Accessors ---
-    public string GetRaceId()
-    {
-        return _netView?.GetZDO()?.GetString(ZdoKeyRaceId) ?? "";
-    }
+    public string GetRaceId() => _netView?.GetZDO()?.GetString(ZdoKeyRaceId) ?? "";
+    public string GetRaceName() => _netView?.GetZDO()?.GetString(ZdoKeyName) ?? "";
+    public int GetLaps() => _netView?.GetZDO()?.GetInt(ZdoKeyLaps, 1) ?? 1;
+    public string GetDescription() => _netView?.GetZDO()?.GetString(ZdoKeyDescription) ?? "";
 
-    public string GetRaceName()
-    {
-        return _netView?.GetZDO()?.GetString(ZdoKeyName) ?? "";
-    }
-
-    public int GetLaps()
-    {
-        return _netView?.GetZDO()?.GetInt(ZdoKeyLaps, 1) ?? 1;
-    }
-
-    public string GetDescription()
-    {
-        return _netView?.GetZDO()?.GetString(ZdoKeyDescription) ?? "";
-    }
-
-    // --- Hoverable ---
     public string GetHoverText()
     {
         var raceId = GetRaceId();
@@ -438,10 +430,10 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
 }
 
 /// <summary>
-/// Shared static admin GUI for all RaceBoard instances.
-/// Only one panel exists at a time, parented to GUIManager.CustomGUIFront.
-/// Rebuilt on each scene change via GUIManager.OnCustomGUIAvailable.
-/// Populated from the interacted board's ZDO on open.
+/// Shared static admin panel used by all RaceBoardComponent instances.
+/// A single panel GameObject is parented to GUIManager.CustomGUIFront and
+/// rebuilt each scene via GUIManager.OnCustomGUIAvailable.
+/// Fields are pre-filled from the interacting board's ZDO when the panel is opened.
 /// </summary>
 internal static class RaceBoardAdminGui
 {
@@ -452,6 +444,10 @@ internal static class RaceBoardAdminGui
     private static InputField _lapsField;
     private static InputField _descriptionField;
 
+    /// <summary>
+    /// Constructs the panel hierarchy and wires up button listeners.
+    /// Safe to call multiple times — destroys any existing panel before rebuilding.
+    /// </summary>
     public static void Build()
     {
         if (!GUIManager.CustomGUIFront)
@@ -495,36 +491,31 @@ internal static class RaceBoardAdminGui
         titleLE.minHeight = 30f;
         titleLE.flexibleHeight = 0f;
 
-        // Race ID row
+        // Input rows
         AddLabeledField("Race ID", out _raceIdField,
             InputField.ContentType.Standard, "meadows_gp",
             fieldHeight: 30f, multiLine: false);
         _raceIdField.onValueChanged.AddListener(OnRaceIdChanged);
 
-        // Name row
         AddLabeledField("Name", out _nameField,
             InputField.ContentType.Standard, "Meadows Grand Prix",
             fieldHeight: 30f, multiLine: false);
 
-        // Laps row
         AddLabeledField("Laps", out _lapsField,
             InputField.ContentType.IntegerNumber, "1",
             fieldHeight: 30f, multiLine: false);
 
-        // Description row
         AddLabeledField("Description", out _descriptionField,
             InputField.ContentType.Standard, "Optional track description...",
             fieldHeight: 60f, multiLine: true);
 
-        // Button row
+        // Cancel / Confirm buttons
         var buttonRow = new GameObject("ButtonRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         buttonRow.transform.SetParent(_panel.transform, false);
-
         var buttonRowLE = buttonRow.AddComponent<LayoutElement>();
         buttonRowLE.preferredHeight = 40f;
         buttonRowLE.minHeight = 40f;
         buttonRowLE.flexibleHeight = 0f;
-
         var buttonLayout = buttonRow.GetComponent<HorizontalLayoutGroup>();
         buttonLayout.spacing = 10f;
         buttonLayout.childForceExpandWidth = false;
@@ -536,7 +527,6 @@ internal static class RaceBoardAdminGui
             buttonRow.transform,
             new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero,
             width: 160f, height: 40f);
-
         var cancelLE = cancelGo.AddComponent<LayoutElement>();
         cancelLE.preferredWidth = 160f;
         cancelLE.minWidth = 160f;
@@ -551,7 +541,6 @@ internal static class RaceBoardAdminGui
             buttonRow.transform,
             new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero,
             width: 160f, height: 40f);
-
         var confirmLE = confirmGo.AddComponent<LayoutElement>();
         confirmLE.preferredWidth = 160f;
         confirmLE.minWidth = 160f;
@@ -564,6 +553,9 @@ internal static class RaceBoardAdminGui
         SuperVikingKart.DebugLog("RaceBoardAdminGui - Panel built");
     }
 
+    /// <summary>
+    /// Populates the fields from the board's ZDO and shows the panel.
+    /// </summary>
     public static void Open(RaceBoardComponent board)
     {
         if (_panel == null)
@@ -586,11 +578,16 @@ internal static class RaceBoardAdminGui
     {
         if (_panel)
             _panel.SetActive(false);
+
         GUIManager.BlockInput(false);
         _currentBoard = null;
         SuperVikingKart.DebugLog("RaceBoardAdminGui - Closed");
     }
 
+    /// <summary>
+    /// When the Race ID field changes, auto-fills the remaining fields if a
+    /// matching race already exists in RaceManager.
+    /// </summary>
     private static void OnRaceIdChanged(string value)
     {
         var race = RaceManager.GetRace(value.Trim());
@@ -601,6 +598,10 @@ internal static class RaceBoardAdminGui
         _descriptionField.text = race.Description;
     }
 
+    /// <summary>
+    /// Validates input, then forwards the configuration to the current board
+    /// and closes the panel. Rejects empty race IDs or lap counts below 1.
+    /// </summary>
     private static void OnConfirm()
     {
         if (_currentBoard == null)
@@ -631,6 +632,10 @@ internal static class RaceBoardAdminGui
         Close();
     }
 
+    /// <summary>
+    /// Creates a horizontal row containing a fixed-width label and an input field,
+    /// then appends it to the panel's vertical layout.
+    /// </summary>
     private static void AddLabeledField(
         string label,
         out InputField field,
@@ -641,19 +646,17 @@ internal static class RaceBoardAdminGui
     {
         var row = new GameObject($"{label}Row", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         row.transform.SetParent(_panel.transform, false);
-
         var rowLE = row.AddComponent<LayoutElement>();
         rowLE.preferredHeight = fieldHeight;
         rowLE.minHeight = fieldHeight;
         rowLE.flexibleHeight = 0f;
-
         var rowLayout = row.GetComponent<HorizontalLayoutGroup>();
         rowLayout.spacing = 10f;
         rowLayout.childForceExpandWidth = false;
         rowLayout.childForceExpandHeight = true;
         rowLayout.childAlignment = TextAnchor.MiddleLeft;
 
-        // Label — fixed width, no wrapping
+        // Label — fixed width, overflow allowed so it never wraps or resizes.
         var labelGo = GUIManager.Instance.CreateText(
             label,
             row.transform,
@@ -662,7 +665,6 @@ internal static class RaceBoardAdminGui
             Color.white,
             true, Color.black,
             90f, fieldHeight, false);
-
         var labelText = labelGo.GetComponent<Text>();
         if (labelText != null)
         {
@@ -679,13 +681,12 @@ internal static class RaceBoardAdminGui
         labelLE.minHeight = fieldHeight;
         labelLE.flexibleHeight = 0f;
 
-        // Input field — fixed width and height, never grows
+        // Input field — fixed size, never stretches to fill available space.
         var inputGo = GUIManager.Instance.CreateInputField(
             row.transform,
             new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero,
             contentType, placeholder, 16,
             width: 260f, height: fieldHeight);
-
         var inputLE = inputGo.AddComponent<LayoutElement>();
         inputLE.preferredWidth = 260f;
         inputLE.minWidth = 260f;
@@ -695,7 +696,6 @@ internal static class RaceBoardAdminGui
         inputLE.flexibleHeight = 0f;
 
         field = inputGo.GetComponent<InputField>();
-
         if (multiLine)
         {
             field.lineType = InputField.LineType.MultiLineNewline;
