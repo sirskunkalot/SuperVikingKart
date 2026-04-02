@@ -5,6 +5,8 @@ using Jotunn.Entities;
 using Jotunn.Managers;
 using Jotunn.Utils;
 using System;
+using Jotunn;
+using Jotunn.Configs;
 using UnityEngine;
 
 namespace SuperVikingKart;
@@ -67,7 +69,15 @@ internal class SuperVikingKart : BaseUnityPlugin
         PrefabManager.OnVanillaPrefabsAvailable += RegisterCustomStatusEffects;
 
         // (Re-)Initialize the RaceManager on every connect to a server / start of a local game
-        MinimapManager.OnVanillaMapDataLoaded += RaceManager.Init;
+        PrefabManager.OnPrefabsRegistered += RaceManager.Init;
+
+        // Subscribe to the config synced event once to sync race data as a client
+        SynchronizationManager.OnConfigurationSynchronized += (_, _) =>
+        {
+            ZRoutedRpc.instance.InvokeRoutedRPC(
+                ZRoutedRpc.instance.GetServerPeerID(),
+                "SuperVikingKart_Race_RequestSync");
+        };
 
         // (Re-)Build the RaceBoard Admin GUI on every GUI creation
         GUIManager.OnCustomGUIAvailable += RaceBoardAdminGui.Build;

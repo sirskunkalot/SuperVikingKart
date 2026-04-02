@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Jotunn.Managers;
 using UnityEngine;
 
 namespace SuperVikingKart;
@@ -258,11 +259,6 @@ internal static class RaceManager
         ZRoutedRpc.instance.Register<string, ZDOID>("SuperVikingKart_Race_Dnf", RPC_Dnf);
         ZRoutedRpc.instance.Register<string, ZDOID, int>("SuperVikingKart_Race_AssignPosition", RPC_AssignPosition);
         ZRoutedRpc.instance.Register<string>("SuperVikingKart_Race_Reset", RPC_Reset);
-
-        if (!ZNet.instance.IsServer())
-            ZRoutedRpc.instance.InvokeRoutedRPC(
-                ZRoutedRpc.instance.GetServerPeerID(),
-                "SuperVikingKart_Race_RequestSync");
 
         Races.Clear();
         SuperVikingKart.DebugLog("RaceManager initialized");
@@ -800,14 +796,14 @@ internal static class RaceManager
     {
         var race = GetRace(raceId);
         if (race == null) return;
-        
+
         if (CountdownCoroutines.TryGetValue(raceId, out var coroutine))
         {
             SuperVikingKart.Instance.StopCoroutine(coroutine);
             CountdownCoroutines.Remove(raceId);
             SuperVikingKart.DebugLog($"RaceManager - Countdown coroutine stopped for [{raceId}]");
         }
-        
+
         var localPlayer = Player.m_localPlayer;
         var wasRegistered = localPlayer && race.IsRegistered(localPlayer.GetZDOID());
         race.Reset();
