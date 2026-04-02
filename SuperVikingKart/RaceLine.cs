@@ -51,6 +51,23 @@ internal class RaceLineComponent : MonoBehaviour, Hoverable, Interactable
             $"RaceLine Awake - ZDO: {_netView.GetZDO().m_uid}, Role: {GetRole()}, RaceId: {GetRaceId()}");
     }
 
+    private void OnEnable()
+    {
+        RaceManager.OnRaceChanged += OnRaceChanged;
+        UpdateLabel();
+    }
+
+    private void OnDisable()
+    {
+        RaceManager.OnRaceChanged -= OnRaceChanged;
+    }
+    
+    private void OnRaceChanged(string raceId)
+    {
+        if (raceId == GetRaceId())
+            UpdateLabel();
+    }
+
     private void Update()
     {
         // Purge expired cooldown entries
@@ -61,9 +78,6 @@ internal class RaceLineComponent : MonoBehaviour, Hoverable, Interactable
                 toRemove.Add(kvp.Key);
         foreach (var id in toRemove)
             _cooldowns.Remove(id);
-
-        // Update label
-        UpdateLabel();
     }
 
     private void UpdateLabel()
@@ -182,6 +196,9 @@ internal class RaceLineComponent : MonoBehaviour, Hoverable, Interactable
         _netView.ClaimOwnership();
         _netView.GetZDO().Set(ZdoKeyRaceId, raceId);
         _netView.GetZDO().Set(ZdoKeyRole, (int)role);
+        
+        // Update label
+        UpdateLabel();
 
         SuperVikingKart.DebugLog($"RaceLine - Configured [{raceId}] {role}");
     }
