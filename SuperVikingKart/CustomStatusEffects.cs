@@ -211,6 +211,7 @@ internal class SE_KartFireArrows : SE_Stats
             if (!player.GetInventory().ContainsItemByName("$item_bow_finewood"))
                 player.GetInventory().AddItem(bowPrefab, 1);
         }
+
         // Add arrows
         SuperVikingKart.DebugLog($"SE_KartFireArrows - Adding fire arrows to {player.GetPlayerName()}");
         player.GetInventory().AddItem(arrowPrefab, 20);
@@ -684,7 +685,7 @@ internal class SE_KartDisarm : SE_Stats
         base.Setup(character);
         var player = character as Player;
         if (!player) return;
-        
+
         var rightItem = player.GetRightItem();
         if (rightItem != null)
         {
@@ -725,6 +726,7 @@ internal class SE_KartWeak : SE_Stats
                 new EffectList.EffectData { m_prefab = effect, m_enabled = true, m_attach = true }
             };
         }
+
         m_healthRegenMultiplier = 0.75f;
         m_staminaRegenMultiplier = 0.85f;
         m_eitrRegenMultiplier = 0.85f;
@@ -805,9 +807,9 @@ internal class SE_KartBlind : SE_Stats
     private GameObject _overlay;
     private float _elapsed;
 
-    private const float TarAlpha      = 0.99f;
+    private const float TarAlpha = 0.99f;
     private const float VignetteAlpha = 0.98f;
-    private const float PulseSpeed    = 0.6f;
+    private const float PulseSpeed = 0.6f;
     private const float PulseStrength = 0.06f;
 
     public void OnEnable()
@@ -828,7 +830,6 @@ internal class SE_KartBlind : SE_Stats
     public override void Setup(Character character)
     {
         base.Setup(character);
-        SuperVikingKart.DebugLog($"SE_KartBlind - Applied to {character.m_name}");
         if (character != Player.m_localPlayer) return;
 
         // Root canvas
@@ -854,6 +855,8 @@ internal class SE_KartBlind : SE_Stats
             new Color(0.02f, 0.06f, 0.01f, 0.75f));
 
         _elapsed = 0f;
+
+        SuperVikingKart.DebugLog($"SE_KartBlind - Applied to {character.m_name}");
     }
 
     public override void UpdateStatusEffect(float dt)
@@ -910,8 +913,8 @@ internal class SE_KartBlind : SE_Stats
         for (int y = 0; y < size; y++)
         for (int x = 0; x < size; x++)
         {
-            float dx   = (x - half) / half;
-            float dy   = (y - half) / half;
+            float dx = (x - half) / half;
+            float dy = (y - half) / half;
             float dist = Mathf.Clamp01(Mathf.Sqrt(dx * dx + dy * dy));
 
             // Smooth-step so the centre stays transparent and edges go solid
