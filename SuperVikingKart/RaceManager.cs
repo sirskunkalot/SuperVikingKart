@@ -78,25 +78,29 @@ internal class Race
         return true;
     }
 
-    public void RemoveContestant(ZDOID playerId)
+    public bool RemoveContestant(ZDOID playerId)
     {
         var contestant = GetContestant(playerId);
-        if (contestant == null) return;
+        if (contestant == null) return false;
 
+        // Just remove from the list
         if (State == RaceState.Idle)
         {
             Contestants.Remove(contestant);
             SuperVikingKart.DebugLog($"Race [{RaceId}] - Unregistered {contestant.PlayerName}");
-            return;
+            return true;
         }
 
+        // Don't remove but record a DNF and signal removal
         if (State == RaceState.Racing)
         {
             RecordDnf(playerId);
             SuperVikingKart.DebugLog($"Race [{RaceId}] - {contestant.PlayerName} left mid-race, marked DNF");
+            return true;
         }
 
-        // Countdown / Finished — silently ignore
+        // Countdown & Finished don't remove
+        return false;
     }
 
     public void StartCountdown()
@@ -520,7 +524,8 @@ internal static class RaceManager
         var contestant = race.GetContestant(playerId);
         if (contestant == null) return;
         var wasRacing = race.State == RaceState.Racing;
-        race.RemoveContestant(playerId);
+        var removed = race.RemoveContestant(playerId);
+        if (!removed) return;
         OnRaceChanged?.Invoke(raceId);
 
         var localPlayer = Player.m_localPlayer;
@@ -535,6 +540,11 @@ internal static class RaceManager
             localPlayer.Message(MessageHud.MessageType.Center,
                 $"{contestant.PlayerName} left the race - DNF");
         }
+
+        if (race.State == RaceState.Finished)
+            if (localPlayer && race.IsRegistered(localPlayer.GetZDOID()))
+                localPlayer.Message(MessageHud.MessageType.Center,
+                    "Race finished!\n" + race.GetResultsText());
     }
 
     /// <summary>

@@ -68,8 +68,11 @@ internal class RaceBoardButton : MonoBehaviour, Hoverable, Interactable
         if (race == null)
             return "<color=grey>No race configured</color>";
 
-        if (race.State != RaceState.Idle)
-            return "<color=grey>Race already underway</color>";
+        if (race.State == RaceState.Countdown)
+            return "<color=grey>Race is about to begin</color>";
+
+        if (race.State == RaceState.Finished)
+            return "<color=grey>Race is already finished</color>";
 
         var player = Player.m_localPlayer;
         if (player == null)
@@ -85,9 +88,16 @@ internal class RaceBoardButton : MonoBehaviour, Hoverable, Interactable
         if (race == null)
             return "<color=grey>No race configured</color>";
 
-        return race.State != RaceState.Idle
-            ? "<color=grey>Race already underway</color>"
-            : "[<color=yellow><b>$KEY_Use</b></color>] Start Race";
+        if (race.State == RaceState.Countdown)
+            return "<color=grey>Race is about to begin</color>";
+
+        if (race.State == RaceState.Racing)
+            return "<color=grey>Race is already running</color>";
+
+        if (race.State == RaceState.Finished)
+            return "<color=grey>Race is already finished</color>";
+
+        return "[<color=yellow><b>$KEY_Use</b></color>] Start Race";
     }
 
     private string GetResetHoverText(Race race)
@@ -331,9 +341,15 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
 
     private void HandleRegister(Race race, Player player)
     {
-        if (race.State != RaceState.Idle)
+        if (race.State == RaceState.Countdown)
         {
-            player.Message(MessageHud.MessageType.Center, $"{race.Name} is already underway");
+            player.Message(MessageHud.MessageType.Center, $"{race.Name} is about to start");
+            return;
+        }
+
+        if (race.State == RaceState.Finished)
+        {
+            player.Message(MessageHud.MessageType.Center, $"{race.Name} is already finished");
             return;
         }
 
@@ -345,9 +361,21 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
 
     private void HandleStart(Race race, Player player)
     {
-        if (race.State != RaceState.Idle)
+        if (race.State == RaceState.Countdown)
         {
-            player.Message(MessageHud.MessageType.Center, $"{race.Name} is already underway");
+            player.Message(MessageHud.MessageType.Center, $"{race.Name} is about to start");
+            return;
+        }
+
+        if (race.State == RaceState.Racing)
+        {
+            player.Message(MessageHud.MessageType.Center, $"{race.Name} is already running");
+            return;
+        }
+
+        if (race.State == RaceState.Finished)
+        {
+            player.Message(MessageHud.MessageType.Center, $"{race.Name} is already finished");
             return;
         }
 
