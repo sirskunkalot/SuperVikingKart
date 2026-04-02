@@ -95,7 +95,7 @@ Three types of collectible blocks that apply effects when a kart drives through 
 
 Build a **Race Board** from the Hammer under the Misc category to configure and manage a race. The board displays live race status including registered players, lap progress, finish times, and final results.
 
-Interact with the **Admin** button to open the configuration panel and set the Race ID, display name, and lap count.
+Interact with the **Admin** button to open the configuration panel and set the Race ID, display name, and lap count. You can have multiple boards with the same Race ID which will connect them all to the same race.
 
 Any player can use the **Register** button to sign up or leave. Any player can press **Start** once at least one contestant is registered, or **Reset** to return the race to idle.
 
