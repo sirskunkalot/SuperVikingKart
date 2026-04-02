@@ -803,6 +803,12 @@ internal class SE_KartShock : SE_Stats
 internal class SE_KartBlind : SE_Stats
 {
     private GameObject _overlay;
+    private float _elapsed;
+
+    private const float TarAlpha      = 0.99f;
+    private const float VignetteAlpha = 0.98f;
+    private const float PulseSpeed    = 0.6f;
+    private const float PulseStrength = 0.06f;
 
     public void OnEnable()
     {
@@ -824,19 +830,49 @@ internal class SE_KartBlind : SE_Stats
         base.Setup(character);
         SuperVikingKart.DebugLog($"SE_KartBlind - Applied to {character.m_name}");
         if (character != Player.m_localPlayer) return;
+
+        // Root canvas
         _overlay = new GameObject("BlindOverlay");
         var canvas = _overlay.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 999;
-        var image = new GameObject("BlindImage");
-        image.transform.SetParent(_overlay.transform, false);
-        var rectTransform = image.AddComponent<RectTransform>();
-        rectTransform.anchorMin = Vector2.zero;
-        rectTransform.anchorMax = Vector2.one;
-        rectTransform.offsetMin = Vector2.zero;
-        rectTransform.offsetMax = Vector2.zero;
-        var img = image.AddComponent<UnityEngine.UI.Image>();
-        img.color = new Color(0.15f, 0.15f, 0.15f, 0.98f);
+        _overlay.AddComponent<UnityEngine.UI.CanvasScaler>();
+        _overlay.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+
+        // Dark tar base layer (near-opaque brownish-black)
+        CreateFullscreenImage(_overlay.transform, "TarBase",
+            new Color(0.05f, 0.03f, 0.01f, TarAlpha));
+
+        // Vignette layer using a baked radial gradient sprite
+        var vignetteGo = CreateFullscreenImage(_overlay.transform, "Vignette",
+            new Color(0f, 0f, 0f, VignetteAlpha));
+        vignetteGo.GetComponent<UnityEngine.UI.Image>().sprite =
+            CreateVignetteSprite(256);
+
+        // Subtle tar sheen (dark green tint, pulsed in UpdateStatusEffect)
+        CreateFullscreenImage(_overlay.transform, "TarSheen",
+            new Color(0.02f, 0.06f, 0.01f, 0.75f));
+
+        _elapsed = 0f;
+    }
+
+    public override void UpdateStatusEffect(float dt)
+    {
+        base.UpdateStatusEffect(dt);
+        if (_overlay == null) return;
+
+        _elapsed += dt;
+
+        // Pulse the sheen layer alpha for a slimy organic feel
+        var sheen = _overlay.transform.Find("TarSheen");
+        if (sheen)
+        {
+            var img = sheen.GetComponent<UnityEngine.UI.Image>();
+            float pulse = Mathf.Sin(_elapsed * PulseSpeed * Mathf.PI * 2f) * PulseStrength;
+            var c = img.color;
+            c.a = Mathf.Clamp01(0.25f + pulse);
+            img.color = c;
+        }
     }
 
     public override void Stop()
@@ -845,5 +881,46 @@ internal class SE_KartBlind : SE_Stats
         if (_overlay)
             Object.Destroy(_overlay);
         base.Stop();
+    }
+
+    // Creates a fullscreen UI image parented to the given transform
+    private static GameObject CreateFullscreenImage(Transform parent, string goName, Color color)
+    {
+        var go = new GameObject(goName);
+        go.transform.SetParent(parent, false);
+        var rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
+        var img = go.AddComponent<UnityEngine.UI.Image>();
+        img.color = color;
+        return go;
+    }
+
+    // Bakes a radial gradient texture: transparent centre, dark opaque edges.
+    // Used as the vignette sprite so no external assets are needed.
+    private static Sprite CreateVignetteSprite(int size)
+    {
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        tex.wrapMode = TextureWrapMode.Clamp;
+        var pixels = new Color32[size * size];
+        float half = size * 0.5f;
+
+        for (int y = 0; y < size; y++)
+        for (int x = 0; x < size; x++)
+        {
+            float dx   = (x - half) / half;
+            float dy   = (y - half) / half;
+            float dist = Mathf.Clamp01(Mathf.Sqrt(dx * dx + dy * dy));
+
+            // Smooth-step so the centre stays transparent and edges go solid
+            float alpha = Mathf.SmoothStep(0.3f, 1.0f, dist);
+            pixels[y * size + x] = new Color32(0, 0, 0, (byte)(alpha * 255));
+        }
+
+        tex.SetPixels32(pixels);
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
     }
 }
