@@ -230,6 +230,7 @@ internal static class RaceManager
     public static event Action<string> OnRaceChanged;
 
     private static readonly Dictionary<string, Race> Races = new();
+    private static readonly Dictionary<string, Coroutine> CountdownCoroutines = new();
 
     // --- Init ---
     /// <summary>
@@ -435,6 +436,13 @@ internal static class RaceManager
     /// </summary>
     private static void RPC_RemoveRace(long sender, string raceId)
     {
+        if (CountdownCoroutines.TryGetValue(raceId, out var coroutine))
+        {
+            SuperVikingKart.Instance.StopCoroutine(coroutine);
+            CountdownCoroutines.Remove(raceId);
+            SuperVikingKart.DebugLog($"RaceManager - Countdown coroutine stopped for [{raceId}]");
+        }
+
         Races.Remove(raceId);
         OnRaceChanged?.Invoke(raceId);
         SuperVikingKart.DebugLog($"RaceManager - Removed race [{raceId}]");
@@ -559,7 +567,10 @@ internal static class RaceManager
         race.StartCountdown();
         OnRaceChanged?.Invoke(raceId);
         if (sender == ZDOMan.GetSessionID())
-            SuperVikingKart.Instance.StartCoroutine(CountdownCoroutine(raceId));
+        {
+            var coroutine = SuperVikingKart.Instance.StartCoroutine(CountdownCoroutine(raceId));
+            CountdownCoroutines[raceId] = coroutine;
+        }
     }
 
     /// <summary>
@@ -789,6 +800,14 @@ internal static class RaceManager
     {
         var race = GetRace(raceId);
         if (race == null) return;
+        
+        if (CountdownCoroutines.TryGetValue(raceId, out var coroutine))
+        {
+            SuperVikingKart.Instance.StopCoroutine(coroutine);
+            CountdownCoroutines.Remove(raceId);
+            SuperVikingKart.DebugLog($"RaceManager - Countdown coroutine stopped for [{raceId}]");
+        }
+        
         var localPlayer = Player.m_localPlayer;
         var wasRegistered = localPlayer && race.IsRegistered(localPlayer.GetZDOID());
         race.Reset();
