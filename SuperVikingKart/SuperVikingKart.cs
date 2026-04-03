@@ -5,7 +5,6 @@ using Jotunn.Entities;
 using Jotunn.Managers;
 using Jotunn.Utils;
 using System;
-using Jotunn;
 using Jotunn.Configs;
 using UnityEngine;
 
