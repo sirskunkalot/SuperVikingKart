@@ -396,6 +396,12 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
             return;
         }
 
+        if (race.State == RaceState.Racing)
+        {
+            RaceBoardResetConfirmGui.Open(this);
+            return;
+        }
+
         RaceManager.SendReset(race.RaceId);
     }
 
@@ -738,5 +744,135 @@ internal static class RaceBoardAdminGui
         {
             field.lineType = InputField.LineType.SingleLine;
         }
+    }
+}
+
+/// <summary>
+/// Shared static confirmation dialog shown before resetting an active race.
+/// Built and managed identically to RaceBoardAdminGui.
+/// </summary>
+internal static class RaceBoardResetConfirmGui
+{
+    private static GameObject _panel;
+    private static RaceBoardComponent _currentBoard;
+
+    public static void Build()
+    {
+        if (!GUIManager.CustomGUIFront)
+            return;
+
+        if (_panel)
+        {
+            UnityEngine.Object.DestroyImmediate(_panel);
+            _panel = null;
+        }
+
+        _panel = GUIManager.Instance.CreateWoodpanel(
+            GUIManager.CustomGUIFront.transform,
+            anchorMin: new Vector2(0.5f, 0.5f),
+            anchorMax: new Vector2(0.5f, 0.5f),
+            position: Vector2.zero,
+            width: 360f,
+            height: 160f,
+            draggable: false);
+        _panel.SetActive(false);
+
+        var layout = _panel.AddComponent<VerticalLayoutGroup>();
+        layout.padding = new RectOffset(20, 20, 20, 20);
+        layout.spacing = 16f;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+        layout.childAlignment = TextAnchor.UpperCenter;
+
+        // Message
+        var message = GUIManager.Instance.CreateText(
+            "A race is currently underway.\nDo you really want to reset?",
+            _panel.transform,
+            new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), Vector2.zero,
+            GUIManager.Instance.AveriaSerifBold, 18,
+            Color.white,
+            true, Color.black,
+            320f, 60f, false);
+        message.GetComponent<Text>().alignment = TextAnchor.MiddleCenter;
+        var messageLE = message.AddComponent<LayoutElement>();
+        messageLE.preferredHeight = 60f;
+        messageLE.minHeight = 60f;
+        messageLE.flexibleHeight = 0f;
+
+        // Button row
+        var buttonRow = new GameObject("ButtonRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+        buttonRow.transform.SetParent(_panel.transform, false);
+        var buttonRowLE = buttonRow.AddComponent<LayoutElement>();
+        buttonRowLE.preferredHeight = 40f;
+        buttonRowLE.minHeight = 40f;
+        buttonRowLE.flexibleHeight = 0f;
+
+        var buttonLayout = buttonRow.GetComponent<HorizontalLayoutGroup>();
+        buttonLayout.spacing = 10f;
+        buttonLayout.childForceExpandWidth = false;
+        buttonLayout.childForceExpandHeight = false;
+        buttonLayout.childAlignment = TextAnchor.MiddleCenter;
+
+        var cancelGo = GUIManager.Instance.CreateButton(
+            "Cancel",
+            buttonRow.transform,
+            new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero,
+            width: 140f, height: 40f);
+        var cancelLE = cancelGo.AddComponent<LayoutElement>();
+        cancelLE.preferredWidth = 140f;
+        cancelLE.minWidth = 140f;
+        cancelLE.flexibleWidth = 0f;
+        cancelLE.preferredHeight = 40f;
+        cancelLE.minHeight = 40f;
+        cancelLE.flexibleHeight = 0f;
+        cancelGo.GetComponent<Button>().onClick.AddListener(Close);
+
+        var confirmGo = GUIManager.Instance.CreateButton(
+            "Reset",
+            buttonRow.transform,
+            new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero,
+            width: 140f, height: 40f);
+        var confirmLE = confirmGo.AddComponent<LayoutElement>();
+        confirmLE.preferredWidth = 140f;
+        confirmLE.minWidth = 140f;
+        confirmLE.flexibleWidth = 0f;
+        confirmLE.preferredHeight = 40f;
+        confirmLE.minHeight = 40f;
+        confirmLE.flexibleHeight = 0f;
+        confirmGo.GetComponent<Button>().onClick.AddListener(OnConfirm);
+
+        SuperVikingKart.DebugLog("RaceBoardResetConfirmGui - Panel built");
+    }
+
+    public static void Open(RaceBoardComponent board)
+    {
+        if (_panel == null)
+        {
+            SuperVikingKart.DebugLog("RaceBoardResetConfirmGui - Panel not built yet, skipping open");
+            return;
+        }
+
+        _currentBoard = board;
+        _panel.SetActive(true);
+        GUIManager.BlockInput(true);
+        SuperVikingKart.DebugLog("RaceBoardResetConfirmGui - Opened");
+    }
+
+    private static void Close()
+    {
+        if (_panel)
+            _panel.SetActive(false);
+
+        GUIManager.BlockInput(false);
+        _currentBoard = null;
+        SuperVikingKart.DebugLog("RaceBoardResetConfirmGui - Closed");
+    }
+
+    private static void OnConfirm()
+    {
+        if (_currentBoard != null)
+            RaceManager.SendReset(_currentBoard.GetRaceId());
+
+        Close();
     }
 }

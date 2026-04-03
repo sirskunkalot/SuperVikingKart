@@ -84,6 +84,9 @@ internal class SuperVikingKart : BaseUnityPlugin
         // (Re-)Build the RaceBoard Admin GUI on every GUI creation
         GUIManager.OnCustomGUIAvailable += RaceBoardAdminGui.Build;
 
+        // (Re-)Build the RaceBoard Confirmation GUI on every GUI creation
+        GUIManager.OnCustomGUIAvailable += RaceBoardResetConfirmGui.Build;
+
         // (Re-)Build the RaceLine Admin GUI on every GUI creation
         GUIManager.OnCustomGUIAvailable += RaceLineAdminGui.Build;
 
