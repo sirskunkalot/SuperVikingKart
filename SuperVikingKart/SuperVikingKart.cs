@@ -52,8 +52,8 @@ internal class SuperVikingKart : BaseUnityPlugin
         Instance = this;
 
         DebugLogConfig = Config.Bind("General", "Debug", false, "Enable debug logging");
-        CartRespawnTimeConfig = Config.Bind("General", "CartRespawnTime", 10,
-            new ConfigDescription("Time in seconds before a destroyed cart respawns. Server synced value.",
+        CartRespawnTimeConfig = Config.Bind("General", "KartRespawnTime", 10,
+            new ConfigDescription("Time in seconds before a destroyed kart respawns. Server synced value.",
                 new AcceptableValueRange<int>(2, 20),
                 new ConfigurationManagerAttributes { IsAdminOnly = true }));
         BuffBlockRespawnTimeConfig = Config.Bind("General", "BuffBlockRespawnTime", 10,
