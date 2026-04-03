@@ -711,8 +711,6 @@ internal class SE_KartDisarm : SE_Stats
 /// </summary>
 internal class SE_KartWeak : SE_Stats
 {
-    private float _timer;
-
     public void OnEnable()
     {
         name = "SuperVikingKart_Weak";

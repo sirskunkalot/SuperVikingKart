@@ -71,9 +71,11 @@ internal class SuperVikingKart : BaseUnityPlugin
         // (Re-)Initialize the RaceManager on every connect to a server / start of a local game
         PrefabManager.OnPrefabsRegistered += RaceManager.Init;
 
-        // Subscribe to the config synced event once to sync race data as a client
-        SynchronizationManager.OnConfigurationSynchronized += (_, _) =>
+        // Request a race data sync from the server everytime an initial config sync was sent
+        SynchronizationManager.OnConfigurationSynchronized += (_, args) =>
         {
+            if (ZNet.instance.IsServer() || !args.InitialSynchronization) return;
+            DebugLog("RaceManager - Requesting sync");
             ZRoutedRpc.instance.InvokeRoutedRPC(
                 ZRoutedRpc.instance.GetServerPeerID(),
                 "SuperVikingKart_Race_RequestSync");

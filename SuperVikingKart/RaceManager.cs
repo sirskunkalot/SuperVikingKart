@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Jotunn.Managers;
 using UnityEngine;
 
 namespace SuperVikingKart;
@@ -37,8 +36,8 @@ internal class RaceContestant
         CrossedStart = false;
         CurrentLap = 0;
         Finished = false;
-        Position = -1;
-        FinishTime = -1d;
+        Position = 0;
+        FinishTime = 0d;
     }
 }
 
