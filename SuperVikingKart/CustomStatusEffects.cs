@@ -133,7 +133,7 @@ internal class SE_KartOozeBombs : SE_Stats
         base.Setup(character);
         var player = character as Player;
         if (!player) return;
-        var prefab = ZNetScene.instance.GetPrefab("BombOoze");
+        var prefab = ZNetScene.instance.GetPrefab("KartBombOoze");
         if (!prefab) return;
         SuperVikingKart.DebugLog($"SE_KartOozeBombs - Adding ooze bombs to {player.GetPlayerName()}");
         player.GetInventory().AddItem(prefab, 5);
@@ -156,7 +156,7 @@ internal class SE_KartBileBombs : SE_Stats
         base.Setup(character);
         var player = character as Player;
         if (!player) return;
-        var prefab = ZNetScene.instance.GetPrefab("BombBile");
+        var prefab = ZNetScene.instance.GetPrefab("KartBombBile");
         if (!prefab) return;
         SuperVikingKart.DebugLog($"SE_KartBileBombs - Adding bile bombs to {player.GetPlayerName()}");
         player.GetInventory().AddItem(prefab, 2);
@@ -179,7 +179,7 @@ internal class SE_KartSmokeBombs : SE_Stats
         base.Setup(character);
         var player = character as Player;
         if (!player) return;
-        var prefab = ZNetScene.instance.GetPrefab("BombSmoke");
+        var prefab = ZNetScene.instance.GetPrefab("KartBombSmoke");
         if (!prefab) return;
         SuperVikingKart.DebugLog($"SE_KartSmokeBombs - Adding smoke bombs to {player.GetPlayerName()}");
         player.GetInventory().AddItem(prefab, 5);

@@ -46,9 +46,9 @@ Three types of collectible blocks that apply effects when a kart drives through 
 
 | Effect | Description                                                                    |
 |---|--------------------------------------------------------------------------------|
-| Ooze Bombs | Adds 5 ooze bombs to inventory.                                                |
-| Bile Bombs | Adds 2 bile bombs to inventory.                                                |
-| Smoke Bombs | Adds 5 smoke bombs to inventory.                                               |
+| Ooze Bombs | Adds 5 ooze bombs that inflict poison to inventory.                            |
+| Bile Bombs | Adds 2 bile bombs that inflict burning to inventory.                           |
+| Smoke Bombs | Adds 5 smoke bombs that inflict blind to inventory.                            |
 | Fire Arrows | Adds 20 fire arrows to inventory (and a Fine Wood Bow if not already carried). |
 | Harpoon | Adds a Harpoon to inventory. Will not add a second if one is already carried.  |
 | Berserk | Massively increases damage output for 30 seconds.                              |
