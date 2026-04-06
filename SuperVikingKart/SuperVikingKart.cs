@@ -11,7 +11,7 @@ using UnityEngine;
 namespace SuperVikingKart;
 
 [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
-[BepInDependency(Jotunn.Main.ModGuid)]
+[BepInDependency(Jotunn.Main.ModGuid,"2.29.0")]
 [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod, VersionStrictness.Minor)]
 internal class SuperVikingKart : BaseUnityPlugin
 {

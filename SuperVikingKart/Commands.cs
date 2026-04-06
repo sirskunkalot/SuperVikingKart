@@ -23,7 +23,6 @@ internal class ForceBuffCommand : ConsoleCommand
     public override string Name => "svk_buff";
     public override string Help => "Force a specific buff. Usage: svk_buff <name> or svk_buff list";
     public override bool IsCheat => true;
-    public override bool IsNetwork => true;
 
     public override List<string> CommandOptionList()
     {
@@ -33,26 +32,26 @@ internal class ForceBuffCommand : ConsoleCommand
         return options;
     }
 
-    public override void Run(string[] args)
+    public override void Run(string[] args, Terminal context)
     {
         if (args.Length == 0)
         {
-            Console.instance.Print("Usage: svk_buff <name> or svk_buff list");
+            context.AddString("Usage: svk_buff <name> or svk_buff list");
             return;
         }
 
         var localPlayer = Player.m_localPlayer;
         if (!localPlayer)
         {
-            Console.instance.Print("No local player");
+            context.AddString("No local player");
             return;
         }
 
         if (args[0].ToLower() == "list")
         {
-            Console.instance.Print("Available effects:");
+            context.AddString("Available effects:");
             foreach (var effect in BuffBlockComponent.AllEffects)
-                Console.instance.Print($"  {effect.Name} ({effect.StatusEffect}) - {effect.Target} {effect.Type}");
+                context.AddString($"  {effect.Name} ({effect.StatusEffect}) - {effect.Target} {effect.Type}");
             return;
         }
 
@@ -70,19 +69,19 @@ internal class ForceBuffCommand : ConsoleCommand
 
         if (found == null)
         {
-            Console.instance.Print($"Effect '{search}' not found. Use 'svk_buff list' to see available effects.");
+            context.AddString($"Effect '{search}' not found. Use 'svk_buff list' to see available effects.");
             return;
         }
 
         var se = ObjectDB.instance.GetStatusEffect(found.StatusEffect.GetStableHashCode());
         if (se == null)
         {
-            Console.instance.Print($"Status effect '{found.StatusEffect}' not found in ObjectDB");
+            context.AddString($"Status effect '{found.StatusEffect}' not found in ObjectDB");
             return;
         }
 
         localPlayer.GetSEMan().AddStatusEffect(se, true);
-        Console.instance.Print($"Applied {found.Name} ({found.Type}) to {localPlayer.GetPlayerName()}");
+        context.AddString($"Applied {found.Name} ({found.Type}) to {localPlayer.GetPlayerName()}");
     }
 }
 
@@ -94,7 +93,8 @@ internal class RaceCommand : ConsoleCommand
 {
     public override string Name => "svk_race";
     public override string Help => "Race participation. Usage: svk_race <subcommand> [args]";
-    public override bool IsNetwork => true;
+
+    private Terminal _context;
 
     public override List<string> CommandOptionList()
     {
@@ -104,8 +104,10 @@ internal class RaceCommand : ConsoleCommand
         return options;
     }
 
-    public override void Run(string[] args)
+    public override void Run(string[] args, Terminal context)
     {
+        _context = context;
+
         if (args.Length == 0)
         {
             PrintUsage();
@@ -115,7 +117,7 @@ internal class RaceCommand : ConsoleCommand
         var player = Player.m_localPlayer;
         if (!player)
         {
-            Console.instance.Print("No local player");
+            context.AddString("No local player");
             return;
         }
 
@@ -127,7 +129,7 @@ internal class RaceCommand : ConsoleCommand
             case "register":
                 if (args.Length < 2)
                 {
-                    Console.instance.Print("Usage: svk_race register <raceId>");
+                    context.AddString("Usage: svk_race register <raceId>");
                     return;
                 }
 
@@ -136,7 +138,7 @@ internal class RaceCommand : ConsoleCommand
             case "leave":
                 if (args.Length < 2)
                 {
-                    Console.instance.Print("Usage: svk_race leave <raceId>");
+                    context.AddString("Usage: svk_race leave <raceId>");
                     return;
                 }
 
@@ -145,7 +147,7 @@ internal class RaceCommand : ConsoleCommand
             case "start":
                 if (args.Length < 2)
                 {
-                    Console.instance.Print("Usage: svk_race start <raceId>");
+                    context.AddString("Usage: svk_race start <raceId>");
                     return;
                 }
 
@@ -154,7 +156,7 @@ internal class RaceCommand : ConsoleCommand
             case "reset":
                 if (args.Length < 2)
                 {
-                    Console.instance.Print("Usage: svk_race reset <raceId>");
+                    context.AddString("Usage: svk_race reset <raceId>");
                     return;
                 }
 
@@ -163,7 +165,7 @@ internal class RaceCommand : ConsoleCommand
             case "results":
                 if (args.Length < 2)
                 {
-                    Console.instance.Print("Usage: svk_race results <raceId>");
+                    context.AddString("Usage: svk_race results <raceId>");
                     return;
                 }
 
@@ -177,14 +179,14 @@ internal class RaceCommand : ConsoleCommand
 
     private void PrintUsage()
     {
-        Console.instance.Print("Usage: svk_race <subcommand> [args]");
-        Console.instance.Print("  list              - List all races");
-        Console.instance.Print("  register <raceId> - Register for a race");
-        Console.instance.Print("  leave <raceId>    - Leave a race");
-        Console.instance.Print("  start <raceId>    - Start countdown");
-        Console.instance.Print("  reset <raceId>    - Reset a race");
-        Console.instance.Print("  results <raceId>  - Show results");
-        Console.instance.Print("  <raceId>          - Shorthand for register");
+        _context.AddString("Usage: svk_race <subcommand> [args]");
+        _context.AddString("  list              - List all races");
+        _context.AddString("  register <raceId> - Register for a race");
+        _context.AddString("  leave <raceId>    - Leave a race");
+        _context.AddString("  start <raceId>    - Start countdown");
+        _context.AddString("  reset <raceId>    - Reset a race");
+        _context.AddString("  results <raceId>  - Show results");
+        _context.AddString("  <raceId>          - Shorthand for register");
     }
 
     private void ListRaces()
@@ -192,13 +194,13 @@ internal class RaceCommand : ConsoleCommand
         var count = 0;
         foreach (var race in RaceManager.GetAllRaces())
         {
-            Console.instance.Print(
+            _context.AddString(
                 $"  [{race.RaceId}] \"{race.Name}\" State: {race.State}, Contestants: {race.Contestants.Count}");
             count++;
         }
 
         if (count == 0)
-            Console.instance.Print("No active races");
+            _context.AddString("No active races");
     }
 
     private void RegisterPlayer(Player player, string raceId)
@@ -206,24 +208,24 @@ internal class RaceCommand : ConsoleCommand
         var race = RaceManager.GetRace(raceId);
         if (race == null)
         {
-            Console.instance.Print($"Race [{raceId}] not found");
+            _context.AddString($"Race [{raceId}] not found");
             return;
         }
 
         if (race.State != RaceState.Idle)
         {
-            Console.instance.Print($"Race [{raceId}] is already underway");
+            _context.AddString($"Race [{raceId}] is already underway");
             return;
         }
 
         if (race.IsRegistered(player.GetZDOID()))
         {
-            Console.instance.Print($"Already registered for [{raceId}]");
+            _context.AddString($"Already registered for [{raceId}]");
             return;
         }
 
         RaceManager.SendRegister(raceId, player.GetPlayerName(), player.GetZDOID());
-        Console.instance.Print($"Registered for [{raceId}]");
+        _context.AddString($"Registered for [{raceId}]");
     }
 
     private void LeaveRace(Player player, string raceId)
@@ -231,30 +233,30 @@ internal class RaceCommand : ConsoleCommand
         var race = RaceManager.GetRace(raceId);
         if (race == null)
         {
-            Console.instance.Print($"Race [{raceId}] not found");
+            _context.AddString($"Race [{raceId}] not found");
             return;
         }
 
         if (!race.IsRegistered(player.GetZDOID()))
         {
-            Console.instance.Print($"Not registered for [{raceId}]");
+            _context.AddString($"Not registered for [{raceId}]");
             return;
         }
 
         if (race.State == RaceState.Countdown)
         {
-            Console.instance.Print($"Cannot leave [{raceId}] during countdown");
+            _context.AddString($"Cannot leave [{raceId}] during countdown");
             return;
         }
 
         if (race.State == RaceState.Finished)
         {
-            Console.instance.Print($"Race [{raceId}] is already finished");
+            _context.AddString($"Race [{raceId}] is already finished");
             return;
         }
 
         RaceManager.SendUnregister(raceId, player.GetZDOID());
-        Console.instance.Print(race.State == RaceState.Racing
+        _context.AddString(race.State == RaceState.Racing
             ? $"Left race [{raceId}] - DNF"
             : $"Left race [{raceId}]");
     }
@@ -264,24 +266,24 @@ internal class RaceCommand : ConsoleCommand
         var race = RaceManager.GetRace(raceId);
         if (race == null)
         {
-            Console.instance.Print($"Race [{raceId}] not found");
+            _context.AddString($"Race [{raceId}] not found");
             return;
         }
 
         if (race.State != RaceState.Idle)
         {
-            Console.instance.Print($"Race [{raceId}] is not idle (State: {race.State})");
+            _context.AddString($"Race [{raceId}] is not idle (State: {race.State})");
             return;
         }
 
         if (race.Contestants.Count == 0)
         {
-            Console.instance.Print($"Race [{raceId}] has no contestants");
+            _context.AddString($"Race [{raceId}] has no contestants");
             return;
         }
 
         RaceManager.SendStartCountdown(raceId);
-        Console.instance.Print($"Race [{raceId}] countdown started");
+        _context.AddString($"Race [{raceId}] countdown started");
     }
 
     private void ResetRace(string raceId)
@@ -289,12 +291,12 @@ internal class RaceCommand : ConsoleCommand
         var race = RaceManager.GetRace(raceId);
         if (race == null)
         {
-            Console.instance.Print($"Race [{raceId}] not found");
+            _context.AddString($"Race [{raceId}] not found");
             return;
         }
 
         RaceManager.SendReset(raceId);
-        Console.instance.Print($"Race [{raceId}] reset");
+        _context.AddString($"Race [{raceId}] reset");
     }
 
     private void ShowResults(string raceId)
@@ -302,11 +304,11 @@ internal class RaceCommand : ConsoleCommand
         var race = RaceManager.GetRace(raceId);
         if (race == null)
         {
-            Console.instance.Print($"Race [{raceId}] not found");
+            _context.AddString($"Race [{raceId}] not found");
             return;
         }
 
-        Console.instance.Print(race.GetResultsText());
+        _context.AddString(race.GetResultsText());
     }
 }
 
@@ -319,7 +321,8 @@ internal class RaceAdminCommand : ConsoleCommand
     public override string Name => "svk_race_admin";
     public override string Help => "Admin race management. Usage: svk_race_admin <subcommand> [args]";
     public override bool IsCheat => true;
-    public override bool IsNetwork => true;
+
+    private Terminal _context;
 
     public override List<string> CommandOptionList()
     {
@@ -331,8 +334,10 @@ internal class RaceAdminCommand : ConsoleCommand
         };
     }
 
-    public override void Run(string[] args)
+    public override void Run(string[] args, Terminal context)
     {
+        _context = context;
+
         if (args.Length == 0)
         {
             PrintUsage();
@@ -344,7 +349,7 @@ internal class RaceAdminCommand : ConsoleCommand
             case "create":
                 if (args.Length < 2)
                 {
-                    Console.instance.Print("Usage: svk_race_admin create <raceId> [laps] [name]");
+                    context.AddString("Usage: svk_race_admin create <raceId> [laps] [name]");
                     return;
                 }
 
@@ -356,7 +361,7 @@ internal class RaceAdminCommand : ConsoleCommand
             case "remove":
                 if (args.Length < 2)
                 {
-                    Console.instance.Print("Usage: svk_race_admin remove <raceId>");
+                    context.AddString("Usage: svk_race_admin remove <raceId>");
                     return;
                 }
 
@@ -366,7 +371,7 @@ internal class RaceAdminCommand : ConsoleCommand
             case "addplayer":
                 if (args.Length < 3)
                 {
-                    Console.instance.Print("Usage: svk_race_admin addplayer <raceId> <playerName>");
+                    context.AddString("Usage: svk_race_admin addplayer <raceId> <playerName>");
                     return;
                 }
 
@@ -376,7 +381,7 @@ internal class RaceAdminCommand : ConsoleCommand
             case "setname":
                 if (args.Length < 3)
                 {
-                    Console.instance.Print("Usage: svk_race_admin setname <raceId> <name>");
+                    context.AddString("Usage: svk_race_admin setname <raceId> <name>");
                     return;
                 }
 
@@ -386,7 +391,7 @@ internal class RaceAdminCommand : ConsoleCommand
             case "setlaps":
                 if (args.Length < 3)
                 {
-                    Console.instance.Print("Usage: svk_race_admin setlaps <raceId> <count>");
+                    context.AddString("Usage: svk_race_admin setlaps <raceId> <count>");
                     return;
                 }
 
@@ -396,7 +401,7 @@ internal class RaceAdminCommand : ConsoleCommand
             case "setdescription":
                 if (args.Length < 3)
                 {
-                    Console.instance.Print("Usage: svk_race_admin setdescription <raceId> <description>");
+                    context.AddString("Usage: svk_race_admin setdescription <raceId> <description>");
                     return;
                 }
 
@@ -406,7 +411,7 @@ internal class RaceAdminCommand : ConsoleCommand
             case "forcestart":
                 if (args.Length < 2)
                 {
-                    Console.instance.Print("Usage: svk_race_admin forcestart <raceId>");
+                    context.AddString("Usage: svk_race_admin forcestart <raceId>");
                     return;
                 }
 
@@ -416,7 +421,7 @@ internal class RaceAdminCommand : ConsoleCommand
             case "forcereset":
                 if (args.Length < 2)
                 {
-                    Console.instance.Print("Usage: svk_race_admin forcereset <raceId>");
+                    context.AddString("Usage: svk_race_admin forcereset <raceId>");
                     return;
                 }
 
@@ -426,7 +431,7 @@ internal class RaceAdminCommand : ConsoleCommand
             case "lap":
                 if (args.Length < 2)
                 {
-                    Console.instance.Print("Usage: svk_race_admin lap <raceId> [playerName]");
+                    context.AddString("Usage: svk_race_admin lap <raceId> [playerName]");
                     return;
                 }
 
@@ -436,7 +441,7 @@ internal class RaceAdminCommand : ConsoleCommand
             case "finish":
                 if (args.Length < 2)
                 {
-                    Console.instance.Print("Usage: svk_race_admin finish <raceId> [playerName]");
+                    context.AddString("Usage: svk_race_admin finish <raceId> [playerName]");
                     return;
                 }
 
@@ -446,7 +451,7 @@ internal class RaceAdminCommand : ConsoleCommand
             case "state":
                 if (args.Length < 2)
                 {
-                    Console.instance.Print("Usage: svk_race_admin state <raceId>");
+                    context.AddString("Usage: svk_race_admin state <raceId>");
                     return;
                 }
 
@@ -461,18 +466,18 @@ internal class RaceAdminCommand : ConsoleCommand
 
     private void PrintUsage()
     {
-        Console.instance.Print("Usage: svk_race_admin <subcommand> [args]");
-        Console.instance.Print("  create <raceId>                       - Create a new race");
-        Console.instance.Print("  remove <raceId>                       - Remove a race");
-        Console.instance.Print("  addplayer <raceId> <playerName>       - Add a player by name");
-        Console.instance.Print("  setname <raceId> <name>               - Rename a race");
-        Console.instance.Print("  setlaps <raceId> <count>              - Set lap count");
-        Console.instance.Print("  setdescription <raceId> <description> - Set lap count");
-        Console.instance.Print("  forcestart <raceId>                   - Start race regardless of state");
-        Console.instance.Print("  forcereset <raceId>                   - Reset race regardless of state");
-        Console.instance.Print("  lap <raceId> [playerName]             - Simulate a lap completion");
-        Console.instance.Print("  finish <raceId> [playerName]          - Simulate finishing all laps");
-        Console.instance.Print("  state <raceId>                        - Show detailed race state");
+        _context.AddString("Usage: svk_race_admin <subcommand> [args]");
+        _context.AddString("  create <raceId>                       - Create a new race");
+        _context.AddString("  remove <raceId>                       - Remove a race");
+        _context.AddString("  addplayer <raceId> <playerName>       - Add a player by name");
+        _context.AddString("  setname <raceId> <name>               - Rename a race");
+        _context.AddString("  setlaps <raceId> <count>              - Set lap count");
+        _context.AddString("  setdescription <raceId> <description> - Set lap count");
+        _context.AddString("  forcestart <raceId>                   - Start race regardless of state");
+        _context.AddString("  forcereset <raceId>                   - Reset race regardless of state");
+        _context.AddString("  lap <raceId> [playerName]             - Simulate a lap completion");
+        _context.AddString("  finish <raceId> [playerName]          - Simulate finishing all laps");
+        _context.AddString("  state <raceId>                        - Show detailed race state");
     }
 
     /// <summary>
@@ -482,13 +487,13 @@ internal class RaceAdminCommand : ConsoleCommand
     {
         if (RaceManager.GetRace(raceId) != null)
         {
-            Console.instance.Print($"Race [{raceId}] already exists");
+            _context.AddString($"Race [{raceId}] already exists");
             return;
         }
 
         var displayName = string.IsNullOrEmpty(name) ? raceId : name;
         RaceManager.SendCreateRace(raceId, displayName, laps);
-        Console.instance.Print($"Race [{raceId}] created - \"{displayName}\" ({laps} laps)");
+        _context.AddString($"Race [{raceId}] created - \"{displayName}\" ({laps} laps)");
     }
 
     /// <summary>
@@ -498,12 +503,12 @@ internal class RaceAdminCommand : ConsoleCommand
     {
         if (RaceManager.GetRace(raceId) == null)
         {
-            Console.instance.Print($"Race [{raceId}] not found");
+            _context.AddString($"Race [{raceId}] not found");
             return;
         }
 
         RaceManager.SendRemoveRace(raceId);
-        Console.instance.Print($"Race [{raceId}] removed");
+        _context.AddString($"Race [{raceId}] removed");
     }
 
     /// <summary>
@@ -514,31 +519,31 @@ internal class RaceAdminCommand : ConsoleCommand
         var race = RaceManager.GetRace(raceId);
         if (race == null)
         {
-            Console.instance.Print($"Race [{raceId}] not found");
+            _context.AddString($"Race [{raceId}] not found");
             return;
         }
 
         if (race.State != RaceState.Idle)
         {
-            Console.instance.Print($"Race [{raceId}] is not idle (State: {race.State})");
+            _context.AddString($"Race [{raceId}] is not idle (State: {race.State})");
             return;
         }
 
         var player = FindPlayerByName(playerName);
         if (player == null)
         {
-            Console.instance.Print($"Player '{playerName}' not found");
+            _context.AddString($"Player '{playerName}' not found");
             return;
         }
 
         if (race.IsRegistered(player.GetZDOID()))
         {
-            Console.instance.Print($"Player '{playerName}' already registered");
+            _context.AddString($"Player '{playerName}' already registered");
             return;
         }
 
         RaceManager.SendRegister(raceId, player.GetPlayerName(), player.GetZDOID());
-        Console.instance.Print($"Added {player.GetPlayerName()} to [{raceId}]");
+        _context.AddString($"Added {player.GetPlayerName()} to [{raceId}]");
     }
 
     /// <summary>
@@ -549,12 +554,12 @@ internal class RaceAdminCommand : ConsoleCommand
         var race = RaceManager.GetRace(raceId);
         if (race == null)
         {
-            Console.instance.Print($"Race [{raceId}] not found");
+            _context.AddString($"Race [{raceId}] not found");
             return;
         }
 
         RaceManager.SendSetName(raceId, name);
-        Console.instance.Print($"Race [{raceId}] renamed to \"{name}\"");
+        _context.AddString($"Race [{raceId}] renamed to \"{name}\"");
     }
 
     /// <summary>
@@ -564,19 +569,19 @@ internal class RaceAdminCommand : ConsoleCommand
     {
         if (!int.TryParse(countStr, out var count) || count < 1)
         {
-            Console.instance.Print("Invalid lap count");
+            _context.AddString("Invalid lap count");
             return;
         }
 
         var race = RaceManager.GetRace(raceId);
         if (race == null)
         {
-            Console.instance.Print($"Race [{raceId}] not found");
+            _context.AddString($"Race [{raceId}] not found");
             return;
         }
 
         RaceManager.SendSetLaps(raceId, count);
-        Console.instance.Print($"Race [{raceId}] laps set to {count}");
+        _context.AddString($"Race [{raceId}] laps set to {count}");
     }
 
     /// <summary>
@@ -587,12 +592,12 @@ internal class RaceAdminCommand : ConsoleCommand
         var race = RaceManager.GetRace(raceId);
         if (race == null)
         {
-            Console.instance.Print($"Race [{raceId}] not found");
+            _context.AddString($"Race [{raceId}] not found");
             return;
         }
 
         RaceManager.SendSetDescription(raceId, description);
-        Console.instance.Print($"Race [{raceId}] description set to \"{description}\"");
+        _context.AddString($"Race [{raceId}] description set to \"{description}\"");
     }
 
     /// <summary>
@@ -604,19 +609,19 @@ internal class RaceAdminCommand : ConsoleCommand
         var race = RaceManager.GetRace(raceId);
         if (race == null)
         {
-            Console.instance.Print($"Race [{raceId}] not found");
+            _context.AddString($"Race [{raceId}] not found");
             return;
         }
 
         if (race.Contestants.Count == 0)
         {
-            Console.instance.Print($"Race [{raceId}] has no contestants");
+            _context.AddString($"Race [{raceId}] has no contestants");
             return;
         }
 
         RaceManager.SendState(raceId, RaceState.Idle);
         RaceManager.SendStartCountdown(raceId);
-        Console.instance.Print($"Race [{raceId}] force started");
+        _context.AddString($"Race [{raceId}] force started");
     }
 
     /// <summary>
@@ -627,13 +632,13 @@ internal class RaceAdminCommand : ConsoleCommand
         var race = RaceManager.GetRace(raceId);
         if (race == null)
         {
-            Console.instance.Print($"Race [{raceId}] not found");
+            _context.AddString($"Race [{raceId}] not found");
             return;
         }
 
         RaceManager.SendState(raceId, RaceState.Finished);
         RaceManager.SendReset(raceId);
-        Console.instance.Print($"Race [{raceId}] force reset");
+        _context.AddString($"Race [{raceId}] force reset");
     }
 
     /// <summary>
@@ -645,38 +650,38 @@ internal class RaceAdminCommand : ConsoleCommand
         var race = RaceManager.GetRace(raceId);
         if (race == null)
         {
-            Console.instance.Print($"Race [{raceId}] not found");
+            _context.AddString($"Race [{raceId}] not found");
             return;
         }
 
         if (race.State != RaceState.Racing)
         {
-            Console.instance.Print($"Race [{raceId}] is not racing (State: {race.State})");
+            _context.AddString($"Race [{raceId}] is not racing (State: {race.State})");
             return;
         }
 
         var player = args.Length > 2 ? FindPlayerByName(args[2]) : Player.m_localPlayer;
         if (player == null)
         {
-            Console.instance.Print(args.Length > 2 ? $"Player '{args[2]}' not found" : "No local player");
+            _context.AddString(args.Length > 2 ? $"Player '{args[2]}' not found" : "No local player");
             return;
         }
 
         var contestant = race.GetContestant(player.GetZDOID());
         if (contestant == null)
         {
-            Console.instance.Print($"Player '{player.GetPlayerName()}' not in race [{raceId}]");
+            _context.AddString($"Player '{player.GetPlayerName()}' not in race [{raceId}]");
             return;
         }
 
         if (contestant.Finished)
         {
-            Console.instance.Print($"Player '{player.GetPlayerName()}' already finished");
+            _context.AddString($"Player '{player.GetPlayerName()}' already finished");
             return;
         }
 
         RaceManager.SendLap(raceId, player.GetZDOID());
-        Console.instance.Print($"Lap recorded for {player.GetPlayerName()}");
+        _context.AddString($"Lap recorded for {player.GetPlayerName()}");
     }
 
     /// <summary>
@@ -689,33 +694,33 @@ internal class RaceAdminCommand : ConsoleCommand
         var race = RaceManager.GetRace(raceId);
         if (race == null)
         {
-            Console.instance.Print($"Race [{raceId}] not found");
+            _context.AddString($"Race [{raceId}] not found");
             return;
         }
 
         if (race.State != RaceState.Racing)
         {
-            Console.instance.Print($"Race [{raceId}] is not racing (State: {race.State})");
+            _context.AddString($"Race [{raceId}] is not racing (State: {race.State})");
             return;
         }
 
         var player = args.Length > 2 ? FindPlayerByName(args[2]) : Player.m_localPlayer;
         if (player == null)
         {
-            Console.instance.Print(args.Length > 2 ? $"Player '{args[2]}' not found" : "No local player");
+            _context.AddString(args.Length > 2 ? $"Player '{args[2]}' not found" : "No local player");
             return;
         }
 
         var contestant = race.GetContestant(player.GetZDOID());
         if (contestant == null)
         {
-            Console.instance.Print($"Player '{player.GetPlayerName()}' not in race [{raceId}]");
+            _context.AddString($"Player '{player.GetPlayerName()}' not in race [{raceId}]");
             return;
         }
 
         if (contestant.Finished)
         {
-            Console.instance.Print($"Player '{player.GetPlayerName()}' already finished");
+            _context.AddString($"Player '{player.GetPlayerName()}' already finished");
             return;
         }
 
@@ -724,7 +729,7 @@ internal class RaceAdminCommand : ConsoleCommand
         for (var i = 0; i < remaining; i++)
             RaceManager.SendLap(raceId, player.GetZDOID());
 
-        Console.instance.Print($"Finished {player.GetPlayerName()} ({remaining} laps sent)");
+        _context.AddString($"Finished {player.GetPlayerName()} ({remaining} laps sent)");
     }
 
     /// <summary>
@@ -735,17 +740,17 @@ internal class RaceAdminCommand : ConsoleCommand
         var race = RaceManager.GetRace(raceId);
         if (race == null)
         {
-            Console.instance.Print($"Race [{raceId}] not found");
+            _context.AddString($"Race [{raceId}] not found");
             return;
         }
 
-        Console.instance.Print($"Race [{race.RaceId}] \"{race.Name}\"");
-        Console.instance.Print($"  State: {race.State}");
-        Console.instance.Print($"  Laps: {race.TotalLaps}");
-        Console.instance.Print($"  Contestants: {race.Contestants.Count}");
+        _context.AddString($"Race [{race.RaceId}] \"{race.Name}\"");
+        _context.AddString($"  State: {race.State}");
+        _context.AddString($"  Laps: {race.TotalLaps}");
+        _context.AddString($"  Contestants: {race.Contestants.Count}");
 
         if (race.State == RaceState.Racing)
-            Console.instance.Print($"  Elapsed: {ZNet.instance.m_netTime - race.RaceStartTime:F1}s");
+            _context.AddString($"  Elapsed: {ZNet.instance.m_netTime - race.RaceStartTime:F1}s");
 
         foreach (var c in race.Contestants)
         {
@@ -756,7 +761,7 @@ internal class RaceAdminCommand : ConsoleCommand
                 : race.State == RaceState.Racing
                     ? $"Lap {c.CurrentLap}/{race.TotalLaps}"
                     : "Registered";
-            Console.instance.Print($"    {c.PlayerName} ({c.PlayerId}): {status}");
+            _context.AddString($"    {c.PlayerName} ({c.PlayerId}): {status}");
         }
     }
 
