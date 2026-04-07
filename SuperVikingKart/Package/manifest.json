@@ -1,10 +1,10 @@
 ﻿{
   "name": "SuperVikingKart",
-  "description": "",
+  "description": "SuperVikingKart adds mountable karts, collectible effect blocks, and a full race management system. Gather a friend, build a kart, and see who pulls the fastest lap around your custom-built track. Enable PvP and fire hazards for even more fun :)",
   "version_number": "0.0.1",
   "website_url": "https://github.com/sirskunkalot/SuperVikingKart",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2333",
-    "ValheimModding-Jotunn-2.28.0"
+    "ValheimModding-Jotunn-2.29.0"
   ]
 }
