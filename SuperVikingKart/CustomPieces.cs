@@ -214,106 +214,6 @@ internal static class BuffBlockPieces
 
 internal static class RaceBoardPiece
 {
-    /*private void CreateRaceBoard()
-    {
-        try
-        {
-            var assetBundle = AssetUtils.LoadAssetBundleFromResources("supervikingkart");
-            var prefab = assetBundle.LoadAsset<GameObject>("RaceBoard");
-            prefab.SetActive(false);
-
-            // Root — add coordinator only, ZNetView/Piece/WearNTear come from Unity
-            var board = prefab.AddComponent<RaceBoardComponent>();
-
-            // StatusDisplay child — add TextMeshPro
-            var displayGo = prefab.transform.Find("StatusDisplay").gameObject;
-            var tmp = displayGo.AddComponent<TMPro.TextMeshPro>();
-            tmp.alignment = TMPro.TextAlignmentOptions.TopLeft;
-            tmp.fontSize = 3f;
-            tmp.color = Color.white;
-            board.StatusDisplay = tmp;
-
-            // Wire up buttons
-            board.RegisterButton = WireButton(prefab, "RegisterButton", RaceBoardButtonType.Register, board);
-            board.StartButton    = WireButton(prefab, "StartButton",    RaceBoardButtonType.Start,    board);
-            board.ResetButton    = WireButton(prefab, "ResetButton",    RaceBoardButtonType.Reset,    board);
-            board.AdminButton    = WireButton(prefab, "AdminButton",    RaceBoardButtonType.Admin,    board);
-
-            // Rgister into KitbashManeger to apply the kitbash
-            KitbashManager.Instance.AddKitbash(prefab, new KitbashConfig {
-                Layer = "piece",
-                KitbashSources = new List<KitbashSourceConfig>
-                {
-                    new()
-                    {
-                        Name = "eye_1",
-                        SourcePrefab = "Ruby",
-                        SourcePath = "attach/model",
-                        Position = new Vector3(0.528f, 0.1613345f, -0.253f),
-                        Rotation = Quaternion.Euler(0, 180, 0f),
-                        Scale = new Vector3(0.02473f, 0.05063999f, 0.05064f)
-                    },
-                    new()
-                    {
-                        Name = "eye_2",
-                        SourcePrefab = "Ruby",
-                        SourcePath = "attach/model",
-                        Position = new Vector3(0.528f, 0.1613345f, 0.253f),
-                        Rotation = Quaternion.Euler(0, 180, 0f),
-                        Scale = new Vector3(0.02473f, 0.05063999f, 0.05064f)
-                    },
-                    new()
-                    {
-                        Name = "mouth",
-                        SourcePrefab = "draugr_bow",
-                        SourcePath = "attach/bow",
-                        Position = new Vector3(0.53336f, -0.315f, -0.001953f),
-                        Rotation = Quaternion.Euler(-0.06500001f, -2.213f, -272.086f),
-                        Scale = new Vector3(0.41221f, 0.41221f, 0.41221f)
-                    }
-                }
-            });
-
-            var icon = RenderManager.Instance.Render(prefab, RenderManager.IsometricRotation);
-
-            var customPiece = new CustomPiece(prefab, true, new PieceConfig
-            {
-                Name = "Race Board",
-                Description = "Place to configure and manage a race.",
-                PieceTable = PieceTables.Hammer,
-                Category = PieceCategories.Misc,
-                Icon = icon,
-                Requirements = new[]
-                {
-                    new RequirementConfig("Wood", 4),
-                    new RequirementConfig("Stone", 2)
-                }
-            });
-
-            PieceManager.Instance.AddPiece(customPiece);
-            prefab.SetActive(true);
-            DebugLog("RaceBoard prefab registered");
-        }
-        catch (Exception ex)
-        {
-            Jotunn.Logger.LogWarning($"Caught exception while creating race board: {ex}");
-        }
-        finally
-        {
-            PrefabManager.OnVanillaPrefabsAvailable -= CreateRaceBoard;
-        }
-
-        RaceBoardButton WireButton(GameObject prefab, string childName,
-            RaceBoardButtonType type, RaceBoardComponent board)
-        {
-            var go = prefab.transform.Find(childName).gameObject;
-            var button = go.AddComponent<RaceBoardButton>();
-            button.ButtonType = type;
-            button.Board = board;
-            return button;
-        }
-    }*/
-
     public static void CreateRaceBoard()
     {
         var prefab = new GameObject(SuperVikingKart.RaceBoardPrefabName);
@@ -372,9 +272,14 @@ internal static class RaceBoardPiece
             new Vector3(0.9f, 1.25f, -0.06f), "Admin");
 
         // Collider
-        var rootCollider = prefab.AddComponent<BoxCollider>();
-        rootCollider.center = new Vector3(0f, 2f, 0f);
-        rootCollider.size = new Vector3(2.5f, 4f, 0.2f);
+        var placementCollider = prefab.AddComponent<BoxCollider>();
+        placementCollider.center = new Vector3(0f, 0.05f, 0f);
+        placementCollider.size = new Vector3(2.5f, 0.01f, 0.2f);
+
+        var interactCollider = prefab.AddComponent<BoxCollider>();
+        interactCollider.center = new Vector3(0f, 2f, 0f);
+        interactCollider.size = new Vector3(2.5f, 4f, 0.2f);
+        interactCollider.isTrigger = true;
 
         // RaceBoardComponent
         var board = prefab.AddComponent<RaceBoardComponent>();
