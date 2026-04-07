@@ -160,6 +160,9 @@ internal static class BuffBlockPieces
 
     private static Material CreateBlockMaterial(Color bgColor, Color borderColor, Color markColor)
     {
+        if (GUIManager.IsHeadless())
+            return null;
+
         var texture = new Texture2D(64, 64);
         var colors = new Color[64 * 64];
 
@@ -313,6 +316,9 @@ internal static class RaceBoardPiece
 
     private static Material CreateRaceBoardMaterial()
     {
+        if (GUIManager.IsHeadless())
+            return null;
+
         var texture = new Texture2D(64, 64);
         var colors = new Color[64 * 64];
         var bg = new Color(0.15f, 0.1f, 0.05f);
@@ -380,6 +386,9 @@ internal static class RaceBoardPiece
 
     private static Material CreateButtonMaterial()
     {
+        if (GUIManager.IsHeadless())
+            return null;
+
         var texture = new Texture2D(32, 16);
         var colors = new Color[32 * 16];
         var bg = new Color(0.20f, 0.12f, 0.04f);
@@ -554,6 +563,9 @@ internal static class RaceLinePiece
 
     private static Material CreateChequeredMaterial()
     {
+        if (GUIManager.IsHeadless())
+            return null;
+
         const int size = 64;
         var texture = new Texture2D(size, size);
         var colors = new Color[size * size];
@@ -582,6 +594,9 @@ internal static class RaceLinePiece
 
     private static Material CreateArrowMaterial()
     {
+        if (GUIManager.IsHeadless())
+            return null;
+
         const int size = 32;
         var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
         var colors = new Color[size * size];
@@ -622,6 +637,9 @@ internal static class RaceLinePiece
 
     private static Material CreatePostMaterial()
     {
+        if (GUIManager.IsHeadless())
+            return null;
+
         var texture = new Texture2D(4, 4);
         var colors = new Color[16];
         for (var i = 0; i < 16; i++)
@@ -640,6 +658,9 @@ internal static class RaceLinePiece
 
     private static Material CreateBannerMaterial()
     {
+        if (GUIManager.IsHeadless())
+            return null;
+
         const int w = 64, h = 16;
         var texture = new Texture2D(w, h);
         var colors = new Color[w * h];
