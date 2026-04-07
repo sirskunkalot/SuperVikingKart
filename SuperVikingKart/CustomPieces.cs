@@ -474,10 +474,11 @@ internal static class RaceLinePiece
         groundQuad.transform.localScale = new Vector3(6f, 1f, 1f);
         Object.DestroyImmediate(groundQuad.GetComponent<MeshCollider>());
         var groundMat = CreateChequeredMaterial();
-        groundMat.mainTextureScale = new Vector2(
-            groundQuad.transform.localScale.x / groundQuad.transform.localScale.z,
-            1f
-        );
+        if (groundMat != null)
+            groundMat.mainTextureScale = new Vector2(
+                groundQuad.transform.localScale.x / groundQuad.transform.localScale.z,
+                1f
+            );
         groundQuad.GetComponent<MeshRenderer>().material = groundMat;
 
         // Direction arrow
