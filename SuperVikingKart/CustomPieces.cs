@@ -358,13 +358,17 @@ internal static class RaceBoardPiece
         tmp.rectTransform.anchoredPosition3D = new Vector3(0.05f, 2.4f, -0.06f);
 
         // Buttons
-        var registerButtonGo = CreateButtonObject("RegisterButton", prefab.transform,
+        var buttonRow = new GameObject("ButtonRow");
+        buttonRow.transform.SetParent(prefab.transform, false);
+        buttonRow.transform.localPosition = Vector3.zero;
+
+        var registerButtonGo = CreateButtonObject("RegisterButton", buttonRow.transform,
             new Vector3(-0.9f, 1.25f, -0.06f), "Register");
-        var startButtonGo = CreateButtonObject("StartButton", prefab.transform,
+        var startButtonGo = CreateButtonObject("StartButton", buttonRow.transform,
             new Vector3(-0.3f, 1.25f, -0.06f), "Start");
-        var resetButtonGo = CreateButtonObject("ResetButton", prefab.transform,
+        var resetButtonGo = CreateButtonObject("ResetButton", buttonRow.transform,
             new Vector3(0.3f, 1.25f, -0.06f), "Reset");
-        var adminButtonGo = CreateButtonObject("AdminButton", prefab.transform,
+        var adminButtonGo = CreateButtonObject("AdminButton", buttonRow.transform,
             new Vector3(0.9f, 1.25f, -0.06f), "Admin");
 
         // Collider
@@ -375,6 +379,7 @@ internal static class RaceBoardPiece
         // RaceBoardComponent
         var board = prefab.AddComponent<RaceBoardComponent>();
         board.StatusDisplay = tmp;
+        board.ButtonRow = buttonRow;
         board.RegisterButton = WireButton(registerButtonGo, RaceBoardButtonType.Register, board);
         board.StartButton = WireButton(startButtonGo, RaceBoardButtonType.Start, board);
         board.ResetButton = WireButton(resetButtonGo, RaceBoardButtonType.Reset, board);

@@ -123,12 +123,14 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
     private const string ZdoKeyName = "SuperVikingKart_RaceBoard_Name";
     private const string ZdoKeyLaps = "SuperVikingKart_RaceBoard_Laps";
     private const string ZdoKeyDescription = "SuperVikingKart_RaceBoard_Description";
+    private const string ZdoKeyHideButtons = "SuperVikingKart_RaceBoard_HideButtons";
 
     public TMPro.TextMeshPro StatusDisplay;
     public RaceBoardButton RegisterButton;
     public RaceBoardButton StartButton;
     public RaceBoardButton ResetButton;
     public RaceBoardButton AdminButton;
+    public GameObject ButtonRow;
 
     private ZNetView _netView;
 
@@ -175,6 +177,7 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
     private void OnEnable()
     {
         RaceManager.OnRaceChanged += OnRaceChanged;
+        ApplyHideButtons();
         UpdateStatusDisplay();
         UpdateRegisterButtonText();
     }
@@ -182,6 +185,15 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
     private void OnDisable()
     {
         RaceManager.OnRaceChanged -= OnRaceChanged;
+    }
+
+    /// <summary>
+    /// Shows or hides the button row based on the ZDO-persisted HideButtons flag.
+    /// </summary>
+    private void ApplyHideButtons()
+    {
+        if (ButtonRow)
+            ButtonRow.SetActive(!GetHideButtons());
     }
 
     /// <summary>
@@ -211,6 +223,10 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
         UpdateRegisterButtonText();
     }
 
+    /// <summary>
+    /// Update the status display visual depending on if a race is configured and found.
+    /// If so the status text is built using the race's information. 
+    /// </summary>
     private void UpdateStatusDisplay()
     {
         if (!StatusDisplay)
@@ -293,6 +309,9 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Updates the register button depending on the race's contestant status of the local player.
+    /// </summary>
     private void UpdateRegisterButtonText()
     {
         if (!RegisterButton) return;
@@ -306,6 +325,9 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
         label.text = isRegistered ? "Unregister" : "Register";
     }
 
+    /// <summary>
+    /// Central delegate handler for the every RaceBoardButton.
+    /// </summary>
     public void OnButtonInteract(RaceBoardButtonType buttonType, Player player)
     {
         var raceId = GetRaceId();
@@ -422,13 +444,18 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
     /// RaceManager via RPCs. Called by RaceBoardAdminGui when the player
     /// confirms the admin panel.
     /// </summary>
-    public void Configure(string raceId, string name, int laps, string description)
+    public void Configure(string raceId, string name, int laps, string description, bool hideButtons)
     {
         _netView.ClaimOwnership();
         _netView.GetZDO().Set(ZdoKeyRaceId, raceId);
         _netView.GetZDO().Set(ZdoKeyName, name);
         _netView.GetZDO().Set(ZdoKeyLaps, laps);
         _netView.GetZDO().Set(ZdoKeyDescription, description);
+        _netView.GetZDO().Set(ZdoKeyHideButtons, hideButtons);
+
+        // Apply that directly, since it is per instance and does not need 
+        // to be broadcasted
+        ApplyHideButtons();
 
         var existing = RaceManager.GetRace(raceId);
         if (existing == null)
@@ -440,13 +467,15 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
             RaceManager.SendSetDescription(raceId, description);
         }
 
-        SuperVikingKart.DebugLog($"RaceBoard - Configured [{raceId}] \"{name}\" ({laps} laps)");
+        SuperVikingKart.DebugLog(
+            $"RaceBoard - Configured [{raceId}] \"{name}\" ({laps} laps) hideButtons={hideButtons}");
     }
 
     public string GetRaceId() => _netView?.GetZDO()?.GetString(ZdoKeyRaceId) ?? "";
     public string GetRaceName() => _netView?.GetZDO()?.GetString(ZdoKeyName) ?? "";
     public int GetLaps() => _netView?.GetZDO()?.GetInt(ZdoKeyLaps, 1) ?? 1;
     public string GetDescription() => _netView?.GetZDO()?.GetString(ZdoKeyDescription) ?? "";
+    public bool GetHideButtons() => _netView?.GetZDO()?.GetBool(ZdoKeyHideButtons, false) ?? false;
 
     public string GetHoverText()
     {
@@ -477,6 +506,7 @@ internal static class RaceBoardAdminGui
     private static InputField _nameField;
     private static InputField _lapsField;
     private static InputField _descriptionField;
+    private static Toggle _hideButtonsToggle;
 
     /// <summary>
     /// Constructs the panel hierarchy and wires up button listeners.
@@ -499,7 +529,7 @@ internal static class RaceBoardAdminGui
             anchorMax: new Vector2(0.5f, 0.5f),
             position: Vector2.zero,
             width: 420f,
-            height: 320f,
+            height: 360f,
             draggable: true);
         _panel.SetActive(false);
 
@@ -542,6 +572,8 @@ internal static class RaceBoardAdminGui
         AddLabeledField("Description", out _descriptionField,
             InputField.ContentType.Standard, "Optional track description...",
             fieldHeight: 60f, multiLine: true);
+
+        AddToggleRow("Hide Buttons", out _hideButtonsToggle);
 
         // Cancel / Confirm buttons
         var buttonRow = new GameObject("ButtonRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
@@ -603,6 +635,7 @@ internal static class RaceBoardAdminGui
         _nameField.text = board.GetRaceName();
         _lapsField.text = board.GetLaps().ToString();
         _descriptionField.text = board.GetDescription();
+        _hideButtonsToggle.isOn = board.GetHideButtons();
         _panel.SetActive(true);
         GUIManager.BlockInput(true);
         SuperVikingKart.DebugLog("RaceBoardAdminGui - Opened");
@@ -662,7 +695,9 @@ internal static class RaceBoardAdminGui
         }
 
         var description = _descriptionField.text;
-        _currentBoard.Configure(raceId, name, laps, description);
+        var hideButtons = _hideButtonsToggle.isOn;
+
+        _currentBoard.Configure(raceId, name, laps, description, hideButtons);
         Close();
     }
 
@@ -698,7 +733,7 @@ internal static class RaceBoardAdminGui
             GUIManager.Instance.AveriaSerifBold, 16,
             Color.white,
             true, Color.black,
-            90f, fieldHeight, false);
+            100f, fieldHeight, false);
         var labelText = labelGo.GetComponent<Text>();
         if (labelText != null)
         {
@@ -708,8 +743,8 @@ internal static class RaceBoardAdminGui
         }
 
         var labelLE = labelGo.AddComponent<LayoutElement>();
-        labelLE.preferredWidth = 90f;
-        labelLE.minWidth = 90f;
+        labelLE.preferredWidth = 100f;
+        labelLE.minWidth = 100f;
         labelLE.flexibleWidth = 0f;
         labelLE.preferredHeight = fieldHeight;
         labelLE.minHeight = fieldHeight;
@@ -720,10 +755,10 @@ internal static class RaceBoardAdminGui
             row.transform,
             new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero,
             contentType, placeholder, 16,
-            width: 260f, height: fieldHeight);
+            width: 250f, height: fieldHeight);
         var inputLE = inputGo.AddComponent<LayoutElement>();
-        inputLE.preferredWidth = 260f;
-        inputLE.minWidth = 260f;
+        inputLE.preferredWidth = 250f;
+        inputLE.minWidth = 250f;
         inputLE.flexibleWidth = 0f;
         inputLE.preferredHeight = fieldHeight;
         inputLE.minHeight = fieldHeight;
@@ -744,6 +779,63 @@ internal static class RaceBoardAdminGui
         {
             field.lineType = InputField.LineType.SingleLine;
         }
+    }
+
+    private static void AddToggleRow(string label, out Toggle toggle)
+    {
+        var row = new GameObject($"{label}Row", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+        row.transform.SetParent(_panel.transform, false);
+
+        var rowLE = row.AddComponent<LayoutElement>();
+        rowLE.preferredHeight = 30f;
+        rowLE.minHeight = 30f;
+        rowLE.flexibleHeight = 0f;
+
+        var rowLayout = row.GetComponent<HorizontalLayoutGroup>();
+        rowLayout.spacing = 10f;
+        rowLayout.childForceExpandWidth = false;
+        rowLayout.childForceExpandHeight = true;
+        rowLayout.childAlignment = TextAnchor.MiddleLeft;
+
+        // Label
+        var labelGo = GUIManager.Instance.CreateText(
+            label,
+            row.transform,
+            new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero,
+            GUIManager.Instance.AveriaSerifBold, 16,
+            Color.white,
+            true, Color.black,
+            100f, 30f, false);
+
+        var labelText = labelGo.GetComponent<Text>();
+        if (labelText != null)
+        {
+            labelText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            labelText.verticalOverflow = VerticalWrapMode.Truncate;
+            labelText.resizeTextForBestFit = false;
+        }
+
+        var labelLE = labelGo.AddComponent<LayoutElement>();
+        labelLE.preferredWidth = 100f;
+        labelLE.minWidth = 100f;
+        labelLE.flexibleWidth = 0f;
+        labelLE.preferredHeight = 30f;
+        labelLE.minHeight = 30f;
+        labelLE.flexibleHeight = 0f;
+
+        // Toggle
+        var toggleGo = GUIManager.Instance.CreateToggle(row.transform, 25f, 25f);
+
+        var toggleLE = toggleGo.AddComponent<LayoutElement>();
+        toggleLE.preferredWidth = 30f;
+        toggleLE.minWidth = 30f;
+        toggleLE.flexibleWidth = 0f;
+        toggleLE.preferredHeight = 30f;
+        toggleLE.minHeight = 30f;
+        toggleLE.flexibleHeight = 0f;
+
+        toggle = toggleGo.GetComponent<Toggle>();
+        toggle.isOn = false;
     }
 }
 
