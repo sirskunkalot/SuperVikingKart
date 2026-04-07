@@ -62,6 +62,7 @@ internal class SuperVikingKartComponent : MonoBehaviour, Hoverable, Interactable
         _netView.Register<ZDOID>("SuperVikingKart_RPC_Attach", RPC_Attach);
         _netView.Register("SuperVikingKart_RPC_Detach", RPC_Detach);
         _netView.Register<float, float, float>("SuperVikingKart_RPC_SetColor", RPC_SetColor);
+        _netView.Register<Vector3, float>("SuperVikingKart_RPC_KartDestroyed", RPC_KartDestroyed);
 
         if (_netView.IsOwner())
         {
@@ -248,6 +249,16 @@ internal class SuperVikingKartComponent : MonoBehaviour, Hoverable, Interactable
         }
 
         ApplyColor(color);
+    }
+
+    private void RPC_KartDestroyed(long sender, Vector3 position, float rotY)
+    {
+        SuperVikingKart.DebugLog($"RPC_KartDestroyed - position: {position}, rotY: {rotY}");
+        var timerGo = new GameObject("KartRespawnComponent");
+        timerGo.transform.position = position + Vector3.up * 0.5f;
+        timerGo.layer = LayerMask.NameToLayer("character");
+        var timer = timerGo.AddComponent<KartRespawnComponent>();
+        timer.Setup(SuperVikingKart.CartRespawnTimeConfig.Value);
     }
 
     // --- State ---
@@ -521,39 +532,27 @@ internal class KartRespawnPatch
         if (IsBeingRemoved) return;
         var kart = __instance.GetComponentInChildren<SuperVikingKartComponent>();
         if (!kart) return;
-
         var netView = __instance.GetComponent<ZNetView>();
-        if (!netView) return;
+        if (!netView || !netView.IsOwner()) return;
 
         var position = __instance.transform.position;
+        var rotY = __instance.transform.eulerAngles.y;
+        var yRotation = Quaternion.Euler(0f, rotY, 0f);
+        var color = kart.GetCurrentColor();
 
-        // Only schedule the actual respawn once — on the ZDO owner.
-        if (netView.IsOwner())
-        {
-            var yRotation = Quaternion.Euler(0f, __instance.transform.eulerAngles.y, 0f);
-            var color = kart.GetCurrentColor();
+        SuperVikingKart.DebugLog($"KartRespawn - Kart destroyed at {position}, broadcasting and scheduling respawn");
 
-            SuperVikingKart.DebugLog($"KartRespawn - Kart destroyed at {position}, scheduling respawn");
-            SuperVikingKart.Instance.StartCoroutine(RespawnKart(position, yRotation, color));
-        }
+        // Broadcast to all clients (including self) to spawn the countdown timer
+        netView.InvokeRPC(ZNetView.Everybody, "SuperVikingKart_RPC_KartDestroyed", position, rotY);
 
-        // Spawn the timer GO on every client
-        SuperVikingKart.DebugLog(
-            $"KartRespawn - Spawning timer for local client");
-        var timerGo = new GameObject("KartRespawnComponent");
-        timerGo.transform.position = position + Vector3.up * 0.5f;
-        timerGo.layer = LayerMask.NameToLayer("character");
-        var timer = timerGo.AddComponent<KartRespawnComponent>();
-        timer.Setup(SuperVikingKart.CartRespawnTimeConfig.Value);
+        // Only the owner schedules the actual respawn
+        SuperVikingKart.Instance.StartCoroutine(RespawnKart(position, yRotation, color));
     }
 
-    /// <summary>
-    /// Respawn the Kart prefab after the configured time at the
-    /// last position and rotation. Also reset the last color.
-    /// </summary>
     private static IEnumerator RespawnKart(Vector3 position, Quaternion rotation, Color color)
     {
         yield return new WaitForSeconds(SuperVikingKart.CartRespawnTimeConfig.Value);
+
         var prefab = PrefabManager.Instance.GetPrefab(SuperVikingKart.KartPrefabName);
         if (!prefab)
         {
