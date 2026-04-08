@@ -258,7 +258,7 @@ internal class SuperVikingKartComponent : MonoBehaviour, Hoverable, Interactable
         timerGo.transform.position = position + Vector3.up * 0.5f;
         timerGo.layer = LayerMask.NameToLayer("character");
         var timer = timerGo.AddComponent<KartRespawnComponent>();
-        timer.Setup(SuperVikingKart.CartRespawnTimeConfig.Value);
+        timer.Setup(SuperVikingKart.KartRespawnTimeConfig.Value);
     }
 
     // --- State ---
@@ -551,7 +551,7 @@ internal class KartRespawnPatch
 
     private static IEnumerator RespawnKart(Vector3 position, Quaternion rotation, Color color)
     {
-        yield return new WaitForSeconds(SuperVikingKart.CartRespawnTimeConfig.Value);
+        yield return new WaitForSeconds(SuperVikingKart.KartRespawnTimeConfig.Value);
 
         var prefab = PrefabManager.Instance.GetPrefab(SuperVikingKart.KartPrefabName);
         if (!prefab)

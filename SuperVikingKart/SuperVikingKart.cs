@@ -40,7 +40,7 @@ internal class SuperVikingKart : BaseUnityPlugin
     public static SuperVikingKart Instance;
     public static CustomLocalization Localization = LocalizationManager.Instance.GetLocalization();
 
-    public static ConfigEntry<int> CartRespawnTimeConfig;
+    public static ConfigEntry<int> KartRespawnTimeConfig;
     public static ConfigEntry<int> BuffBlockRespawnTimeConfig;
     public static ConfigEntry<bool> DebugLogConfig;
 
@@ -51,7 +51,7 @@ internal class SuperVikingKart : BaseUnityPlugin
         Instance = this;
 
         DebugLogConfig = Config.Bind("General", "Debug", false, "Enable debug logging");
-        CartRespawnTimeConfig = Config.Bind("General", "KartRespawnTime", 10,
+        KartRespawnTimeConfig = Config.Bind("General", "KartRespawnTime", 10,
             new ConfigDescription("Time in seconds before a destroyed kart respawns. Server synced value.",
                 new AcceptableValueRange<int>(2, 20),
                 new ConfigurationManagerAttributes { IsAdminOnly = true }));
