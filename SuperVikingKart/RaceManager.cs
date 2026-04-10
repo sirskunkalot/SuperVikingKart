@@ -25,6 +25,7 @@ internal class RaceContestant
     public bool CrossedStart;
     public int CurrentLap;
     public int LastCheckpointIndex;
+    public double LastCheckpointTime;
     public bool Finished;
     public int Position;
     public double FinishTime;
@@ -37,6 +38,7 @@ internal class RaceContestant
         CrossedStart = false;
         CurrentLap = 0;
         LastCheckpointIndex = 0;
+        LastCheckpointTime = 0d;
         Finished = false;
         Position = 0;
         FinishTime = 0d;
@@ -119,17 +121,30 @@ internal class Race
         SuperVikingKart.DebugLog($"Race [{RaceId}] - Race started (t={startTime:F3})");
     }
 
+    public bool RecordCheckpoint(ZDOID playerId, int index, double currentTime)
+    {
+        if (State != RaceState.Racing) return false;
+        var contestant = GetContestant(playerId);
+        if (contestant == null || contestant.Finished) return false;
+        if (contestant.LastCheckpointIndex != index - 1) return false;
+
+        contestant.LastCheckpointIndex = index;
+        contestant.LastCheckpointTime = currentTime - RaceStartTime;
+        return true;
+    }
+
     /// <summary>
     /// Increments the contestant's lap counter and returns true when all laps are complete.
     /// The caller is responsible for subsequently calling <see cref="RecordFinish"/> on a true return.
     /// </summary>
-    public bool RecordLap(ZDOID playerId)
+    public bool RecordLap(ZDOID playerId, double currentTime)
     {
         if (State != RaceState.Racing) return false;
         var contestant = GetContestant(playerId);
         if (contestant == null || contestant.Finished) return false;
         contestant.CurrentLap++;
         contestant.LastCheckpointIndex = 0;
+        contestant.LastCheckpointTime = currentTime - RaceStartTime;
         return contestant.CurrentLap > TotalLaps;
     }
 
@@ -194,27 +209,52 @@ internal class Race
         SuperVikingKart.DebugLog($"Race [{RaceId}] - Reset");
     }
 
+    public List<RaceContestant> GetLiveRanking()
+    {
+        var finished = Contestants
+            .Where(c => c.Finished && !c.IsDnf)
+            .OrderBy(c => c.Position);
+
+        var racing = Contestants
+            .Where(c => !c.Finished && !c.IsDnf)
+            .OrderByDescending(c => c.CurrentLap)
+            .ThenByDescending(c => c.LastCheckpointIndex);
+
+        var dnf = Contestants.Where(c => c.IsDnf);
+
+        return finished.Concat(racing).Concat(dnf).ToList();
+    }
+
     public string GetResultsText()
     {
-        var finished = Contestants.Where(c => c.Finished && !c.IsDnf).OrderBy(c => c.Position).ToList();
+        var finished = Contestants
+            .Where(c => c.Finished && !c.IsDnf)
+            .OrderBy(c => c.Position)
+            .ToList();
         var dnf = Contestants.Where(c => c.IsDnf).ToList();
         var stillRacing = Contestants.Where(c => !c.Finished && !c.IsDnf).ToList();
 
         var text = $"{Name} ({TotalLaps} laps) Results:\n";
 
-        // Group by position so tied players appear on one line.
+        // Group by position so tied contestants appear on one line
         foreach (var group in finished.GroupBy(c => c.Position).OrderBy(g => g.Key))
         {
             var names = string.Join(" / ", group.Select(c => c.PlayerName));
             var time = group.First().FinishTime;
-            text += $"  P{group.Key} {names} - {time:F1}s\n";
+            text += $"  P{group.Key} {names} - {RaceUtils.FormatTime(time)}\n";
         }
 
         foreach (var c in dnf)
-            text += $"  DNF {c.PlayerName} (Lap {c.CurrentLap}/{TotalLaps})\n";
+        {
+            var cpInfo = c.LastCheckpointIndex > 0 ? $", CP {c.LastCheckpointIndex}" : "";
+            text += $"  DNF {c.PlayerName} (Lap {c.CurrentLap}/{TotalLaps}{cpInfo})\n";
+        }
 
         foreach (var c in stillRacing)
-            text += $"  ??? {c.PlayerName} (Lap {c.CurrentLap}/{TotalLaps})\n";
+        {
+            var cpInfo = c.LastCheckpointIndex > 0 ? $", CP {c.LastCheckpointIndex}" : "";
+            text += $"  ??? {c.PlayerName} (Lap {c.CurrentLap}/{TotalLaps}{cpInfo})\n";
+        }
 
         return text;
     }
@@ -257,7 +297,7 @@ internal static class RaceManager
         ZRoutedRpc.instance.Register<string, int>("SuperVikingKart_Race_CountdownTick", RPC_CountdownTick);
         ZRoutedRpc.instance.Register<string, double>("SuperVikingKart_Race_Go", RPC_Go);
         ZRoutedRpc.instance.Register<string, ZDOID>("SuperVikingKart_Race_CrossedStart", RPC_CrossedStart);
-        ZRoutedRpc.instance.Register<string, ZDOID, int>("SuperVikingKart_Race_Checkpoint", RPC_Checkpoint);
+        ZRoutedRpc.instance.Register<string, ZDOID, int, double>("SuperVikingKart_Race_Checkpoint", RPC_Checkpoint);
         ZRoutedRpc.instance.Register<string, ZDOID, double>("SuperVikingKart_Race_Lap", RPC_Lap);
         ZRoutedRpc.instance.Register<string, ZDOID>("SuperVikingKart_Race_Dnf", RPC_Dnf);
         ZRoutedRpc.instance.Register<string, ZDOID, int>("SuperVikingKart_Race_AssignPosition", RPC_AssignPosition);
@@ -324,12 +364,12 @@ internal static class RaceManager
 
     public static void SendCheckpoint(string raceId, ZDOID playerId, int index)
         => ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
-            "SuperVikingKart_Race_Checkpoint", raceId, playerId, index);
+            "SuperVikingKart_Race_Checkpoint", raceId, playerId, index, ZNet.instance.m_netTime);
 
     public static void SendLap(string raceId, ZDOID playerId)
         => ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
             "SuperVikingKart_Race_Lap", raceId, playerId, ZNet.instance.m_netTime);
-    
+
     public static void SendDnf(string raceId, ZDOID playerId)
         => ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
             "SuperVikingKart_Race_Dnf", raceId, playerId);
@@ -370,6 +410,7 @@ internal static class RaceManager
                 pkg.Write(c.CrossedStart);
                 pkg.Write(c.CurrentLap);
                 pkg.Write(c.LastCheckpointIndex);
+                pkg.Write(c.LastCheckpointTime);
                 pkg.Write(c.Finished);
                 pkg.Write(c.Position);
                 pkg.Write(c.FinishTime);
@@ -406,6 +447,7 @@ internal static class RaceManager
                     CrossedStart = pkg.ReadBool(),
                     CurrentLap = pkg.ReadInt(),
                     LastCheckpointIndex = pkg.ReadInt(),
+                    LastCheckpointTime = pkg.ReadDouble(),
                     Finished = pkg.ReadBool(),
                     Position = pkg.ReadInt(),
                     FinishTime = pkg.ReadDouble(),
@@ -687,40 +729,38 @@ internal static class RaceManager
 
         SuperVikingKart.DebugLog($"Race [{raceId}] - {contestant.PlayerName} crossed start line");
     }
-    
+
     /// <summary>
     /// Runs on all peers. Validates and records a checkpoint crossing for a contestant,
     /// enforcing sequential order — checkpoint N is only accepted if the previous
     /// checkpoint N-1 was already crossed this lap. Shows a confirmation message to
     /// the crossing player, or a missed-checkpoint warning if the sequence is broken.
     /// </summary>
-    private static void RPC_Checkpoint(long sender, string raceId, ZDOID playerId, int index)
+    private static void RPC_Checkpoint(long sender, string raceId, ZDOID playerId, int index, double currentTime)
     {
         var race = GetRace(raceId);
         if (race == null || race.State != RaceState.Racing) return;
         var contestant = race.GetContestant(playerId);
         if (contestant == null || contestant.Finished) return;
 
-        if (contestant.LastCheckpointIndex != index - 1)
+        if (!race.RecordCheckpoint(playerId, index, currentTime))
         {
             var localPlayer = Player.m_localPlayer;
             if (localPlayer && localPlayer.GetZDOID() == playerId)
                 localPlayer.Message(MessageHud.MessageType.Center,
-                    $"Missed checkpoint {contestant.LastCheckpointIndex + 1}!");
+                    $"Missed checkpoint {contestant.LastCheckpointIndex + 1}");
             return;
         }
 
-        contestant.LastCheckpointIndex = index;
         OnRaceChanged?.Invoke(raceId);
 
         var local = Player.m_localPlayer;
         if (local && local.GetZDOID() == playerId)
-            local.Message(MessageHud.MessageType.Center, $"Checkpoint {index}!");
+            local.Message(MessageHud.MessageType.Center, $"Checkpoint {index}");
 
-        SuperVikingKart.DebugLog(
-            $"Race [{raceId}] - {contestant.PlayerName} checkpoint {index}");
+        SuperVikingKart.DebugLog($"Race [{raceId}] - {contestant.PlayerName} checkpoint {index}");
     }
-    
+
     /// <summary>
     /// Runs on all peers. Increments the contestant's lap count each time they cross
     /// the finish line. On the final lap, records the finish time. The server then
@@ -733,7 +773,7 @@ internal static class RaceManager
         if (race == null || race.State != RaceState.Racing) return;
         var contestant = race.GetContestant(playerId);
         if (contestant == null || contestant.Finished) return;
-        var finished = race.RecordLap(playerId);
+        var finished = race.RecordLap(playerId, currentTime);
 
         if (finished)
         {
@@ -794,7 +834,7 @@ internal static class RaceManager
         var localPlayer = Player.m_localPlayer;
         if (localPlayer && localPlayer.GetZDOID() == playerId)
             localPlayer.Message(MessageHud.MessageType.Center,
-                $"P{contestant.Position}! Time: {contestant.FinishTime:F1}s");
+                $"P{contestant.Position}! Time: {RaceUtils.FormatTime(contestant.FinishTime)}");
         else if (localPlayer && race.IsRegistered(localPlayer.GetZDOID()))
             localPlayer.Message(MessageHud.MessageType.Center,
                 $"{contestant.PlayerName} finished P{contestant.Position}!");
@@ -853,5 +893,22 @@ internal static class RaceManager
 
         if (wasRegistered)
             localPlayer.Message(MessageHud.MessageType.Center, $"{race.Name} reset");
+    }
+}
+
+internal static class RaceUtils
+{
+    /// <summary>
+    /// Formats an elapsed time in seconds as "s.f s" below 60 seconds,
+    /// or "m:ss.f" once it reaches a full minute.
+    /// </summary>
+    public static string FormatTime(double seconds)
+    {
+        if (seconds < 60d)
+            return $"{seconds:F1}s";
+
+        var m = (int)seconds / 60;
+        var s = seconds % 60d;
+        return $"{m}:{s:00.0}";
     }
 }

@@ -809,17 +809,26 @@ internal class RaceAdminCommand : ConsoleCommand
         _context.AddString($"  Contestants: {race.Contestants.Count}");
 
         if (race.State == RaceState.Racing)
-            _context.AddString($"  Elapsed: {ZNet.instance.m_netTime - race.RaceStartTime:F1}s");
+            _context.AddString($"  Elapsed: {RaceUtils.FormatTime(ZNet.instance.m_netTime - race.RaceStartTime)}");
 
-        foreach (var c in race.Contestants)
+        foreach (var c in race.GetLiveRanking())
         {
-            var status = c.Finished
-                ? c.IsDnf
-                    ? $"DNF - Lap {c.CurrentLap}/{race.TotalLaps}"
-                    : $"P{c.Position} - {c.FinishTime:F1}s"
-                : race.State == RaceState.Racing
-                    ? $"Lap {c.CurrentLap}/{race.TotalLaps}"
-                    : "Registered";
+            string status;
+            if (c.IsDnf)
+            {
+                var cpInfo = c.LastCheckpointIndex > 0 ? $", CP {c.LastCheckpointIndex}" : "";
+                status = $"DNF - Lap {c.CurrentLap}/{race.TotalLaps}{cpInfo}";
+            }
+            else if (c.Finished)
+                status = $"P{c.Position} - {RaceUtils.FormatTime(c.FinishTime)}";
+            else if (race.State == RaceState.Racing)
+            {
+                var cpInfo = c.LastCheckpointIndex > 0 ? $", CP {c.LastCheckpointIndex}" : "";
+                status = $"Lap {c.CurrentLap}/{race.TotalLaps}{cpInfo} ({RaceUtils.FormatTime(c.LastCheckpointTime)})";
+            }
+            else
+                status = "Registered";
+
             _context.AddString($"    {c.PlayerName} ({c.PlayerId}): {status}");
         }
     }

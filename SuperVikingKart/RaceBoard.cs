@@ -284,17 +284,24 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
             case RaceState.Racing:
                 sb.AppendLine("<color=green>RACING</color>");
                 sb.AppendLine();
-                foreach (var c in race.Contestants)
+                foreach (var c in race.GetLiveRanking())
                 {
-                    if (c.Finished && c.IsDnf)
-                        sb.AppendLine($"  <color=red>DNF</color>  {c.PlayerName}");
-                    else if (c.Finished && c.Position > 0)
+                    if (c.IsDnf)
+                    {
+                        var cpInfo = c.LastCheckpointIndex > 0 ? $" CP {c.LastCheckpointIndex}" : "";
                         sb.AppendLine(
-                            $"  <color=yellow>P{c.Position}</color>  {c.PlayerName} - {c.FinishTime:F1}s");
+                            $"  <color=red>DNF</color>  {c.PlayerName}  (Lap {c.CurrentLap}/{race.TotalLaps}{cpInfo})");
+                    }
+                    else if (c.Finished && c.Position > 0)
+                        sb.AppendLine($"  <color=yellow>P{c.Position}</color>  {c.PlayerName} - {RaceUtils.FormatTime(c.FinishTime)}");
                     else if (c.Finished)
-                        sb.AppendLine($"  <color=yellow>Finished</color>  {c.PlayerName} - {c.FinishTime:F1}s");
+                        sb.AppendLine($"  <color=yellow>Finished</color>  {c.PlayerName} - {RaceUtils.FormatTime(c.FinishTime)}");
                     else
-                        sb.AppendLine($"  Lap {c.CurrentLap}/{race.TotalLaps}  {c.PlayerName}");
+                    {
+                        var cpInfo = c.LastCheckpointIndex > 0 ? $" CP {c.LastCheckpointIndex}" : "";
+                        sb.AppendLine(
+                            $"  Lap {c.CurrentLap}/{race.TotalLaps}{cpInfo} ({RaceUtils.FormatTime(c.LastCheckpointTime)})  {c.PlayerName}");
+                    }
                 }
 
                 break;
