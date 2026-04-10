@@ -24,6 +24,7 @@ internal class RaceContestant
     public ZDOID PlayerId;
     public bool CrossedStart;
     public int CurrentLap;
+    public int LastCheckpointIndex;
     public bool Finished;
     public int Position;
     public double FinishTime;
@@ -35,6 +36,7 @@ internal class RaceContestant
         PlayerId = playerId;
         CrossedStart = false;
         CurrentLap = 0;
+        LastCheckpointIndex = 0;
         Finished = false;
         Position = 0;
         FinishTime = 0d;
@@ -127,6 +129,7 @@ internal class Race
         var contestant = GetContestant(playerId);
         if (contestant == null || contestant.Finished) return false;
         contestant.CurrentLap++;
+        contestant.LastCheckpointIndex = 0;
         return contestant.CurrentLap > TotalLaps;
     }
 
@@ -254,6 +257,7 @@ internal static class RaceManager
         ZRoutedRpc.instance.Register<string, int>("SuperVikingKart_Race_CountdownTick", RPC_CountdownTick);
         ZRoutedRpc.instance.Register<string, double>("SuperVikingKart_Race_Go", RPC_Go);
         ZRoutedRpc.instance.Register<string, ZDOID>("SuperVikingKart_Race_CrossedStart", RPC_CrossedStart);
+        ZRoutedRpc.instance.Register<string, ZDOID, int>("SuperVikingKart_Race_Checkpoint", RPC_Checkpoint);
         ZRoutedRpc.instance.Register<string, ZDOID, double>("SuperVikingKart_Race_Lap", RPC_Lap);
         ZRoutedRpc.instance.Register<string, ZDOID>("SuperVikingKart_Race_Dnf", RPC_Dnf);
         ZRoutedRpc.instance.Register<string, ZDOID, int>("SuperVikingKart_Race_AssignPosition", RPC_AssignPosition);
@@ -318,10 +322,14 @@ internal static class RaceManager
         => ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
             "SuperVikingKart_Race_CrossedStart", raceId, playerId);
 
+    public static void SendCheckpoint(string raceId, ZDOID playerId, int index)
+        => ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
+            "SuperVikingKart_Race_Checkpoint", raceId, playerId, index);
+
     public static void SendLap(string raceId, ZDOID playerId)
         => ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
             "SuperVikingKart_Race_Lap", raceId, playerId, ZNet.instance.m_netTime);
-
+    
     public static void SendDnf(string raceId, ZDOID playerId)
         => ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody,
             "SuperVikingKart_Race_Dnf", raceId, playerId);
@@ -361,6 +369,7 @@ internal static class RaceManager
                 pkg.Write(c.PlayerId);
                 pkg.Write(c.CrossedStart);
                 pkg.Write(c.CurrentLap);
+                pkg.Write(c.LastCheckpointIndex);
                 pkg.Write(c.Finished);
                 pkg.Write(c.Position);
                 pkg.Write(c.FinishTime);
@@ -396,6 +405,7 @@ internal static class RaceManager
                 {
                     CrossedStart = pkg.ReadBool(),
                     CurrentLap = pkg.ReadInt(),
+                    LastCheckpointIndex = pkg.ReadInt(),
                     Finished = pkg.ReadBool(),
                     Position = pkg.ReadInt(),
                     FinishTime = pkg.ReadDouble(),
@@ -677,7 +687,40 @@ internal static class RaceManager
 
         SuperVikingKart.DebugLog($"Race [{raceId}] - {contestant.PlayerName} crossed start line");
     }
+    
+    /// <summary>
+    /// Runs on all peers. Validates and records a checkpoint crossing for a contestant,
+    /// enforcing sequential order — checkpoint N is only accepted if the previous
+    /// checkpoint N-1 was already crossed this lap. Shows a confirmation message to
+    /// the crossing player, or a missed-checkpoint warning if the sequence is broken.
+    /// </summary>
+    private static void RPC_Checkpoint(long sender, string raceId, ZDOID playerId, int index)
+    {
+        var race = GetRace(raceId);
+        if (race == null || race.State != RaceState.Racing) return;
+        var contestant = race.GetContestant(playerId);
+        if (contestant == null || contestant.Finished) return;
 
+        if (contestant.LastCheckpointIndex != index - 1)
+        {
+            var localPlayer = Player.m_localPlayer;
+            if (localPlayer && localPlayer.GetZDOID() == playerId)
+                localPlayer.Message(MessageHud.MessageType.Center,
+                    $"Missed checkpoint {contestant.LastCheckpointIndex + 1}!");
+            return;
+        }
+
+        contestant.LastCheckpointIndex = index;
+        OnRaceChanged?.Invoke(raceId);
+
+        var local = Player.m_localPlayer;
+        if (local && local.GetZDOID() == playerId)
+            local.Message(MessageHud.MessageType.Center, $"Checkpoint {index}!");
+
+        SuperVikingKart.DebugLog(
+            $"Race [{raceId}] - {contestant.PlayerName} checkpoint {index}");
+    }
+    
     /// <summary>
     /// Runs on all peers. Increments the contestant's lap count each time they cross
     /// the finish line. On the final lap, records the finish time. The server then
@@ -789,7 +832,7 @@ internal static class RaceManager
 
     /// <summary>
     /// Runs on all peers. Clears all contestants and resets the race to Idle state,
-    /// notifying the local player regardless of whether they were registered.
+    /// notifying the local player if they were registered.
     /// </summary>
     private static void RPC_Reset(long sender, string raceId)
     {

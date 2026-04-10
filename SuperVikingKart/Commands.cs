@@ -330,7 +330,7 @@ internal class RaceAdminCommand : ConsoleCommand
         {
             "create", "remove", "addplayer", "setname",
             "setlaps", "forcestart", "forcereset",
-            "lap", "finish", "state"
+            "checkpoint", "lap", "finish", "state"
         };
     }
 
@@ -426,6 +426,16 @@ internal class RaceAdminCommand : ConsoleCommand
                 }
 
                 ForceReset(args[1]);
+                break;
+
+            case "checkpoint":
+                if (args.Length < 3)
+                {
+                    context.AddString("Usage: svk_race_admin checkpoint <raceId> <checkpointIndex> [playerName]");
+                    return;
+                }
+
+                SimulateCheckpoint(args);
                 break;
 
             case "lap":
@@ -639,6 +649,55 @@ internal class RaceAdminCommand : ConsoleCommand
         RaceManager.SendState(raceId, RaceState.Finished);
         RaceManager.SendReset(raceId);
         _context.AddString($"Race [{raceId}] force reset");
+    }
+
+    /// <summary>
+    /// Simulates a checkpoint passing for a player. Uses local player if no name given.
+    /// </summary>
+    private void SimulateCheckpoint(string[] args)
+    {
+        var raceId = args[1];
+        var race = RaceManager.GetRace(raceId);
+        if (race == null)
+        {
+            _context.AddString($"Race [{raceId}] not found");
+            return;
+        }
+
+        if (race.State != RaceState.Racing)
+        {
+            _context.AddString($"Race [{raceId}] is not racing (State: {race.State})");
+            return;
+        }
+
+        if (!int.TryParse(args[2], out var checkpointIndex) || checkpointIndex < 0)
+        {
+            _context.AddString("Invalid checkpoint index");
+            return;
+        }
+
+        var player = args.Length > 3 ? FindPlayerByName(args[3]) : Player.m_localPlayer;
+        if (player == null)
+        {
+            _context.AddString(args.Length > 3 ? $"Player '{args[3]}' not found" : "No local player");
+            return;
+        }
+
+        var contestant = race.GetContestant(player.GetZDOID());
+        if (contestant == null)
+        {
+            _context.AddString($"Player '{player.GetPlayerName()}' not in race [{raceId}]");
+            return;
+        }
+
+        if (contestant.Finished)
+        {
+            _context.AddString($"Player '{player.GetPlayerName()}' already finished");
+            return;
+        }
+
+        RaceManager.SendCheckpoint(raceId, player.GetZDOID(), checkpointIndex);
+        _context.AddString($"Checkpoint {checkpointIndex} recorded for {player.GetPlayerName()}");
     }
 
     /// <summary>

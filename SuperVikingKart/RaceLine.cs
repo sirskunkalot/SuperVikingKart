@@ -10,7 +10,8 @@ internal enum RaceLineRole
 {
     StartFinish = 0,
     Start = 1,
-    Finish = 2
+    Finish = 2,
+    Checkpoint = 3
 }
 
 /// <summary>
@@ -21,6 +22,7 @@ internal class RaceLineComponent : MonoBehaviour, Hoverable, Interactable
     // --- ZDO Keys ---
     private const string ZdoKeyRaceId = "SuperVikingKart_RaceLine_RaceId";
     private const string ZdoKeyRole = "SuperVikingKart_RaceLine_Role";
+    private const string ZdoKeyCheckpointIndex = "SuperVikingKart_RaceLine_CheckpointIndex";
 
     // --- Cooldown ---
     private const float CooldownSeconds = 3f;
@@ -61,7 +63,7 @@ internal class RaceLineComponent : MonoBehaviour, Hoverable, Interactable
     {
         RaceManager.OnRaceChanged -= OnRaceChanged;
     }
-    
+
     private void OnRaceChanged(string raceId)
     {
         if (raceId == GetRaceId())
@@ -80,6 +82,10 @@ internal class RaceLineComponent : MonoBehaviour, Hoverable, Interactable
             _cooldowns.Remove(id);
     }
 
+    /// <summary>
+    /// Update the race label depending on if a race is configured and found.
+    /// Show the name and the role.
+    /// </summary>
     private void UpdateLabel()
     {
         if (!Label)
@@ -185,36 +191,45 @@ internal class RaceLineComponent : MonoBehaviour, Hoverable, Interactable
                 if (contestant.CrossedStart)
                     RaceManager.SendLap(raceId, playerId);
                 break;
+            case RaceLineRole.Checkpoint:
+                if (contestant.CrossedStart)
+                {
+                    RaceManager.SendCheckpoint(raceId, playerId, GetCheckpointIndex());
+                }
+                break;
         }
     }
 
     // --- Configure (called by RaceLineAdminGui on confirm) ---
 
-    public void Configure(string raceId, RaceLineRole role)
+    public void Configure(string raceId, RaceLineRole role, int checkpointIndex = 1)
     {
         // Claim ZDO ownership and persist config locally
         _netView.ClaimOwnership();
         _netView.GetZDO().Set(ZdoKeyRaceId, raceId);
         _netView.GetZDO().Set(ZdoKeyRole, (int)role);
-        
+        _netView.GetZDO().Set(ZdoKeyCheckpointIndex, checkpointIndex);
+
         // Update label
         UpdateLabel();
 
-        SuperVikingKart.DebugLog($"RaceLine - Configured [{raceId}] {role}");
+        SuperVikingKart.DebugLog($"RaceLine - Configured [{raceId}] {role}" +
+                                 (role == RaceLineRole.Checkpoint ? $" #{checkpointIndex}" : ""));
     }
 
     // --- ZDO Accessors ---
 
     public string GetRaceId()
-    {
-        return _netView?.GetZDO()?.GetString(ZdoKeyRaceId) ?? "";
-    }
+        => _netView?.GetZDO()?.GetString(ZdoKeyRaceId) ?? "";
 
     public RaceLineRole GetRole()
     {
         var roleInt = _netView?.GetZDO()?.GetInt(ZdoKeyRole) ?? 0;
         return (RaceLineRole)roleInt;
     }
+
+    public int GetCheckpointIndex()
+        => _netView?.GetZDO()?.GetInt(ZdoKeyCheckpointIndex) ?? 1;
 
     // --- Hoverable / Interactable ---
 
@@ -287,6 +302,8 @@ internal static class RaceLineAdminGui
     private static RaceLineComponent _currentLine;
     private static InputField _raceIdField;
     private static Dropdown _roleDropdown;
+    private static InputField _checkpointIndexField;
+    private static GameObject _checkpointIndexRow;
 
     public static void Build()
     {
@@ -304,7 +321,7 @@ internal static class RaceLineAdminGui
             anchorMin: new Vector2(0.5f, 0.5f),
             anchorMax: new Vector2(0.5f, 0.5f),
             position: Vector2.zero,
-            width: 420f, height: 210f,
+            width: 420f, height: 240f,
             draggable: true);
         _panel.SetActive(false);
 
@@ -315,7 +332,7 @@ internal static class RaceLineAdminGui
         layout.childForceExpandHeight = false;
         layout.childAlignment = TextAnchor.UpperLeft;
 
-        // ----- Title -----
+        // Title
         var title = GUIManager.Instance.CreateText(
             "Configure Race Line", _panel.transform,
             new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), Vector2.zero,
@@ -327,11 +344,11 @@ internal static class RaceLineAdminGui
         titleLE.minHeight = 30f;
         titleLE.flexibleHeight = 0f;
 
-        // ----- Race ID -----
+        // Race ID
         AddLabeledField("Race ID", out _raceIdField,
             InputField.ContentType.Standard, "meadows_gp", fieldHeight: 30f);
 
-        // ----- Role -----
+        // Role
         var roleRow = new GameObject("RoleRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         roleRow.transform.SetParent(_panel.transform, false);
         var roleRowLE = roleRow.AddComponent<LayoutElement>();
@@ -370,9 +387,21 @@ internal static class RaceLineAdminGui
         dropdownLE.flexibleHeight = 0f;
         _roleDropdown = dropdownGo.GetComponent<Dropdown>();
         _roleDropdown.ClearOptions();
-        _roleDropdown.AddOptions(new List<string> { "StartFinish", "Start", "Finish" });
+        _roleDropdown.AddOptions(new List<string> { "StartFinish", "Start", "Finish", "Checkpoint" });
 
-        // ----- Buttons -----
+        // Checkpoint Index
+        AddLabeledField("Checkpoint #", out _checkpointIndexField,
+            InputField.ContentType.IntegerNumber, "1", fieldHeight: 30f);
+        _checkpointIndexRow = _checkpointIndexField.transform.parent.gameObject;
+
+        // Show/hide the checkpoint index field based on the selected role
+        _roleDropdown.onValueChanged.AddListener(value =>
+        {
+            _checkpointIndexRow.SetActive((RaceLineRole)value == RaceLineRole.Checkpoint);
+        });
+        _checkpointIndexRow.SetActive(false);
+
+        // Buttons
         var buttonRow = new GameObject("ButtonRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         buttonRow.transform.SetParent(_panel.transform, false);
         var buttonRowLE = buttonRow.AddComponent<LayoutElement>();
@@ -422,6 +451,8 @@ internal static class RaceLineAdminGui
         _raceIdField.text = line.GetRaceId();
         _roleDropdown.value = (int)line.GetRole();
         _roleDropdown.RefreshShownValue();
+        _checkpointIndexField.text = line.GetCheckpointIndex().ToString();
+        _checkpointIndexRow.SetActive(line.GetRole() == RaceLineRole.Checkpoint);
         _panel.SetActive(true);
         GUIManager.BlockInput(true);
         SuperVikingKart.DebugLog("RaceLineAdminGui - Opened");
@@ -452,7 +483,18 @@ internal static class RaceLineAdminGui
         }
 
         var role = (RaceLineRole)_roleDropdown.value;
-        _currentLine.Configure(raceId, role);
+
+        var checkpointIndex = 1;
+        if (role == RaceLineRole.Checkpoint)
+        {
+            if (!int.TryParse(_checkpointIndexField.text, out checkpointIndex) || checkpointIndex < 1)
+            {
+                SuperVikingKart.DebugLog("RaceLineAdminGui - Validation failed: invalid checkpoint index");
+                return;
+            }
+        }
+
+        _currentLine.Configure(raceId, role, checkpointIndex);
         SuperVikingKart.DebugLog($"RaceLineAdminGui - Configured [{raceId}] Role: {role}");
         Close();
     }
