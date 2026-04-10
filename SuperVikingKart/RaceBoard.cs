@@ -124,6 +124,7 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
     private const string ZdoKeyLaps = "SuperVikingKart_RaceBoard_Laps";
     private const string ZdoKeyDescription = "SuperVikingKart_RaceBoard_Description";
     private const string ZdoKeyHideButtons = "SuperVikingKart_RaceBoard_HideButtons";
+    private const string ZdoKeyHideDescription = "SuperVikingKart_RaceBoard_HideDescription";
 
     public TMPro.TextMeshPro StatusDisplay;
     public RaceBoardButton RegisterButton;
@@ -259,7 +260,7 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
         sb.AppendLine($"<b>{race.Name}</b>");
         sb.AppendLine($"{race.TotalLaps} {(race.TotalLaps == 1 ? "lap" : "laps")}");
 
-        if (!string.IsNullOrWhiteSpace(race.Description))
+        if (!GetHideDescription() && !string.IsNullOrWhiteSpace(race.Description))
         {
             sb.AppendLine();
             sb.AppendLine($"<color=#aaaaaa><i>{race.Description}</i></color>");
@@ -293,9 +294,11 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
                             $"  <color=red>DNF</color>  {c.PlayerName}  (Lap {c.CurrentLap}/{race.TotalLaps}{cpInfo})");
                     }
                     else if (c.Finished && c.Position > 0)
-                        sb.AppendLine($"  <color=yellow>P{c.Position}</color>  {c.PlayerName} - {RaceUtils.FormatTime(c.FinishTime)}");
+                        sb.AppendLine(
+                            $"  <color=yellow>P{c.Position}</color>  {c.PlayerName} - {RaceUtils.FormatTime(c.FinishTime)}");
                     else if (c.Finished)
-                        sb.AppendLine($"  <color=yellow>Finished</color>  {c.PlayerName} - {RaceUtils.FormatTime(c.FinishTime)}");
+                        sb.AppendLine(
+                            $"  <color=yellow>Finished</color>  {c.PlayerName} - {RaceUtils.FormatTime(c.FinishTime)}");
                     else
                     {
                         var cpInfo = c.LastCheckpointIndex > 0 ? $" CP {c.LastCheckpointIndex}" : "";
@@ -451,7 +454,8 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
     /// RaceManager via RPCs. Called by RaceBoardAdminGui when the player
     /// confirms the admin panel.
     /// </summary>
-    public void Configure(string raceId, string name, int laps, string description, bool hideButtons)
+    public void Configure(string raceId, string name, int laps, string description, bool hideButtons,
+        bool hideDescription)
     {
         _netView.ClaimOwnership();
         _netView.GetZDO().Set(ZdoKeyRaceId, raceId);
@@ -459,23 +463,27 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
         _netView.GetZDO().Set(ZdoKeyLaps, laps);
         _netView.GetZDO().Set(ZdoKeyDescription, description);
         _netView.GetZDO().Set(ZdoKeyHideButtons, hideButtons);
+        _netView.GetZDO().Set(ZdoKeyHideDescription, hideDescription);
 
-        // Apply that directly, since it is per instance and does not need 
-        // to be broadcasted
         ApplyHideButtons();
+        UpdateStatusDisplay();
 
         var existing = RaceManager.GetRace(raceId);
         if (existing == null)
+        {
             RaceManager.SendCreateRace(raceId, name, laps, description);
+        }
         else
         {
-            RaceManager.SendSetName(raceId, name);
-            RaceManager.SendSetLaps(raceId, laps);
-            RaceManager.SendSetDescription(raceId, description);
-        }
+            if (existing.Name != name)
+                RaceManager.SendSetName(raceId, name);
 
-        SuperVikingKart.DebugLog(
-            $"RaceBoard - Configured [{raceId}] \"{name}\" ({laps} laps) hideButtons={hideButtons}");
+            if (existing.TotalLaps != laps)
+                RaceManager.SendSetLaps(raceId, laps);
+
+            if (existing.Description != description)
+                RaceManager.SendSetDescription(raceId, description);
+        }
     }
 
     public string GetRaceId() => _netView?.GetZDO()?.GetString(ZdoKeyRaceId) ?? "";
@@ -483,6 +491,7 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
     public int GetLaps() => _netView?.GetZDO()?.GetInt(ZdoKeyLaps, 1) ?? 1;
     public string GetDescription() => _netView?.GetZDO()?.GetString(ZdoKeyDescription) ?? "";
     public bool GetHideButtons() => _netView?.GetZDO()?.GetBool(ZdoKeyHideButtons, false) ?? false;
+    public bool GetHideDescription() => _netView?.GetZDO()?.GetBool(ZdoKeyHideDescription, false) ?? false;
 
     public string GetHoverText()
     {
@@ -514,6 +523,7 @@ internal static class RaceBoardAdminGui
     private static InputField _lapsField;
     private static InputField _descriptionField;
     private static Toggle _hideButtonsToggle;
+    private static Toggle _hideDescriptionToggle;
 
     /// <summary>
     /// Constructs the panel hierarchy and wires up button listeners.
@@ -536,7 +546,7 @@ internal static class RaceBoardAdminGui
             anchorMax: new Vector2(0.5f, 0.5f),
             position: Vector2.zero,
             width: 420f,
-            height: 360f,
+            height: 390f,
             draggable: true);
         _panel.SetActive(false);
 
@@ -581,6 +591,7 @@ internal static class RaceBoardAdminGui
             fieldHeight: 60f, multiLine: true);
 
         AddToggleRow("Hide Buttons", out _hideButtonsToggle);
+        AddToggleRow("Hide Desc.", out _hideDescriptionToggle);
 
         // Cancel / Confirm buttons
         var buttonRow = new GameObject("ButtonRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
@@ -643,6 +654,7 @@ internal static class RaceBoardAdminGui
         _lapsField.text = board.GetLaps().ToString();
         _descriptionField.text = board.GetDescription();
         _hideButtonsToggle.isOn = board.GetHideButtons();
+        _hideDescriptionToggle.isOn = board.GetHideDescription();
         _panel.SetActive(true);
         GUIManager.BlockInput(true);
         SuperVikingKart.DebugLog("RaceBoardAdminGui - Opened");
@@ -703,8 +715,9 @@ internal static class RaceBoardAdminGui
 
         var description = _descriptionField.text;
         var hideButtons = _hideButtonsToggle.isOn;
+        var hideDescription = _hideDescriptionToggle.isOn;
 
-        _currentBoard.Configure(raceId, name, laps, description, hideButtons);
+        _currentBoard.Configure(raceId, name, laps, description, hideButtons, hideDescription);
         Close();
     }
 

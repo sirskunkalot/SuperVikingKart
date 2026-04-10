@@ -95,7 +95,7 @@ Three types of collectible blocks that apply effects when a kart drives through 
 
 Build a **Race Board** from the Hammer under the Misc category to configure and manage a race. The board displays live race status including registered players, lap progress, finish times, and final results.
 
-Interact with the **Admin** button to open the configuration panel and set the Race ID, display name, lap count, and description. You can also toggle **Hide Buttons** to remove the button row from the board - useful for display-only boards showing live stats at spectator spots. Just remember to configure the board completely before since the admin button will be gone too. You can have multiple boards with the same Race ID which will connect them all to the same race.
+Interact with the **Admin** button to open the configuration panel and set the Race ID, display name, lap count, and description. You can also toggle **Hide Buttons** to remove the button row from the board - useful for display-only boards showing live stats at spectator spots. Just remember to configure the board completely before since the admin button will be gone too. The **Hide Desc.** toggle lets you hide the description from the board - also useful for display-only boards showing only the race name, laps and live statistics. You can have multiple boards with the same Race ID which will connect them all to the same race.
 
 Any player can use the **Register** button to sign up or leave. Any player can press **Start** once at least one contestant is registered, or **Reset** to return the race to idle.
 
@@ -103,11 +103,13 @@ Any player can use the **Register** button to sign up or leave. Any player can p
 
 ![Race Line Image](https://raw.githubusercontent.com/sirskunkalot/SuperVikingKart/refs/heads/master/resources/raceline.png)
 
-Build a **Race Line** from the Hammer under the Misc category to place start, finish, or combined start/finish lines. An arrow on the ground indicates the valid crossing direction - the line only registers crossings made in that direction.
+Build a **Race Line** from the Hammer under the Misc category to place start, finish, combined start/finish, or checkpoint lines. An arrow on the ground indicates the valid crossing direction - the line only registers crossings made in that direction.
 
-Admins can interact with the Race Line to set its Race ID and role: **Start**, **Finish**, or **StartFinish**.
+Admins can interact with the Race Line to set its Race ID and role: **Start**, **Finish**, **StartFinish**, or **Checkpoint**.
 
 When a kart crosses a Start or StartFinish line for the first time, the kart is registered as started. Subsequent crossings of the Finish or StartFinish line record a lap. A 3-second cooldown per player prevents the same crossing from counting twice.
+
+Checkpoint lines must be crossed in order each lap. If a contestant crosses a checkpoint out of sequence, they receive a warning and the crossing is not counted. Checkpoint progress resets at the start of each new lap.
 
 ### Races
 When a race starts, a 3-second countdown is broadcast to all registered contestants as a centre-screen message, followed by "GO!". Lap progress and finish times are tracked on the Race Board in real time. Finishing positions use dense ranking - players with the same finish time share a position so a puller/rider group is always recorded together.
@@ -148,13 +150,18 @@ For tracks with separate start and finish points, place two Race Lines with the 
 
 The kart must cross the Start line before any Finish crossings are counted.
 
-### 5. Multi-lap races
+### 5. Adding checkpoints (optional)
+Place one or more Race Lines with **Role** `Checkpoint` along the track. Each checkpoint must be assigned a unique **Checkpoint #** in the admin panel, starting at 1 and incrementing for each subsequent checkpoint.
+
+Checkpoints must be crossed in order - crossing checkpoint 2 without having crossed checkpoint 1 first will show a warning and not count. Checkpoint progress resets at the start of each new lap.
+
+### 6. Multi-lap races
 Set the **Laps** field on the Race Board to the number of finish line crossings required. The board shows each contestant's current lap and updates in real time.
 
-### 6. Register and start
+### 7. Register and start
 Players interact with the **Register** button to sign up, then any player presses **Start** when everyone is ready.
 
-### 7. Verify your setup
+### 8. Verify your setup
 If something isn't working, these commands can help:
 - `svk_race list` - confirm the race exists and is in the Idle state
 - `svk_race_admin state meadows_gp` - show full race state including all contestants
@@ -185,7 +192,7 @@ All admin commands require devcommands.
 |---|---|
 | `svk_buff list` | Print all available effects with their targets and types. |
 | `svk_buff <name>` | Force-apply a specific buff or debuff to the local player. |
-| `svk_race_admin create <raceId> [laps] [name]` | Create a new race. |S
+| `svk_race_admin create <raceId> [laps] [name]` | Create a new race. |
 | `svk_race_admin remove <raceId>` | Remove a race entirely. |
 | `svk_race_admin addplayer <raceId> <playerName>` | Add a connected player to a race by name. |
 | `svk_race_admin setname <raceId> <name>` | Rename a race. |
