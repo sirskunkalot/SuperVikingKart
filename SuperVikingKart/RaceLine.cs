@@ -105,7 +105,8 @@ internal class RaceLineComponent : MonoBehaviour, Hoverable, Interactable
             return;
         }
 
-        Label.text = $"{race.Name} ({GetRole()})";
+        Label.text =
+            $"{race.Name} ({GetRole()}{(GetRole() == RaceLineRole.Checkpoint ? " " + GetCheckpointIndex() : "")})";
     }
 
     /// <summary>
@@ -196,6 +197,7 @@ internal class RaceLineComponent : MonoBehaviour, Hoverable, Interactable
                 {
                     RaceManager.SendCheckpoint(raceId, playerId, GetCheckpointIndex());
                 }
+
                 break;
         }
     }
