@@ -17,7 +17,7 @@ internal class SuperVikingKart : BaseUnityPlugin
 {
     public const string PluginGUID = "de.sirskunkalot.SuperVikingKart";
     public const string PluginName = "SuperVikingKart";
-    public const string PluginVersion = "0.0.1";
+    public const string PluginVersion = "0.0.2";
 
     public const string KartPrefabName = "SuperVikingKart";
     public static readonly int KartPrefabHash = KartPrefabName.GetStableHashCode();
