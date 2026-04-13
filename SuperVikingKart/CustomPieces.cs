@@ -257,8 +257,8 @@ internal static class RaceBoardPiece
         tmp.rectTransform.pivot = new Vector2(0.5f, 0.5f);
         tmp.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
         tmp.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-        tmp.rectTransform.sizeDelta = new Vector2(2.1f, 2.7f);
-        tmp.rectTransform.anchoredPosition3D = new Vector3(0.05f, 2.4f, -0.06f);
+        tmp.rectTransform.sizeDelta = new Vector2(2f, 2.7f);
+        tmp.rectTransform.anchoredPosition3D = new Vector3(0.0f, 2.4f, -0.06f);
 
         // Buttons
         var buttonRow = new GameObject("ButtonRow");
