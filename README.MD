@@ -95,7 +95,7 @@ Three types of collectible blocks that apply effects when a kart drives through 
 
 Build a **Race Board** from the Hammer under the Misc category to configure and manage a race. The board displays live race status including registered players, lap progress, finish times, and final results.
 
-Interact with the **Admin** button to open the configuration panel and set the Race ID, display name, lap count, and description. You can also toggle **Hide Buttons** to remove the button row from the board - useful for display-only boards showing live stats at spectator spots. Just remember to configure the board completely before since the admin button will be gone too. The **Hide Desc.** toggle lets you hide the description from the board - also useful for display-only boards showing only the race name, laps and live statistics. You can have multiple boards with the same Race ID which will connect them all to the same race.
+Interact with the **Admin** button to open the configuration panel and set the Race ID, display name, lap count, and description. You can also toggle **Hide Buttons** to remove the button row from the board - useful for display-only boards showing live stats at spectator spots. Just remember to configure the board completely before since the admin button will be gone too. The **Hide Desc.** toggle lets you hide the description from the board - also useful for display-only boards showing only the race name, laps and live statistics. The **Hide Status** toggle lets you hide the status info on the board - race status, player information, etc. This is useful for boards that should act as description only boards for example. You can have multiple boards with the same Race ID which will connect them all to the same race.
 
 Any player can use the **Register** button to sign up or leave. Any player can press **Start** once at least one contestant is registered, or **Reset** to return the race to idle.
 
@@ -207,13 +207,16 @@ All admin commands require devcommands.
 ## Configuration
 Configuration is found in `<Valheim>\BepInEx\configs\de.sirskunkalot.SuperVikingKart.cfg` after starting the game once with the mod installed.
 
-| Key | Description | Range | Default |
-|---|---|---|---|
-| CartRespawnTime | Time in seconds before a destroyed kart respawns. Server synced. | 2-20 | 10 |
+| Key                  | Description | Range | Default |
+|----------------------|---|---|---|
+| KartRespawnTime      | Time in seconds before a destroyed kart respawns. Server synced. | 2-20 | 10 |
 | BuffBlockRespawnTime | Time in seconds before a collected buff block reappears. Server synced. | 2-20 | 10 |
-| Debug | Enable verbose debug logging. | - | false |
+| Debug                | Enable verbose debug logging. | - | false |
 
 ## Changelog
+### v0.0.2
+- Added option to hide the status from a board.
+- Fixed board text display size
 ### v0.0.1
 - Initial release
 
