@@ -214,8 +214,10 @@ Configuration is found in `<Valheim>\BepInEx\configs\de.sirskunkalot.SuperViking
 | Debug                | Enable verbose debug logging. | - | false |
 
 ## Changelog
+### v0.0.3
+- Fixed position assignment and race finishing logic on servers
 ### v0.0.2
-- Added option to hide the status from a board.
+- Added option to hide the status from a board
 - Fixed board text display size
 ### v0.0.1
 - Initial release
