@@ -276,12 +276,16 @@ internal static class RaceBoardPiece
 
         // Collider
         var placementCollider = prefab.AddComponent<BoxCollider>();
-        placementCollider.center = new Vector3(0f, 0.05f, 0f);
-        placementCollider.size = new Vector3(2.5f, 0.01f, 0.2f);
+        placementCollider.center = Vector3.zero;
+        placementCollider.size = new Vector3(0.01f, 0.01f, 0.01f);
+
+        var boardCollider = prefab.AddComponent<BoxCollider>();
+        boardCollider.center = new Vector3(0f, 2.6f, 0f);
+        boardCollider.size = new Vector3(2.4f, 2.8f, 0.1f);
 
         var interactCollider = prefab.AddComponent<BoxCollider>();
-        interactCollider.center = new Vector3(0f, 2f, 0f);
-        interactCollider.size = new Vector3(2.5f, 4f, 0.2f);
+        interactCollider.center = new Vector3(0f, 2.6f, 0f);
+        interactCollider.size = new Vector3(2.4f, 2.8f, 0.1f);
         interactCollider.isTrigger = true;
 
         // RaceBoardComponent
