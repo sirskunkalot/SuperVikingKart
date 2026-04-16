@@ -445,7 +445,7 @@ internal static class RaceLinePiece
         var placeGo = new GameObject("PlaceCollider");
         placeGo.transform.SetParent(prefab.transform, false);
         var snapCol = placeGo.AddComponent<BoxCollider>();
-        snapCol.center = new Vector3(3f, 0f, 0f);
+        snapCol.center = Vector3.zero;
         snapCol.size = new Vector3(6f, 0.001f, 0.001f);
 
         // Trigger collider
