@@ -213,7 +213,21 @@ internal class BuffBlockComponent : MonoBehaviour
         }
 
         var kartId = kartNetView.GetZDO().m_uid;
-        var buffIndex = Random.Range(0, ActiveEffects.Length);
+
+        var rider = kart.GetRiderZDOID();
+        var effectPool = (rider == ZDOID.None)
+            ? ActiveEffects.Where(b => b.Target == BuffTarget.Puller || b.Target == BuffTarget.Both).ToArray()
+            : ActiveEffects;
+
+        if (effectPool.Length == 0)
+        {
+            SuperVikingKart.DebugLog("BuffBlock - No valid effects for current kart state, aborting");
+            return;
+        }
+
+        // Map back to the index in ActiveEffects so the RPC stays consistent
+        var chosen = effectPool[Random.Range(0, effectPool.Length)];
+        var buffIndex = System.Array.IndexOf(ActiveEffects, chosen);
 
         SuperVikingKart.DebugLog(
             $"BuffBlock - Requesting collection! Effect: {ActiveEffects[buffIndex].Name} (index: {buffIndex}), kartId: {kartId}");
