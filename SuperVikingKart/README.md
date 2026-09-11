@@ -214,6 +214,8 @@ Configuration is found in `<Valheim>\BepInEx\configs\de.sirskunkalot.SuperViking
 | Debug                | Enable verbose debug logging. | - | false |
 
 ## Changelog
+### v0.0.5
+- Compatible with Valheim 1.0.7
 ### v0.0.4
 - Buffs for Rider are only applied when there is an actual rider on the kart
 ### v0.0.3

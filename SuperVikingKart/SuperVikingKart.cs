@@ -11,13 +11,13 @@ using UnityEngine;
 namespace SuperVikingKart;
 
 [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
-[BepInDependency(Jotunn.Main.ModGuid,"2.29.0")]
+[BepInDependency(Jotunn.Main.ModGuid,"2.30.0")]
 [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod, VersionStrictness.Minor)]
 internal class SuperVikingKart : BaseUnityPlugin
 {
     public const string PluginGUID = "de.sirskunkalot.SuperVikingKart";
     public const string PluginName = "SuperVikingKart";
-    public const string PluginVersion = "0.0.4";
+    public const string PluginVersion = "0.0.5";
 
     public const string KartPrefabName = "SuperVikingKart";
     public static readonly int KartPrefabHash = KartPrefabName.GetStableHashCode();
