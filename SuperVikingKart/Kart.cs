@@ -378,6 +378,8 @@ internal class SuperVikingKartComponent : MonoBehaviour, Hoverable, Interactable
     }
 
     public string GetHoverName() => Name;
+    
+    public float GetHoverOffset() => 0f;
 
     // --- Utility ---
 
@@ -514,6 +516,7 @@ internal class KartRespawnComponent : MonoBehaviour, Hoverable
 
     public string GetHoverText() => $"Kart respawning in {Mathf.CeilToInt(_timeRemaining)}s";
     public string GetHoverName() => "Kart Respawn";
+    public float GetHoverOffset() => 0f;
 }
 
 /// <summary>

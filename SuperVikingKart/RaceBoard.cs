@@ -109,6 +109,8 @@ internal class RaceBoardButton : MonoBehaviour, Hoverable, Interactable
             ? "<color=grey>Nothing to reset</color>"
             : "[<color=yellow><b>$KEY_Use</b></color>] Reset Race";
     }
+    
+    public float GetHoverOffset() => 0f;
 }
 
 /// <summary>
@@ -512,6 +514,7 @@ internal class RaceBoardComponent : MonoBehaviour, Hoverable
     }
 
     public string GetHoverName() => "Race Board";
+    public float GetHoverOffset() => 0f;
 }
 
 /// <summary>
